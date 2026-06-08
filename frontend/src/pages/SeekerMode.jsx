@@ -106,6 +106,7 @@ export default function SeekerMode() {
             savedJdText={evalJdText}
             onResultChange={setEvalResult}
             onJdTextChange={setEvalJdText}
+            onTrack={(app) => setApplications(prev => [...prev, { ...app, jobId: app.id }])}
           />
         )}
         {tab === 'jobs' && (

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Cpu, AlertTriangle, CheckCircle, TrendingUp, DollarSign, Star, BookmarkPlus, ChevronDown, ChevronUp, Zap, Lock, RefreshCw } from 'lucide-react'
-import { api } from '../lib/api'
+import { api, createApplication } from '../lib/api'
 import { getSessionId } from '../lib/session'
 
 const GRADE_CONFIG = {
@@ -40,12 +40,14 @@ function UsageBar({ used, limit }) {
   )
 }
 
-export default function JDEvaluator({ profile, savedResult, savedJdText, onResultChange, onJdTextChange }) {
+export default function JDEvaluator({ profile, savedResult, savedJdText, onResultChange, onJdTextChange, onTrack }) {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState(null)
   const [limitHit, setLimitHit] = useState(false)
   const [usage, setUsage]       = useState(null)
   const [expanded, setExpanded] = useState({ match: true, gaps: true, flags: false, salary: false })
+  const [tracking, setTracking]   = useState(false)
+  const [tracked, setTracked]     = useState(false)
 
   useEffect(() => { loadUsage() }, [])
 
@@ -123,7 +125,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, onResul
       {limitHit && (
         <div className="card border-2 border-gray-900 text-center py-8">
           <Lock size={28} className="mx-auto mb-3 text-gray-400" />
-          <div className="font-medium text-gray-900 mb-1">You've used your 3 free evaluations</div>
+          <div className="font-medium text-gray-900 mb-1">You've used your 2 free evaluations</div>
           <p className="text-sm text-gray-500 mb-4 max-w-sm mx-auto">
             Upgrade to Pro for unlimited JD evaluations, CV tailoring per role, and STAR interview prep stories.
           </p>
@@ -339,9 +341,38 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, onResul
             <div className="section-label">Next step</div>
             <p className="text-sm text-gray-600 mb-3">{result.recommended_action_reason}</p>
             {(result.recommended_action === 'apply_now' || result.recommended_action === 'apply_with_tailoring') && (
-              <button className="btn-primary text-sm">
-                <BookmarkPlus size={14} />Add to tracker
-              </button>
+              tracked ? (
+                <span className="badge-green flex items-center gap-1 text-sm px-4 py-2 rounded-lg">
+                  <CheckCircle size={14} />Added to tracker
+                </span>
+              ) : (
+                <button
+                  className="btn-primary text-sm"
+                  disabled={tracking}
+                  onClick={async () => {
+                    setTracking(true)
+                    try {
+                      const { data } = await createApplication({
+                        session_id: getSessionId(),
+                        job_title: result.role_summary?.split('.')[0]?.slice(0, 80) || 'Job from evaluation',
+                        company: 'From JD evaluation',
+                        location: profile?.location || '',
+                        match_score: result.grade === 'A' ? 95 : result.grade === 'B' ? 80 : result.grade === 'C' ? 60 : 40,
+                        notes: result.recommended_action_reason || ''
+                      })
+                      setTracked(true)
+                      if (onTrack) onTrack(data)
+                    } catch { }
+                    setTracking(false)
+                  }}
+                >
+                  {tracking
+                    ? <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                    : <BookmarkPlus size={14} />
+                  }
+                  Add to tracker
+                </button>
+              )
             )}
           </div>
         </>
