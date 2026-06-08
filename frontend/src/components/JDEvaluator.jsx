@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Cpu, AlertTriangle, CheckCircle, TrendingUp, DollarSign, Star, BookmarkPlus, ChevronDown, ChevronUp } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Cpu, AlertTriangle, CheckCircle, TrendingUp, DollarSign, Star, BookmarkPlus, ChevronDown, ChevronUp, Zap, Lock } from 'lucide-react'
 import { api } from '../lib/api'
 import { getSessionId } from '../lib/session'
 
@@ -24,12 +24,42 @@ function formatSalary(n) {
   return `₹${(n/1000).toFixed(0)}K`
 }
 
+function UsageBar({ used, limit }) {
+  const remaining = Math.max(0, limit - used)
+  const pct = Math.min(100, (used / limit) * 100)
+  const color = remaining === 0 ? 'bg-red-500' : remaining === 1 ? 'bg-amber-500' : 'bg-green-500'
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+        <div className={`h-1.5 rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className={`text-xs font-medium ${remaining === 0 ? 'text-red-600' : 'text-gray-500'}`}>
+        {remaining} / {limit} left
+      </span>
+    </div>
+  )
+}
+
 export default function JDEvaluator({ profile }) {
-  const [jdText, setJdText] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState(null)
-  const [error, setError] = useState(null)
+  const [jdText, setJdText]     = useState('')
+  const [loading, setLoading]   = useState(false)
+  const [result, setResult]     = useState(null)
+  const [error, setError]       = useState(null)
+  const [limitHit, setLimitHit] = useState(false)
+  const [usage, setUsage]       = useState(null)
   const [expanded, setExpanded] = useState({ match: true, gaps: true, flags: false, salary: false })
+
+  useEffect(() => {
+    loadUsage()
+  }, [])
+
+  async function loadUsage() {
+    try {
+      const { data } = await api.get(`/api/evaluate/usage/${getSessionId()}`)
+      setUsage(data)
+      if (data.evaluations_remaining <= 0) setLimitHit(true)
+    } catch { }
+  }
 
   function toggle(key) {
     setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
@@ -43,6 +73,7 @@ export default function JDEvaluator({ profile }) {
     setLoading(true)
     setError(null)
     setResult(null)
+    setLimitHit(false)
     try {
       const { data } = await api.post('/api/evaluate/evaluate-jd', {
         jd_text: jdText,
@@ -52,8 +83,15 @@ export default function JDEvaluator({ profile }) {
         cv_years_exp: profile?.years_exp || '',
       })
       setResult(data)
+      if (data._usage) setUsage(data._usage)
+      if (data._usage?.evaluations_remaining <= 0) setLimitHit(true)
     } catch (e) {
-      setError(e.response?.data?.detail || 'Evaluation failed. Make sure your backend is running.')
+      if (e.response?.status === 429) {
+        setLimitHit(true)
+        setUsage(prev => prev ? { ...prev, evaluations_remaining: 0 } : null)
+      } else {
+        setError(e.response?.data?.detail || 'Evaluation failed. Make sure your backend is running.')
+      }
     } finally {
       setLoading(false)
     }
@@ -65,40 +103,76 @@ export default function JDEvaluator({ profile }) {
 
   return (
     <div>
-      <div className="card">
-        <div className="section-label">Paste job description</div>
-        {!profile && (
-          <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-100 rounded-lg mb-3 text-xs text-amber-700">
-            <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
-            Upload your CV first for a personalised evaluation — otherwise you'll get a generic assessment.
+      {/* Usage indicator */}
+      {usage && (
+        <div className={`card mb-0 ${usage.evaluations_remaining <= 1 ? 'border-amber-200 bg-amber-50' : ''}`}>
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Zap size={13} className={usage.evaluations_remaining <= 1 ? 'text-amber-600' : 'text-gray-400'} />
+              <span className="text-xs font-medium text-gray-600">Free tier — JD evaluations</span>
+            </div>
+            {usage.evaluations_remaining <= 1 && (
+              <span className="badge-amber text-xs">
+                {usage.evaluations_remaining === 0 ? 'Limit reached' : '1 evaluation left'}
+              </span>
+            )}
           </div>
-        )}
-        <textarea
-          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-gray-50 text-gray-900 resize-y min-h-48 focus:outline-none focus:border-gray-400 leading-relaxed"
-          placeholder="Paste the full job description here. Claude will evaluate the role, score your fit, flag red flags, and estimate salary..."
-          value={jdText}
-          onChange={e => { setJdText(e.target.value); setResult(null) }}
-        />
-        {error && (
-          <div className="mt-2 p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600 flex items-start gap-2">
-            <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />{error}
+          <UsageBar used={usage.evaluations_used} limit={usage.evaluations_limit} />
+        </div>
+      )}
+
+      {/* Limit hit wall */}
+      {limitHit && (
+        <div className="card border-2 border-gray-900 text-center py-8 mt-4">
+          <Lock size={28} className="mx-auto mb-3 text-gray-400" />
+          <div className="font-medium text-gray-900 mb-1">You've used your 3 free evaluations</div>
+          <p className="text-sm text-gray-500 mb-4 max-w-sm mx-auto">
+            Upgrade to Pro for unlimited JD evaluations, CV tailoring per role, and STAR interview prep stories.
+          </p>
+          <div className="inline-flex flex-col items-center gap-2">
+            <div className="bg-gray-900 text-white px-6 py-2.5 rounded-lg text-sm font-medium">
+              Pro — ₹499/month <span className="text-gray-400 text-xs ml-1">(coming soon)</span>
+            </div>
+            <p className="text-xs text-gray-400">Payments launching soon · Join the waitlist</p>
           </div>
-        )}
-        <button
-          className="btn-primary w-full justify-center mt-3"
-          onClick={handleEvaluate}
-          disabled={loading || !jdText.trim()}
-        >
-          {loading
-            ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Evaluating with AI...</>
-            : <><Cpu size={15} />Evaluate this job</>
-          }
-        </button>
-      </div>
+        </div>
+      )}
+
+      {!limitHit && (
+        <div className="card mt-4">
+          <div className="section-label">Paste job description</div>
+          {!profile && (
+            <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-100 rounded-lg mb-3 text-xs text-amber-700">
+              <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
+              Upload your CV first for a personalised evaluation.
+            </div>
+          )}
+          <textarea
+            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-gray-50 text-gray-900 resize-y min-h-48 focus:outline-none focus:border-gray-400 leading-relaxed"
+            placeholder="Paste the full job description here. Claude will evaluate the role, score your fit, flag red flags, and estimate salary..."
+            value={jdText}
+            onChange={e => { setJdText(e.target.value); setResult(null) }}
+          />
+          {error && (
+            <div className="mt-2 p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600 flex items-start gap-2">
+              <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />{error}
+            </div>
+          )}
+          <button
+            className="btn-primary w-full justify-center mt-3"
+            onClick={handleEvaluate}
+            disabled={loading || !jdText.trim()}
+          >
+            {loading
+              ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Evaluating with AI...</>
+              : <><Cpu size={15} />Evaluate this job</>
+            }
+          </button>
+        </div>
+      )}
 
       {result && gradeConfig && (
-        <div className="space-y-3">
-
+        <div className="space-y-3 mt-4">
           {/* Grade + Action */}
           <div className={`card border ${gradeConfig.border} ${gradeConfig.bg}`}>
             <div className="flex items-start justify-between gap-4">
@@ -184,7 +258,7 @@ export default function JDEvaluator({ profile }) {
               <button className="flex items-center justify-between w-full" onClick={() => toggle('flags')}>
                 <div className="flex items-center gap-2">
                   <Star size={15} className="text-blue-600" />
-                  <span className="section-label mb-0">Signals — {result.red_flags?.length || 0} red, {result.green_flags?.length || 0} green</span>
+                  <span className="section-label mb-0">Signals — {result.red_flags?.length || 0} red · {result.green_flags?.length || 0} green</span>
                 </div>
                 {expanded.flags ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
               </button>
@@ -225,36 +299,31 @@ export default function JDEvaluator({ profile }) {
               <div className="flex items-center gap-2">
                 <DollarSign size={15} className="text-gray-600" />
                 <span className="section-label mb-0">
-                  Salary estimate — {formatSalary(result.salary_range?.min)} – {formatSalary(result.salary_range?.max)} / year
+                  Salary — {formatSalary(result.salary_range?.min)} – {formatSalary(result.salary_range?.max)} / year
                 </span>
               </div>
               {expanded.salary ? <ChevronUp size={14} className="text-gray-400" /> : <ChevronDown size={14} className="text-gray-400" />}
             </button>
             {expanded.salary && (
               <div className="mt-3">
-                <div className="flex items-center gap-3 mb-2">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${result.salary_range?.confidence === 'high' ? 'badge-green' : result.salary_range?.confidence === 'medium' ? 'badge-amber' : 'badge-red'}`}>
-                    {result.salary_range?.confidence || 'low'} confidence
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500 leading-relaxed">{result.salary_range?.reasoning}</p>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${result.salary_range?.confidence === 'high' ? 'badge-green' : result.salary_range?.confidence === 'medium' ? 'badge-amber' : 'badge-red'}`}>
+                  {result.salary_range?.confidence || 'low'} confidence
+                </span>
+                <p className="text-xs text-gray-500 leading-relaxed mt-2">{result.salary_range?.reasoning}</p>
               </div>
             )}
           </div>
 
-          {/* Track button */}
+          {/* Next step */}
           <div className="card">
             <div className="section-label">Next step</div>
             <p className="text-sm text-gray-600 mb-3">{result.recommended_action_reason}</p>
             {(result.recommended_action === 'apply_now' || result.recommended_action === 'apply_with_tailoring') && (
-              <div className="flex gap-2">
-                <button className="btn-primary flex-1 justify-center text-sm">
-                  <BookmarkPlus size={14} />Add to tracker
-                </button>
-              </div>
+              <button className="btn-primary text-sm">
+                <BookmarkPlus size={14} />Add to tracker
+              </button>
             )}
           </div>
-
         </div>
       )}
     </div>
