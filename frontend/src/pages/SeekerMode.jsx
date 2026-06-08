@@ -9,19 +9,22 @@ import { getApplications } from '../lib/api'
 import { getSessionId } from '../lib/session'
 
 const TABS = [
-  { id: 'cv',       label: 'My profile',  icon: FileText },
-  { id: 'evaluate', label: 'Evaluate JD', icon: ClipboardCheck },
-  { id: 'jobs',     label: 'Find jobs',   icon: Search },
-  { id: 'tracker',  label: 'Tracker',     icon: Kanban },
-  { id: 'dashboard',label: 'Dashboard',   icon: LayoutDashboard },
+  { id: 'cv',        label: 'My profile',  icon: FileText },
+  { id: 'evaluate',  label: 'Evaluate JD', icon: ClipboardCheck },
+  { id: 'jobs',      label: 'Find jobs',   icon: Search },
+  { id: 'tracker',   label: 'Tracker',     icon: Kanban },
+  { id: 'dashboard', label: 'Dashboard',   icon: LayoutDashboard },
 ]
 
 export default function SeekerMode() {
-  const [tab, setTab]                   = useState('cv')
-  const [profile, setProfile]           = useState(null)
-  const [applications, setApplications] = useState([])
-  const [loadingApps, setLoadingApps]   = useState(true)
-  const [loadError, setLoadError]       = useState(null)
+  const [tab, setTab]                     = useState('cv')
+  const [profile, setProfile]             = useState(null)
+  const [applications, setApplications]   = useState([])
+  const [loadingApps, setLoadingApps]     = useState(true)
+  const [loadError, setLoadError]         = useState(null)
+  // Lift evaluation state up so it persists across tab switches
+  const [evalResult, setEvalResult]       = useState(null)
+  const [evalJdText, setEvalJdText]       = useState('')
 
   useEffect(() => { loadApps() }, [])
 
@@ -38,6 +41,14 @@ export default function SeekerMode() {
     } finally {
       setLoadingApps(false)
     }
+  }
+
+  function handleProfileParsed(p) {
+    // Clear evaluation results when a new CV is uploaded
+    setProfile(p)
+    setEvalResult(null)
+    setEvalJdText('')
+    setTab('evaluate')
   }
 
   return (
@@ -80,12 +91,22 @@ export default function SeekerMode() {
         {tab === 'cv' && (
           <CVProfile
             profile={profile}
-            onProfileParsed={(p) => { setProfile(p); setTab('evaluate') }}
-            onSwap={() => setProfile(null)}
+            onProfileParsed={handleProfileParsed}
+            onSwap={() => {
+              setProfile(null)
+              setEvalResult(null)
+              setEvalJdText('')
+            }}
           />
         )}
         {tab === 'evaluate' && (
-          <JDEvaluator profile={profile} />
+          <JDEvaluator
+            profile={profile}
+            savedResult={evalResult}
+            savedJdText={evalJdText}
+            onResultChange={setEvalResult}
+            onJdTextChange={setEvalJdText}
+          />
         )}
         {tab === 'jobs' && (
           <JobSearch

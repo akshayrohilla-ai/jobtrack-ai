@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Cpu, AlertTriangle, CheckCircle, TrendingUp, DollarSign, Star, BookmarkPlus, ChevronDown, ChevronUp, Zap, Lock } from 'lucide-react'
+import { Cpu, AlertTriangle, CheckCircle, TrendingUp, DollarSign, Star, BookmarkPlus, ChevronDown, ChevronUp, Zap, Lock, RefreshCw } from 'lucide-react'
 import { api } from '../lib/api'
 import { getSessionId } from '../lib/session'
 
@@ -40,14 +40,16 @@ function UsageBar({ used, limit }) {
   )
 }
 
-export default function JDEvaluator({ profile }) {
-  const [jdText, setJdText]     = useState('')
+export default function JDEvaluator({ profile, savedResult, savedJdText, onResultChange, onJdTextChange }) {
   const [loading, setLoading]   = useState(false)
-  const [result, setResult]     = useState(null)
   const [error, setError]       = useState(null)
   const [limitHit, setLimitHit] = useState(false)
   const [usage, setUsage]       = useState(null)
   const [expanded, setExpanded] = useState({ match: true, gaps: true, flags: false, salary: false })
+
+  // Use lifted state from parent
+  const result  = savedResult
+  const jdText  = savedJdText
 
   useEffect(() => {
     loadUsage()
@@ -65,6 +67,12 @@ export default function JDEvaluator({ profile }) {
     setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
+  function handleNewEvaluation() {
+    onResultChange(null)
+    onJdTextChange('')
+    setError(null)
+  }
+
   async function handleEvaluate() {
     if (!jdText.trim() || jdText.length < 50) {
       setError('Paste a complete job description first.')
@@ -72,7 +80,7 @@ export default function JDEvaluator({ profile }) {
     }
     setLoading(true)
     setError(null)
-    setResult(null)
+    onResultChange(null)
     setLimitHit(false)
     try {
       const { data } = await api.post('/api/evaluate/evaluate-jd', {
@@ -82,7 +90,7 @@ export default function JDEvaluator({ profile }) {
         cv_title: profile?.title || '',
         cv_years_exp: profile?.years_exp || '',
       })
-      setResult(data)
+      onResultChange(data)
       if (data._usage) setUsage(data._usage)
       if (data._usage?.evaluations_remaining <= 0) setLimitHit(true)
     } catch (e) {
@@ -105,7 +113,7 @@ export default function JDEvaluator({ profile }) {
     <div>
       {/* Usage indicator */}
       {usage && (
-        <div className={`card mb-0 ${usage.evaluations_remaining <= 1 ? 'border-amber-200 bg-amber-50' : ''}`}>
+        <div className={`card ${usage.evaluations_remaining <= 1 ? 'border-amber-200 bg-amber-50' : ''}`}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Zap size={13} className={usage.evaluations_remaining <= 1 ? 'text-amber-600' : 'text-gray-400'} />
@@ -138,20 +146,28 @@ export default function JDEvaluator({ profile }) {
         </div>
       )}
 
-      {!limitHit && (
+      {!limitHit && !result && (
         <div className="card mt-4">
           <div className="section-label">Paste job description</div>
           {!profile && (
             <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-100 rounded-lg mb-3 text-xs text-amber-700">
               <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
-              Upload your CV first for a personalised evaluation.
+              Upload your CV first on "My profile" for a personalised evaluation.
+            </div>
+          )}
+          {profile && (
+            <div className="flex items-center gap-2 p-2.5 bg-gray-50 border border-gray-100 rounded-lg mb-3">
+              <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center text-blue-700 text-xs font-medium flex-shrink-0">
+                {profile.initials || '?'}
+              </div>
+              <span className="text-xs text-gray-600">Evaluating as <strong>{profile.name}</strong> — {profile.title}</span>
             </div>
           )}
           <textarea
             className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-gray-50 text-gray-900 resize-y min-h-48 focus:outline-none focus:border-gray-400 leading-relaxed"
             placeholder="Paste the full job description here. Claude will evaluate the role, score your fit, flag red flags, and estimate salary..."
             value={jdText}
-            onChange={e => { setJdText(e.target.value); setResult(null) }}
+            onChange={e => onJdTextChange(e.target.value)}
           />
           {error && (
             <div className="mt-2 p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600 flex items-start gap-2">
@@ -173,6 +189,23 @@ export default function JDEvaluator({ profile }) {
 
       {result && gradeConfig && (
         <div className="space-y-3 mt-4">
+          {/* Header with profile context + new evaluation button */}
+          <div className="flex items-center justify-between">
+            {profile && (
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center text-blue-700 text-xs font-medium">
+                  {profile.initials || '?'}
+                </div>
+                <span className="text-xs text-gray-500">Evaluated as <strong>{profile.name}</strong></span>
+              </div>
+            )}
+            {!limitHit && (
+              <button onClick={handleNewEvaluation} className="btn-ghost text-xs py-1.5 ml-auto">
+                <RefreshCw size={12} />Evaluate another JD
+              </button>
+            )}
+          </div>
+
           {/* Grade + Action */}
           <div className={`card border ${gradeConfig.border} ${gradeConfig.bg}`}>
             <div className="flex items-start justify-between gap-4">
