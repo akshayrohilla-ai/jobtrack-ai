@@ -1,91 +1,67 @@
 import { updateApplication, deleteApplication } from '../lib/api'
-import { Download, Trash2, RefreshCw } from 'lucide-react'
+import { Download, Trash2, RefreshCw, Kanban } from 'lucide-react'
 
 const COLS = [
-  { id: 'applied',   label: 'Applied',   color: 'bg-blue-400' },
-  { id: 'interview', label: 'Interview', color: 'bg-amber-400' },
-  { id: 'offer',     label: 'Offer',     color: 'bg-green-500' },
-  { id: 'rejected',  label: 'Rejected',  color: 'bg-red-400' },
+  { id: 'applied',   label: 'Applied',   dot: 'var(--blue-accent)', count_bg: '#EBF2FF', count_text: '#1D4ED8' },
+  { id: 'interview', label: 'Interview', dot: '#7C3AED',            count_bg: '#F3F0FF', count_text: '#6D28D9' },
+  { id: 'offer',     label: 'Offer',     dot: 'var(--success)',     count_bg: 'var(--success-bg)', count_text: 'var(--success)' },
+  { id: 'rejected',  label: 'Rejected',  dot: 'var(--danger)',      count_bg: 'var(--danger-bg)',  count_text: 'var(--danger)' },
 ]
 
 function exportToCSV(applications) {
   const headers = ['Job Title', 'Company', 'Location', 'Status', 'Match Score', 'Applied Date', 'LinkedIn URL']
   const rows = applications.map(a => [
-    `"${a.job_title || ''}"`,
-    `"${a.company || ''}"`,
-    `"${a.location || ''}"`,
-    `"${a.status || ''}"`,
-    a.match_score || '',
-    a.applied_date || '',
-    `"${a.linkedin_url || ''}"`,
+    `"${a.job_title || ''}"`, `"${a.company || ''}"`, `"${a.location || ''}"`,
+    `"${a.status || ''}"`, a.match_score || '', a.applied_date || '', `"${a.linkedin_url || ''}"`
   ])
   const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
   const blob = new Blob([csv], { type: 'text/csv' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
-  a.href = url
-  a.download = `jobtrack-applications-${new Date().toISOString().split('T')[0]}.csv`
-  a.click()
+  a.href = url; a.download = `jobtrack-${new Date().toISOString().split('T')[0]}.csv`; a.click()
   URL.revokeObjectURL(url)
 }
 
 export default function Tracker({ applications, loading, onUpdate, onRefresh }) {
   async function moveCard(app, newStatus) {
-    const updated = applications.map(a => a.id === app.id ? { ...a, status: newStatus } : a)
-    onUpdate(updated)
-    try {
-      await updateApplication(app.id, { status: newStatus })
-    } catch (e) {
-      console.error('Failed to update status:', e)
-    }
+    onUpdate(applications.map(a => a.id === app.id ? { ...a, status: newStatus } : a))
+    try { await updateApplication(app.id, { status: newStatus }) } catch { }
   }
 
   async function removeCard(app) {
-    const updated = applications.filter(a => a.id !== app.id)
-    onUpdate(updated)
-    try {
-      await deleteApplication(app.id)
-    } catch (e) {
-      console.error('Failed to delete:', e)
-    }
+    onUpdate(applications.filter(a => a.id !== app.id))
+    try { await deleteApplication(app.id) } catch { }
   }
 
-  if (loading) {
-    return (
-      <div className="text-center py-16 text-gray-400">
-        <div className="animate-spin w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full mx-auto mb-3" />
-        <p className="text-sm">Loading your applications...</p>
-      </div>
-    )
-  }
+  if (loading) return (
+    <div className="text-center py-20" style={{ color: 'var(--text-ghost)' }}>
+      <div className="animate-spin w-7 h-7 border-2 border-gray-200 border-t-blue-500 rounded-full mx-auto mb-3" />
+      <p className="text-sm">Loading your applications...</p>
+    </div>
+  )
 
-  if (!applications.length) {
-    return (
-      <div className="text-center py-16 text-gray-400">
-        <p className="text-sm">No applications yet.</p>
-        <p className="text-xs mt-1">Go to Find jobs → use "Track a job" to add applications.</p>
-        {onRefresh && (
-          <button onClick={onRefresh} className="mt-3 btn-secondary text-xs mx-auto">
-            <RefreshCw size={12} />Refresh
-          </button>
-        )}
+  if (!applications.length) return (
+    <div className="text-center py-20">
+      <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+        style={{ background: 'var(--blue-pale)', border: '1px solid #BFDBFE' }}>
+        <Kanban size={24} style={{ color: 'var(--blue-accent)' }} />
       </div>
-    )
-  }
+      <h3 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.25rem', color: 'var(--navy-900)' }}>No applications yet</h3>
+      <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>Find jobs and click "Open & track" or add from a JD evaluation.</p>
+      {onRefresh && <button onClick={onRefresh} className="btn-ghost mt-4"><RefreshCw size={13} />Refresh</button>}
+    </div>
+  )
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-4">
-        <p className="text-sm text-gray-500">{applications.length} application{applications.length !== 1 ? 's' : ''} tracked</p>
+    <div className="animate-slide-up">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.5rem', color: 'var(--navy-900)' }}>Application tracker</h2>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>{applications.length} application{applications.length !== 1 ? 's' : ''} tracked</p>
+        </div>
         <div className="flex gap-2">
-          {onRefresh && (
-            <button onClick={onRefresh} className="btn-secondary text-xs py-1.5">
-              <RefreshCw size={12} />Refresh
-            </button>
-          )}
-          <button onClick={() => exportToCSV(applications)} className="btn-secondary text-xs py-1.5">
-            <Download size={13} />Export CSV
-          </button>
+          {onRefresh && <button onClick={onRefresh} className="btn-ghost text-xs py-1.5"><RefreshCw size={12} />Refresh</button>}
+          <button onClick={() => exportToCSV(applications)} className="btn-secondary text-xs py-1.5"><Download size={13} />Export CSV</button>
         </div>
       </div>
 
@@ -93,50 +69,55 @@ export default function Tracker({ applications, loading, onUpdate, onRefresh }) 
         {COLS.map(col => {
           const colApps = applications.filter(a => a.status === col.id)
           return (
-            <div key={col.id} className="bg-gray-100 rounded-xl p-3 min-h-48">
+            <div key={col.id} className="kanban-col">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${col.color}`} />
-                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">{col.label}</span>
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: col.dot }} />
+                  <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{col.label}</span>
                 </div>
-                <span className="bg-white border border-gray-200 rounded-full px-2 py-0.5 text-xs font-medium">
-                  {colApps.length}
-                </span>
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                  style={{ background: col.count_bg, color: col.count_text }}>{colApps.length}</span>
               </div>
+
               <div className="space-y-2">
                 {colApps.map(app => (
-                  <div key={app.id} className="bg-white border border-gray-100 rounded-lg p-3">
-                    <div className="flex items-start justify-between gap-1">
+                  <div key={app.id} className="kcard">
+                    <div className="flex items-start justify-between gap-1 mb-1.5">
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium text-gray-900 truncate">{app.job_title}</div>
-                        <div className="text-xs text-gray-400 truncate">{app.company}{app.location ? ` · ${app.location}` : ''}</div>
+                        <div className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{app.job_title}</div>
+                        <div className="text-xs truncate mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                          {app.company}{app.location ? ` · ${app.location}` : ''}
+                        </div>
                       </div>
-                      <button
-                        onClick={() => removeCard(app)}
-                        className="text-gray-300 hover:text-red-400 transition-colors flex-shrink-0 mt-0.5"
-                        title="Remove"
-                      >
+                      <button onClick={() => removeCard(app)} className="flex-shrink-0 mt-0.5 transition-colors"
+                        style={{ color: 'var(--text-ghost)' }}
+                        onMouseEnter={e => e.target.style.color = 'var(--danger)'}
+                        onMouseLeave={e => e.target.style.color = 'var(--text-ghost)'}>
                         <Trash2 size={11} />
                       </button>
                     </div>
-                    <div className="flex items-center justify-between mt-2 mb-2">
-                      {app.match_score ? (
-                        <span className={`text-xs font-medium ${app.match_score >= 75 ? 'text-green-600' : 'text-amber-600'}`}>
-                          {app.match_score}% match
-                        </span>
-                      ) : <span />}
-                      <span className="text-xs text-gray-300">{app.applied_date}</span>
+                    <div className="flex items-center justify-between mb-2">
+                      {app.match_score
+                        ? <span className="text-xs font-semibold" style={{ color: app.match_score >= 75 ? 'var(--success)' : 'var(--warning)' }}>
+                            {app.match_score}% match
+                          </span>
+                        : <span />
+                      }
+                      <span className="text-xs" style={{ color: 'var(--text-ghost)' }}>{app.applied_date}</span>
                     </div>
                     {app.linkedin_url && (
                       <a href={app.linkedin_url} target="_blank" rel="noreferrer"
-                        className="text-xs text-blue-500 hover:underline block mb-2 truncate">
+                        className="text-xs block mb-2 truncate" style={{ color: 'var(--blue-accent)' }}>
                         View posting ↗
                       </a>
                     )}
                     <div className="flex flex-wrap gap-1">
                       {COLS.filter(c => c.id !== col.id).map(c => (
                         <button key={c.id} onClick={() => moveCard(app, c.id)}
-                          className="text-xs border border-gray-200 rounded px-2 py-0.5 text-gray-500 hover:bg-gray-50">
+                          className="text-xs px-2 py-0.5 rounded transition-colors"
+                          style={{ border: '1px solid var(--border)', color: 'var(--text-muted)', background: 'transparent' }}
+                          onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-subtle)' }}
+                          onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
                           → {c.label}
                         </button>
                       ))}
@@ -148,7 +129,7 @@ export default function Tracker({ applications, loading, onUpdate, onRefresh }) 
           )
         })}
       </div>
-      <p className="text-xs text-gray-400 text-center mt-3">Changes save automatically · Use Refresh if you don't see recent additions</p>
+      <p className="text-xs text-center mt-4" style={{ color: 'var(--text-ghost)' }}>Changes save automatically to your database</p>
     </div>
   )
 }

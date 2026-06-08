@@ -1,17 +1,15 @@
 import { useState, useEffect } from 'react'
-import { Search, ExternalLink, CheckCircle, BookmarkPlus, Clock } from 'lucide-react'
+import { Search, ExternalLink, CheckCircle, BookmarkPlus, Clock, Users, Globe } from 'lucide-react'
 import { searchJobs, createApplication } from '../lib/api'
 import { getSessionId } from '../lib/session'
 
 const LOCATIONS = ['Pune', 'Bangalore', 'Hyderabad', 'Mumbai', 'Gurgaon', 'Chennai', 'UAE']
-
 const RECENCY_OPTIONS = [
   { value: '24h',   label: 'Last 24 hours' },
   { value: 'week',  label: 'Last 7 days' },
   { value: 'month', label: 'Last 30 days' },
   { value: 'any',   label: 'Any time' },
 ]
-
 const SENIORITY_OPTIONS = [
   { value: 'senior', label: 'Senior level' },
   { value: 'mid',    label: 'Mid level' },
@@ -19,21 +17,19 @@ const SENIORITY_OPTIONS = [
 ]
 
 export default function JobSearch({ profile, applications, onApply }) {
-  const [query, setQuery] = useState('')
+  const [query, setQuery]       = useState('')
   const [location, setLocation] = useState('Pune')
-  const [recency, setRecency] = useState('week')
+  const [recency, setRecency]   = useState('week')
   const [seniority, setSeniority] = useState('senior')
-  const [results, setResults] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [manualTitle, setManualTitle] = useState('')
-  const [manualCompany, setManualCompany] = useState('')
-  const [manualUrl, setManualUrl] = useState('')
-  const [addingManual, setAddingManual] = useState(false)
+  const [results, setResults]   = useState(null)
+  const [loading, setLoading]   = useState(false)
   const [showManual, setShowManual] = useState(false)
+  const [manualTitle, setManualTitle]   = useState('')
+  const [manualCompany, setManualCompany] = useState('')
+  const [manualUrl, setManualUrl]       = useState('')
+  const [addingManual, setAddingManual] = useState(false)
 
-  useEffect(() => {
-    if (profile?.title) setQuery(profile.title)
-  }, [profile?.title])
+  useEffect(() => { if (profile?.title) setQuery(profile.title) }, [profile?.title])
 
   async function handleSearch() {
     if (!query.trim()) return
@@ -44,19 +40,12 @@ export default function JobSearch({ profile, applications, onApply }) {
     } catch {
       const encoded = encodeURIComponent(query)
       const loc = encodeURIComponent(location)
-      const recencyMap = { '24h': 'r86400', 'week': 'r604800', 'month': 'r2592000', 'any': '' }
-      const rf = recencyMap[recency] ? `&f_TPR=${recencyMap[recency]}` : ''
       setResults({
         query, location, recency_label: RECENCY_OPTIONS.find(r => r.value === recency)?.label,
-        primary_url: `https://www.linkedin.com/jobs/search/?keywords=${encoded}&location=${loc}${rf}`,
-        search_urls: [
-          { label: query, url: `https://www.linkedin.com/jobs/search/?keywords=${encoded}&location=${loc}&f_E=4${rf}`, description: `Exact match · ${location}` },
-          { label: `Senior ${query}`, url: `https://www.linkedin.com/jobs/search/?keywords=Senior+${encoded}&location=${loc}&f_E=4${rf}`, description: `Senior level · ${location}` },
-        ]
+        primary_url: `https://www.linkedin.com/jobs/search/?keywords=${encoded}&location=${loc}`,
+        search_urls: [{ label: query, url: `https://www.linkedin.com/jobs/search/?keywords=${encoded}&location=${loc}&f_E=4`, description: `Exact match · ${location}` }]
       })
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   async function handleManualTrack() {
@@ -64,180 +53,130 @@ export default function JobSearch({ profile, applications, onApply }) {
     setAddingManual(true)
     try {
       const { data } = await createApplication({
-        session_id: getSessionId(),
-        job_title: manualTitle,
-        company: manualCompany,
-        location,
-        match_score: null,
-        linkedin_url: manualUrl || null
+        session_id: getSessionId(), job_title: manualTitle, company: manualCompany,
+        location, match_score: null, linkedin_url: manualUrl || null
       })
       onApply({ ...data, jobId: data.id })
-      setManualTitle(''); setManualCompany(''); setManualUrl('')
-      setShowManual(false)
+      setManualTitle(''); setManualCompany(''); setManualUrl(''); setShowManual(false)
     } catch {
-      onApply({
-        id: Date.now().toString(), jobId: Date.now().toString(),
-        job_title: manualTitle, company: manualCompany, location,
-        match_score: null, status: 'applied',
-        applied_date: new Date().toISOString().split('T')[0]
-      })
-      setManualTitle(''); setManualCompany(''); setManualUrl('')
-      setShowManual(false)
-    } finally {
-      setAddingManual(false)
-    }
+      onApply({ id: Date.now().toString(), jobId: Date.now().toString(), job_title: manualTitle, company: manualCompany, location, match_score: null, status: 'applied', applied_date: new Date().toISOString().split('T')[0] })
+      setManualTitle(''); setManualCompany(''); setManualUrl(''); setShowManual(false)
+    } finally { setAddingManual(false) }
   }
 
   return (
-    <div>
+    <div className="animate-slide-up space-y-4">
+      <div>
+        <h2 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.5rem', color: 'var(--navy-900)' }}>Find jobs</h2>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Generate targeted LinkedIn searches filtered to your role and preferences</p>
+      </div>
+
+      {/* Search form */}
       <div className="card">
-        <div className="section-label">Search parameters</div>
-        <div className="flex gap-2 flex-wrap mb-3">
-          <input
-            className="flex-1 min-w-48 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Job title or keywords..."
-            onKeyDown={e => e.key === 'Enter' && handleSearch()}
-          />
-          <select
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none"
-            value={location}
-            onChange={e => setLocation(e.target.value)}
-          >
+        <div className="flex gap-2 mb-3 flex-wrap">
+          <input className="input-field flex-1 min-w-40" value={query} onChange={e => setQuery(e.target.value)}
+            placeholder="Job title or keywords..." onKeyDown={e => e.key === 'Enter' && handleSearch()} />
+          <select className="input-field" style={{ width: 'auto' }} value={location} onChange={e => setLocation(e.target.value)}>
             {LOCATIONS.map(l => <option key={l}>{l}</option>)}
           </select>
         </div>
-        <div className="flex gap-2 flex-wrap mb-3">
+        <div className="flex gap-2 flex-wrap">
           <div className="flex items-center gap-2 flex-1">
-            <Clock size={13} className="text-gray-400 flex-shrink-0" />
-            <select
-              className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none"
-              value={recency}
-              onChange={e => setRecency(e.target.value)}
-            >
+            <Clock size={13} style={{ color: 'var(--text-ghost)', flexShrink: 0 }} />
+            <select className="input-field flex-1" value={recency} onChange={e => setRecency(e.target.value)}>
               {RECENCY_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
           </div>
-          <select
-            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none"
-            value={seniority}
-            onChange={e => setSeniority(e.target.value)}
-          >
+          <select className="input-field flex-1" value={seniority} onChange={e => setSeniority(e.target.value)}>
             {SENIORITY_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
           <button className="btn-primary" onClick={handleSearch} disabled={loading || !query.trim()}>
-            {loading
-              ? <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-              : <Search size={15} />
-            }
+            {loading ? <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <Search size={15} />}
             Search
           </button>
         </div>
-        <p className="text-xs text-gray-400">
-          Generates LinkedIn search links filtered by your role, location, seniority, and posting date.
-          {profile?.skills?.length > 0 && ` Profile loaded: ${profile.skills.length} skills.`}
-        </p>
+        {profile?.skills?.length > 0 && (
+          <p className="text-xs mt-3 pt-3" style={{ color: 'var(--text-ghost)', borderTop: '1px solid var(--border-light)' }}>
+            Profile loaded — {profile.skills.length} skills · searches filtered to {seniority} level · {RECENCY_OPTIONS.find(r=>r.value===recency)?.label.toLowerCase()}
+          </p>
+        )}
       </div>
 
+      {/* Results */}
       {results && (
         <div className="card">
-          <div className="flex items-center justify-between mb-2">
-            <div className="section-label mb-0">{results.search_urls?.length} LinkedIn search variants</div>
-            <span className="text-xs text-gray-400 flex items-center gap-1">
+          <div className="flex items-center justify-between mb-3">
+            <span className="section-label mb-0">{results.search_urls?.length} LinkedIn search variants</span>
+            <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-ghost)' }}>
               <Clock size={11} />{results.recency_label}
             </span>
           </div>
-          <p className="text-sm text-gray-500 mb-4 leading-relaxed">
-            Each link opens live LinkedIn results with your filters applied. Find a job you like → come back → use <strong>"Track a job"</strong> below to add it to your tracker.
+          <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+            Each link opens live LinkedIn with your filters applied. Find a role → use <strong>Track a job</strong> below to add it to your tracker.
           </p>
           <div className="space-y-2">
             {results.search_urls?.map((s, i) => (
-              <a
-                key={i}
-                href={s.url}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:border-blue-200 hover:bg-blue-50 transition-colors group"
-              >
+              <a key={i} href={s.url} target="_blank" rel="noreferrer"
+                className="flex items-center justify-between p-3 rounded-lg transition-all group"
+                style={{ border: '1px solid var(--border)', background: 'var(--surface-raised)' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--blue-accent)'; e.currentTarget.style.background = 'var(--blue-pale)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--surface-raised)' }}>
                 <div>
-                  <div className="text-sm font-medium text-gray-900 group-hover:text-blue-700">{s.label}</div>
-                  <div className="text-xs text-gray-400 mt-0.5">{s.description}</div>
+                  <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{s.label}</div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{s.description}</div>
                 </div>
-                <ExternalLink size={13} className="text-gray-300 group-hover:text-blue-500 flex-shrink-0 ml-3" />
+                <ExternalLink size={13} style={{ color: 'var(--text-ghost)', flexShrink: 0 }} />
               </a>
             ))}
           </div>
-          <a
-            href={results.primary_url}
-            target="_blank"
-            rel="noreferrer"
-            className="btn-primary w-full justify-center mt-4"
-          >
-            <ExternalLink size={15} />Open primary search on LinkedIn
+          <a href={results.primary_url} target="_blank" rel="noreferrer" className="btn-primary w-full justify-center mt-4">
+            <Globe size={15} />Open primary search on LinkedIn
           </a>
         </div>
       )}
 
+      {/* Manual track */}
       <div className="card">
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center justify-between">
           <div>
-            <div className="section-label mb-0">Track a job</div>
-            <p className="text-xs text-gray-400 mt-1">Found a role on LinkedIn? Add it to your tracker here.</p>
+            <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Track a job manually</div>
+            <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Found a role on LinkedIn or elsewhere? Add it here.</div>
           </div>
-          <button className="btn-secondary text-sm" onClick={() => setShowManual(!showManual)}>
-            <BookmarkPlus size={14} />{showManual ? 'Cancel' : 'Add job'}
+          <button className="btn-secondary text-xs py-1.5" onClick={() => setShowManual(!showManual)}>
+            <BookmarkPlus size={13} />{showManual ? 'Cancel' : 'Add job'}
           </button>
         </div>
-
         {showManual && (
-          <div className="border-t border-gray-100 pt-4 space-y-3 mt-3">
+          <div className="mt-4 pt-4 space-y-3" style={{ borderTop: '1px solid var(--border-light)' }}>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Job title *</label>
-                <input
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400"
-                  placeholder="e.g. Senior Business Analyst"
-                  value={manualTitle}
-                  onChange={e => setManualTitle(e.target.value)}
-                />
+                <label className="section-label">Job title *</label>
+                <input className="input-field" placeholder="e.g. Senior Business Analyst"
+                  value={manualTitle} onChange={e => setManualTitle(e.target.value)} />
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Company *</label>
-                <input
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400"
-                  placeholder="e.g. Accenture"
-                  value={manualCompany}
-                  onChange={e => setManualCompany(e.target.value)}
-                />
+                <label className="section-label">Company *</label>
+                <input className="input-field" placeholder="e.g. Accenture"
+                  value={manualCompany} onChange={e => setManualCompany(e.target.value)} />
               </div>
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">LinkedIn URL (optional)</label>
-              <input
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400"
-                placeholder="https://www.linkedin.com/jobs/view/..."
-                value={manualUrl}
-                onChange={e => setManualUrl(e.target.value)}
-              />
+              <label className="section-label">LinkedIn URL <span style={{ color: 'var(--text-ghost)', textTransform: 'none', fontWeight: 400 }}>(optional)</span></label>
+              <input className="input-field" placeholder="https://www.linkedin.com/jobs/view/..."
+                value={manualUrl} onChange={e => setManualUrl(e.target.value)} />
             </div>
-            <button
-              className="btn-primary"
-              onClick={handleManualTrack}
-              disabled={!manualTitle.trim() || !manualCompany.trim() || addingManual}
-            >
-              {addingManual
-                ? <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                : <CheckCircle size={15} />
-              }
+            <button className="btn-primary" onClick={handleManualTrack}
+              disabled={!manualTitle.trim() || !manualCompany.trim() || addingManual}>
+              {addingManual ? <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <CheckCircle size={14} />}
               Add to tracker
             </button>
           </div>
         )}
-
         {applications?.length > 0 && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <p className="text-xs text-gray-400">{applications.length} job{applications.length !== 1 ? 's' : ''} tracked → go to Tracker tab to manage</p>
+          <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border-light)' }}>
+            <p className="text-xs" style={{ color: 'var(--text-ghost)' }}>
+              {applications.length} job{applications.length !== 1 ? 's' : ''} tracked → go to Tracker tab to manage
+            </p>
           </div>
         )}
       </div>

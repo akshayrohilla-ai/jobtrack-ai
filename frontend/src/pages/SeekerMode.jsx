@@ -22,7 +22,6 @@ export default function SeekerMode() {
   const [applications, setApplications]   = useState([])
   const [loadingApps, setLoadingApps]     = useState(true)
   const [loadError, setLoadError]         = useState(null)
-  // Lift evaluation state up so it persists across tab switches
   const [evalResult, setEvalResult]       = useState(null)
   const [evalJdText, setEvalJdText]       = useState('')
   const [evalRole, setEvalRole]           = useState('')
@@ -31,115 +30,87 @@ export default function SeekerMode() {
   useEffect(() => { loadApps() }, [])
 
   async function loadApps() {
-    setLoadingApps(true)
-    setLoadError(null)
+    setLoadingApps(true); setLoadError(null)
     try {
       const { data } = await getApplications(getSessionId())
-      if (Array.isArray(data)) {
-        setApplications(data.map(a => ({ ...a, jobId: a.id })))
-      }
+      if (Array.isArray(data)) setApplications(data.map(a => ({ ...a, jobId: a.id })))
     } catch (e) {
       setLoadError(e.response?.data?.detail || e.message || 'Failed to load applications')
-    } finally {
-      setLoadingApps(false)
-    }
+    } finally { setLoadingApps(false) }
   }
 
   function handleProfileParsed(p) {
-    // Clear evaluation results when a new CV is uploaded
-    setProfile(p)
-    setEvalResult(null)
-    setEvalJdText('')
-    setEvalRole('')
-    setEvalCompany('')
+    setProfile(p); setEvalResult(null); setEvalJdText(''); setEvalRole(''); setEvalCompany('')
     setTab('evaluate')
+  }
+
+  function handleSwap() {
+    setProfile(null); setEvalResult(null); setEvalJdText(''); setEvalRole(''); setEvalCompany('')
   }
 
   return (
     <div>
-      <nav className="bg-white border-b border-gray-100 px-4 flex overflow-x-auto">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm border-b-2 transition-colors whitespace-nowrap ${
-              tab === id
-                ? 'border-gray-900 text-gray-900 font-medium'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Icon size={15} />
-            {label}
-            {id === 'tracker' && applications.length > 0 && (
-              <span className="bg-gray-100 text-gray-600 text-xs rounded-full px-1.5 py-0.5 ml-1">
-                {applications.length}
-              </span>
-            )}
-          </button>
-        ))}
-      </nav>
+      {/* Tab nav */}
+      <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
+        <div className="max-w-6xl mx-auto px-6 flex overflow-x-auto">
+          {TABS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className="flex items-center gap-2 px-4 py-3.5 text-xs font-medium border-b-2 transition-all duration-150 whitespace-nowrap"
+              style={tab === id
+                ? { borderBottomColor: 'var(--blue-accent)', color: 'var(--blue-accent)' }
+                : { borderBottomColor: 'transparent', color: 'var(--text-muted)' }
+              }
+            >
+              <Icon size={14} />
+              {label}
+              {id === 'tracker' && applications.length > 0 && (
+                <span className="ml-1 text-xs rounded-full px-1.5 py-0.5 font-medium"
+                  style={{ background: 'var(--blue-pale)', color: 'var(--blue-accent)' }}>
+                  {applications.length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {loadError && (
-        <div className="max-w-4xl mx-auto px-5 pt-4">
-          <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600">
-            <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
-            <div>
-              <strong>Could not load saved applications:</strong> {loadError}
-              <button onClick={loadApps} className="ml-2 underline">Retry</button>
-            </div>
+        <div className="max-w-4xl mx-auto px-6 pt-4">
+          <div className="flex items-start gap-2 p-3 rounded-lg text-xs"
+            style={{ background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid #FECACA' }}>
+            <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
+            <div><strong>Could not load saved applications:</strong> {loadError}
+              <button onClick={loadApps} className="ml-2 underline">Retry</button></div>
           </div>
         </div>
       )}
 
-      <div className="max-w-4xl mx-auto p-5">
-        {tab === 'cv' && (
-          <CVProfile
-            profile={profile}
-            onProfileParsed={handleProfileParsed}
-            onSwap={() => {
-              setProfile(null)
-              setEvalResult(null)
-              setEvalJdText('')
-              setEvalRole('')
-              setEvalCompany('')
-            }}
-          />
-        )}
+      <div className="max-w-4xl mx-auto px-6 py-6">
+        {tab === 'cv' && <CVProfile profile={profile} onProfileParsed={handleProfileParsed} onSwap={handleSwap} />}
         {tab === 'evaluate' && (
           <JDEvaluator
             profile={profile}
-            savedResult={evalResult}
-            savedJdText={evalJdText}
-            onResultChange={setEvalResult}
-            onJdTextChange={setEvalJdText}
-            savedRole={evalRole}
-            savedCompany={evalCompany}
-            onRoleChange={setEvalRole}
-            onCompanyChange={setEvalCompany}
-            onTrack={(app) => setApplications(prev => [...prev, { ...app, jobId: app.id }])}
-          />
-        )}
-        {tab === 'jobs' && (
-          <JobSearch
-            profile={profile}
-            applications={applications}
-            onApply={(app) => setApplications(prev => {
+            savedResult={evalResult} savedJdText={evalJdText}
+            savedRole={evalRole} savedCompany={evalCompany}
+            onResultChange={setEvalResult} onJdTextChange={setEvalJdText}
+            onRoleChange={setEvalRole} onCompanyChange={setEvalCompany}
+            onTrack={(app) => setApplications(prev => {
               const exists = prev.find(a => a.id === app.id)
-              return exists ? prev : [...prev, app]
+              return exists ? prev : [...prev, { ...app, jobId: app.id }]
             })}
           />
         )}
-        {tab === 'tracker' && (
-          <Tracker
-            applications={applications}
-            loading={loadingApps}
-            onUpdate={setApplications}
-            onRefresh={loadApps}
-          />
+        {tab === 'jobs' && (
+          <JobSearch profile={profile} applications={applications}
+            onApply={(app) => setApplications(prev => {
+              const exists = prev.find(a => a.id === app.id)
+              return exists ? prev : [...prev, app]
+            })} />
         )}
-        {tab === 'dashboard' && (
-          <Dashboard applications={applications} />
-        )}
+        {tab === 'tracker' && <Tracker applications={applications} loading={loadingApps} onUpdate={setApplications} onRefresh={loadApps} />}
+        {tab === 'dashboard' && <Dashboard applications={applications} />}
       </div>
     </div>
   )
