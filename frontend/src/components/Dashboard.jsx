@@ -30,12 +30,12 @@ export default function Dashboard({ applications }) {
   return (
     <div className="animate-slide-up">
       <div className="mb-6">
-        <h2 style={{ fontFamily: 'DM Serif Display, Georgia, serif', fontSize: '1.5rem', color: 'var(--navy-900)' }}>Dashboard</h2>
+        <h2 style={{ fontFamily: 'DM Serif Display, Georgia, serif', fontSize: '1.5rem', color: 'var(--text-primary)' }}>Dashboard</h2>
         <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Your job search at a glance</p>
       </div>
 
-      {/* Metrics */}
-      <div className="grid grid-cols-4 gap-3 mb-4">
+      {/* Metrics — 4 col desktop, 2 col mobile */}
+      <div className="metric-grid-4 grid gap-3 mb-4" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
         {metrics.map(({ label, value, icon: Icon, accent }) => (
           <div key={label} className="metric-card">
             <div className="w-8 h-8 rounded-lg flex items-center justify-center mx-auto mb-3"
@@ -48,17 +48,43 @@ export default function Dashboard({ applications }) {
         ))}
       </div>
 
-      {/* Funnel */}
-      <div className="card mb-4">
-        <span className="section-label">Application funnel</span>
-        <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-          {funnel.map((f, i) => (
-            <div key={f.label} className="flex-1 py-4 text-center"
-              style={{ background: f.bg, borderRight: i < funnel.length - 1 ? '1px solid rgba(0,0,0,0.06)' : 'none' }}>
-              <div className="text-xl font-semibold" style={{ fontFamily: 'DM Serif Display, serif', color: f.text }}>{f.count}</div>
-              <div className="text-xs font-medium mt-0.5" style={{ color: f.text, opacity: 0.8 }}>{f.label}</div>
-            </div>
-          ))}
+      {/* Two column layout on desktop */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }} className="mb-4 grid-2-col">
+        {/* Funnel */}
+        <div className="card" style={{ margin: 0 }}>
+          <span className="section-label">Application funnel</span>
+          <div className="flex rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+            {funnel.map((f, i) => (
+              <div key={f.label} className="flex-1 py-4 text-center"
+                style={{ background: f.bg, borderRight: i < funnel.length - 1 ? '1px solid rgba(0,0,0,0.06)' : 'none' }}>
+                <div className="text-xl font-semibold" style={{ fontFamily: 'DM Serif Display, serif', color: f.text }}>{f.count}</div>
+                <div className="text-xs font-medium mt-0.5" style={{ color: f.text, opacity: 0.8 }}>{f.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Quick stats */}
+        <div className="card" style={{ margin: 0 }}>
+          <span className="section-label">Activity breakdown</span>
+          <div className="space-y-3">
+            {[
+              { label: 'Applied', count: total, color: 'var(--blue-accent)', pct: 100 },
+              { label: 'Got interviews', count: byStatus.interview + byStatus.offer, color: '#7C3AED', pct: total > 0 ? Math.round(((byStatus.interview+byStatus.offer)/total)*100) : 0 },
+              { label: 'Offers received', count: byStatus.offer, color: 'var(--success)', pct: total > 0 ? Math.round((byStatus.offer/total)*100) : 0 },
+              { label: 'Rejected', count: byStatus.rejected, color: 'var(--danger)', pct: total > 0 ? Math.round((byStatus.rejected/total)*100) : 0 },
+            ].map(s => (
+              <div key={s.label}>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>{s.label}</span>
+                  <span className="text-xs font-semibold" style={{ color: s.color }}>{s.count}</span>
+                </div>
+                <div className="rounded-full overflow-hidden" style={{ height: '4px', background: 'var(--border)' }}>
+                  <div className="h-full rounded-full transition-all duration-700" style={{ width: `${s.pct}%`, background: s.color }} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -66,7 +92,7 @@ export default function Dashboard({ applications }) {
       <div className="card">
         <span className="section-label">All applications</span>
         {!applications.length ? (
-          <p className="text-sm py-4 text-center" style={{ color: 'var(--text-ghost)' }}>
+          <p className="text-sm py-6 text-center" style={{ color: 'var(--text-ghost)' }}>
             No applications yet — start tracking jobs from the Tracker tab.
           </p>
         ) : (
@@ -74,11 +100,11 @@ export default function Dashboard({ applications }) {
             {applications.map(a => (
               <div key={a.id} className="flex items-center justify-between py-3"
                 style={{ borderBottom: '1px solid var(--border-light)' }}>
-                <div>
-                  <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{a.job_title}</div>
+                <div className="min-w-0 flex-1 mr-3">
+                  <div className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{a.job_title}</div>
                   <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{a.company}{a.location ? ` · ${a.location}` : ''}</div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-shrink-0">
                   {a.match_score && (
                     <span className="text-xs font-semibold" style={{ color: a.match_score >= 75 ? 'var(--success)' : 'var(--warning)' }}>
                       {a.match_score}%

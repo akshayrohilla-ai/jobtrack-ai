@@ -18,7 +18,8 @@ export default function RecruiterMode() {
   return (
     <div>
       <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-        <div className="max-w-6xl mx-auto px-6 flex">
+        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px' }}
+          className="tab-nav flex overflow-x-auto">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button key={id} onClick={() => setTab(id)}
               className="flex items-center gap-2 px-4 py-3.5 text-xs font-medium border-b-2 transition-all duration-150 whitespace-nowrap"
@@ -35,8 +36,7 @@ export default function RecruiterMode() {
           ))}
         </div>
       </div>
-
-      <div className="max-w-4xl mx-auto px-6 py-6">
+      <div className="app-content">
         {tab === 'jd' && <JDAnalyzer onAnalyzed={(a) => { setJdAnalysis(a); setTab('candidates') }} />}
         {tab === 'candidates' && <CandidateScorer jdAnalysis={jdAnalysis} shortlist={shortlist} onShortlist={(c) => { setShortlist(prev => [...prev, c]); setTab('shortlist') }} />}
         {tab === 'shortlist' && <Shortlist shortlist={shortlist} />}

@@ -65,7 +65,7 @@ export default function Tracker({ applications, loading, onUpdate, onRefresh }) 
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-3">
+      <div className="kanban-grid grid gap-3" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
         {COLS.map(col => {
           const colApps = applications.filter(a => a.status === col.id)
           return (

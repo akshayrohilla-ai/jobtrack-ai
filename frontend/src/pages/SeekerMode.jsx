@@ -52,17 +52,15 @@ export default function SeekerMode() {
     <div>
       {/* Tab nav */}
       <div style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border)' }}>
-        <div className="max-w-6xl mx-auto px-6 flex overflow-x-auto">
+        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px' }}
+          className="tab-nav flex overflow-x-auto">
           {TABS.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setTab(id)}
+            <button key={id} onClick={() => setTab(id)}
               className="flex items-center gap-2 px-4 py-3.5 text-xs font-medium border-b-2 transition-all duration-150 whitespace-nowrap"
               style={tab === id
                 ? { borderBottomColor: 'var(--blue-accent)', color: 'var(--blue-accent)' }
                 : { borderBottomColor: 'transparent', color: 'var(--text-muted)' }
-              }
-            >
+              }>
               <Icon size={14} />
               {label}
               {id === 'tracker' && applications.length > 0 && (
@@ -77,7 +75,7 @@ export default function SeekerMode() {
       </div>
 
       {loadError && (
-        <div className="max-w-4xl mx-auto px-6 pt-4">
+        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '16px 24px 0' }}>
           <div className="flex items-start gap-2 p-3 rounded-lg text-xs"
             style={{ background: 'var(--danger-bg)', color: 'var(--danger)', border: '1px solid #FECACA' }}>
             <AlertCircle size={13} className="flex-shrink-0 mt-0.5" />
@@ -87,7 +85,7 @@ export default function SeekerMode() {
         </div>
       )}
 
-      <div className="max-w-4xl mx-auto px-6 py-6">
+      <div className="app-content">
         {tab === 'cv' && <CVProfile profile={profile} onProfileParsed={handleProfileParsed} onSwap={handleSwap} />}
         {tab === 'evaluate' && (
           <JDEvaluator
