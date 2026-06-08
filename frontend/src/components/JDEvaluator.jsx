@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Cpu, AlertTriangle, CheckCircle, TrendingUp, DollarSign, Star, BookmarkPlus, ChevronDown, ChevronUp, Zap, Lock, RefreshCw, Sparkles } from 'lucide-react'
-import { api, createApplication } from '../lib/api'
-import { getSessionId } from '../lib/session'
+import { createApplication } from '../lib/api'
+import { getAuthHeader } from '../lib/supabase'
+import { useAuth } from '../App'
 
 const GRADE_CONFIG = {
   A: { color: 'var(--success)',  bg: 'var(--success-bg)', border: '#6EE7B7', label: 'Excellent fit',  glow: 'rgba(5,150,105,0.15)' },
@@ -24,17 +25,18 @@ function formatSalary(n) {
   return `₹${(n/1000).toFixed(0)}K`
 }
 
-function UsageMeter({ used, limit }) {
-  const remaining = Math.max(0, limit - used)
-  const pct = Math.min(100, (used / limit) * 100)
-  const barColor = remaining === 0 ? 'var(--danger)' : remaining === 1 ? 'var(--warning)' : 'var(--blue-accent)'
+function CreditMeter({ balance }) {
+  const limit = 2  // free tier baseline for display
+  const pct = Math.min(100, (balance / limit) * 100)
+  const barColor = balance === 0 ? 'var(--danger)' : balance === 1 ? 'var(--warning)' : 'var(--blue-accent)'
   return (
     <div className="flex items-center gap-3">
       <div className="flex-1 rounded-full overflow-hidden" style={{ height: '4px', background: 'var(--border)' }}>
         <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: barColor }} />
       </div>
-      <span className="text-xs font-medium tabular-nums" style={{ color: remaining === 0 ? 'var(--danger)' : 'var(--text-muted)', minWidth: '60px', textAlign: 'right' }}>
-        {remaining} / {limit} left
+      <span className="text-xs font-medium tabular-nums"
+        style={{ color: balance === 0 ? 'var(--danger)' : 'var(--text-muted)', minWidth: '60px', textAlign: 'right' }}>
+        {balance} credit{balance !== 1 ? 's' : ''} left
       </span>
     </div>
   )
@@ -60,45 +62,87 @@ function Section({ icon: Icon, iconColor, title, children, defaultOpen = false }
 }
 
 export default function JDEvaluator({ profile, savedResult, savedJdText, savedRole, savedCompany, onResultChange, onJdTextChange, onRoleChange, onCompanyChange, onTrack }) {
+  const { user, creditBalance, setCreditBalance, setShowAuthModal } = useAuth()
+
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState(null)
-  const [limitHit, setLimitHit] = useState(false)
-  const [usage, setUsage]       = useState(null)
   const [tracking, setTracking] = useState(false)
   const [tracked, setTracked]   = useState(false)
 
-  useEffect(() => { loadUsage() }, [])
-
-  async function loadUsage() {
-    try {
-      const { data } = await api.get(`/api/evaluate/usage/${getSessionId()}`)
-      setUsage(data)
-      if (data.evaluations_remaining <= 0) setLimitHit(true)
-    } catch { }
-  }
+  const outOfCredits = user && creditBalance !== null && creditBalance <= 0
 
   async function handleEvaluate() {
-    if (!savedJdText?.trim() || savedJdText.length < 50) { setError('Paste a complete job description first.'); return }
-    setLoading(true); setError(null); onResultChange(null); setLimitHit(false); setTracked(false)
+    // Gate 1 — must be signed in
+    if (!user) {
+      setShowAuthModal(true)
+      return
+    }
+
+    // Gate 2 — must have credits
+    if (creditBalance !== null && creditBalance <= 0) {
+      return
+    }
+
+    if (!savedJdText?.trim() || savedJdText.length < 50) {
+      setError('Paste a complete job description first.')
+      return
+    }
+
+    setLoading(true)
+    setError(null)
+    onResultChange(null)
+    setTracked(false)
+
     try {
-      const { data } = await api.post('/api/evaluate/evaluate-jd', {
-        jd_text: savedJdText, session_id: getSessionId(),
-        cv_skills: profile?.skills || [], cv_title: profile?.title || '', cv_years_exp: profile?.years_exp || '',
+      const headers = await getAuthHeader()
+      const API_URL = import.meta.env.VITE_API_URL
+
+      const res = await fetch(`${API_URL}/api/evaluate/evaluate-jd`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({
+          jd_text: savedJdText,
+          cv_skills: profile?.skills || [],
+          cv_title: profile?.title || '',
+          cv_years_exp: profile?.years_exp || '',
+        })
       })
+
+      if (res.status === 401) {
+        setShowAuthModal(true)
+        setError('Session expired. Please sign in again.')
+        return
+      }
+
+      if (res.status === 402) {
+        setCreditBalance(0)
+        return
+      }
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || 'Evaluation failed')
+      }
+
+      const data = await res.json()
       onResultChange(data)
-      if (data._usage) setUsage(data._usage)
-      if (data._usage?.evaluations_remaining <= 0) setLimitHit(true)
+
+      // Update credit balance from response
+      if (data._credits?.balance !== undefined) {
+        setCreditBalance(data._credits.balance)
+      }
+
     } catch (e) {
-      if (e.response?.status === 429) { setLimitHit(true); setUsage(prev => prev ? { ...prev, evaluations_remaining: 0 } : null) }
-      else setError(e.response?.data?.detail || 'Evaluation failed. Make sure your backend is running.')
-    } finally { setLoading(false) }
+      setError(e.message || 'Evaluation failed. Make sure your backend is running.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function handleTrack() {
     setTracking(true)
     try {
       const { data } = await createApplication({
-        session_id: getSessionId(),
         job_title: savedRole || savedResult.role_summary?.split('.')[0]?.slice(0, 80) || 'Job from evaluation',
         company: savedCompany || 'From JD evaluation',
         location: profile?.location || '',
@@ -119,49 +163,72 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
   return (
     <div className="animate-slide-up space-y-3">
 
-      {/* Usage meter */}
-      {usage && (
+      {/* Credit meter — only shown when signed in */}
+      {user && creditBalance !== null && (
         <div className="card" style={{
-          ...(usage.evaluations_remaining <= 1 ? { borderColor: 'var(--warning)', background: 'var(--warning-bg)' } : {})
+          ...(creditBalance <= 1 ? { borderColor: 'var(--warning)', background: 'var(--warning-bg)' } : {})
         }}>
           <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center gap-2">
-              <Zap size={13} style={{ color: usage.evaluations_remaining <= 1 ? 'var(--warning)' : 'var(--text-ghost)' }} />
-              <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>Free tier · JD evaluations</span>
+              <Zap size={13} style={{ color: creditBalance <= 1 ? 'var(--warning)' : 'var(--text-ghost)' }} />
+              <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>JD evaluations</span>
             </div>
-            {usage.evaluations_remaining <= 1 && (
-              <span className="badge-amber">{usage.evaluations_remaining === 0 ? 'Limit reached' : '1 left'}</span>
+            {creditBalance <= 1 && (
+              <span className="badge-amber">{creditBalance === 0 ? 'No credits' : '1 left'}</span>
             )}
           </div>
-          <UsageMeter used={usage.evaluations_used} limit={usage.evaluations_limit} />
+          <CreditMeter balance={creditBalance} />
         </div>
       )}
 
-      {/* Paywall */}
-      {limitHit && (
+      {/* Not signed in — prompt */}
+      {!user && !result && (
+        <div className="card text-center py-8" style={{ border: '1px dashed var(--border)' }}>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3"
+            style={{ background: 'var(--navy-900)' }}>
+            <Lock size={18} style={{ color: 'rgba(255,255,255,0.6)' }} />
+          </div>
+          <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+            Sign in to evaluate jobs
+          </h3>
+          <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+            Free account · 2 evaluations included
+          </p>
+          <button
+            onClick={() => setShowAuthModal(true)}
+            className="px-5 py-2 rounded-lg text-sm font-semibold text-white"
+            style={{ background: 'var(--blue-accent)' }}>
+            Sign in / Sign up
+          </button>
+        </div>
+      )}
+
+      {/* Out of credits paywall */}
+      {outOfCredits && (
         <div className="card text-center py-10" style={{ border: '2px solid var(--navy-800)' }}>
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
             style={{ background: 'var(--navy-900)' }}>
             <Lock size={22} style={{ color: 'rgba(255,255,255,0.6)' }} />
           </div>
           <h3 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.25rem', color: 'var(--navy-900)' }}>
-            You've used your 2 free evaluations
+            You've used all your credits
           </h3>
           <p className="text-sm mt-2 mb-6 max-w-xs mx-auto" style={{ color: 'var(--text-muted)' }}>
-            Upgrade to Pro for unlimited JD evaluations, CV tailoring per role, and STAR interview prep.
+            Top up to keep evaluating jobs, tailoring your CV, and tracking applications.
           </p>
           <div className="inline-flex flex-col items-center gap-2">
             <div className="px-6 py-3 rounded-xl text-sm font-semibold text-white"
               style={{ background: 'linear-gradient(135deg, var(--blue-accent), var(--navy-700))' }}>
-              Pro — ₹499/month <span style={{ opacity: 0.6, fontWeight: 400 }}>(coming soon)</span>
+              ₹199 = 10 credits &nbsp;·&nbsp; ₹499 = 30 credits
+              <span style={{ opacity: 0.6, fontWeight: 400 }}> (coming soon)</span>
             </div>
-            <p className="text-xs" style={{ color: 'var(--text-ghost)' }}>Credit packs · ₹199 = 10 evaluations · launching soon</p>
+            <p className="text-xs" style={{ color: 'var(--text-ghost)' }}>Credit packs launching soon</p>
           </div>
         </div>
       )}
 
-      {/* Input form */}
-      {!limitHit && !result && (
+      {/* Input form — shown when signed in, has credits, no result yet */}
+      {user && !outOfCredits && !result && (
         <div className="card">
           {!profile && (
             <div className="flex items-start gap-2 p-3 rounded-lg mb-4 text-xs"
@@ -234,7 +301,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
                 </span>
               </div>
             )}
-            {!limitHit && (
+            {!outOfCredits && (
               <button onClick={() => { onResultChange(null); onJdTextChange(''); setTracked(false) }}
                 className="btn-ghost text-xs py-1.5 ml-auto">
                 <RefreshCw size={12} />Evaluate another JD
