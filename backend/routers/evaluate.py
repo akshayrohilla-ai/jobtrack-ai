@@ -8,102 +8,18 @@ from services.supabase_client import get_supabase
 
 router = APIRouter()
 
-# Free tier limits
 FREE_EVALUATION_LIMIT = 3
 FREE_APPLICATION_LIMIT = 5
 
-
-class EvaluationRequest(BaseModel):
-    jd_text: str
-    session_id: str
-    cv_skills: Optional[list] = []
-    cv_title: Optional[str] = ""
-    cv_years_exp: Optional[str] = ""
-    application_id: Optional[str] = None
-
-
-def get_usage(session_id: str) -> dict:
-    """Get current usage counts for a session."""
-    try:
-        supabase = get_supabase()
-        result = supabase.table("jd_evaluations")\
-            .select("id")\
-            .eq("user_session", session_id)\
-            .execute()
-        eval_count = len(result.data or [])
-
-        app_result = supabase.table("applications")\
-            .select("id")\
-            .eq("user_session", session_id)\
-            .execute()
-        app_count = len(app_result.data or [])
-
-        return {
-            "evaluations_used": eval_count,
-            "evaluations_limit": FREE_EVALUATION_LIMIT,
-            "evaluations_remaining": max(0, FREE_EVALUATION_LIMIT - eval_count),
-            "applications_used": app_count,
-            "applications_limit": FREE_APPLICATION_LIMIT,
-            "applications_remaining": max(0, FREE_APPLICATION_LIMIT - app_count),
-            "is_free_tier": True
-        }
-    except Exception:
-        return {
-            "evaluations_used": 0,
-            "evaluations_limit": FREE_EVALUATION_LIMIT,
-            "evaluations_remaining": FREE_EVALUATION_LIMIT,
-            "applications_used": 0,
-            "applications_limit": FREE_APPLICATION_LIMIT,
-            "applications_remaining": FREE_APPLICATION_LIMIT,
-            "is_free_tier": True
-        }
-
-
-@router.get("/usage/{session_id}")
-async def get_session_usage(session_id: str):
-    """Get usage stats for a session."""
-    return get_usage(session_id)
-
-
-@router.post("/evaluate-jd")
-async def evaluate_jd(request: EvaluationRequest):
-    """Full 6-block JD evaluation against candidate profile."""
-    if len(request.jd_text.strip()) < 50:
-        raise HTTPException(status_code=400, detail="Job description too short")
-
-    # Check usage limit
-    usage = get_usage(request.session_id)
-    if usage["evaluations_remaining"] <= 0:
-        raise HTTPException(
-            status_code=429,
-            detail={
-                "message": "Free tier limit reached",
-                "evaluations_used": usage["evaluations_used"],
-                "evaluations_limit": usage["evaluations_limit"],
-                "upgrade_message": "You've used all 3 free evaluations. Upgrade to Pro for unlimited evaluations, CV tailoring, and STAR interview prep."
-            }
-        )
-
-    # Use Haiku for cost efficiency (~20x cheaper than Opus)
-    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-
-    profile_context = ""
-    if request.cv_skills:
-        profile_context = f"""
-Candidate profile:
-- Current title: {request.cv_title or 'Not provided'}
-- Experience: {request.cv_years_exp or 'Not provided'}
-- Skills: {', '.join(request.cv_skills[:20])}
-"""
-
-    system_prompt = """You are a senior career advisor evaluating job opportunities for candidates.
-Analyze the job description and return a structured evaluation.
+# Cached system prompt — reused across all evaluation calls (saves ~30% tokens)
+EVALUATION_SYSTEM_PROMPT = """You are a senior career advisor evaluating job opportunities for candidates.
+Analyze the job description and candidate profile, then return a structured evaluation.
 Return ONLY valid JSON with no markdown, no backticks, no explanation.
 
 Format:
 {
   "role_summary": "2-3 sentence plain-language summary of what this job actually is and what success looks like",
-  "company_signals": "What the JD reveals about the company culture, team, and role (positive and negative signals)",
+  "company_signals": "What the JD reveals about company culture, team, and role (positive and negative signals)",
   "cv_match": {
     "matched_skills": ["skill1", "skill2"],
     "match_summary": "One sentence on overall fit"
@@ -118,7 +34,7 @@ Format:
     "max": 0,
     "currency": "INR",
     "confidence": "high|medium|low",
-    "reasoning": "brief reasoning"
+    "reasoning": "brief reasoning for the range"
   },
   "red_flags": ["flag1", "flag2"],
   "green_flags": ["flag1", "flag2"],
@@ -127,36 +43,114 @@ Format:
 }
 
 Grade criteria:
-A = Strong match, great role, apply immediately
-B = Good match with minor gaps, worth applying with tailored CV
-C = Partial match, significant gaps or concerning signals
-D = Poor match or multiple red flags
-F = Clear mismatch or avoid"""
+A = Strong match on both skills AND domain, great role quality, apply immediately
+B = Good skill match but minor gaps or domain shift, worth applying with tailored CV
+C = Partial match, significant skill gaps OR meaningful domain change required
+D = Poor match — major skill gaps, wrong domain, or multiple red flags
+F = Clear mismatch — different industry, wrong level, or avoid entirely
 
-    user_prompt = f"""Evaluate this job opportunity:
+IMPORTANT: Be strict about domain fit. A finance professional applying for a customer analytics role is AT MOST a C — transferable skills exist but the core domain knowledge gap is significant. Do not grade D or F candidates as B."""
 
+
+class EvaluationRequest(BaseModel):
+    jd_text: str
+    session_id: str
+    cv_skills: Optional[list] = []
+    cv_title: Optional[str] = ""
+    cv_years_exp: Optional[str] = ""
+    application_id: Optional[str] = None
+
+
+def get_usage(session_id: str) -> dict:
+    try:
+        supabase = get_supabase()
+        eval_count = len(supabase.table("jd_evaluations").select("id").eq("user_session", session_id).execute().data or [])
+        app_count  = len(supabase.table("applications").select("id").eq("user_session", session_id).execute().data or [])
+        return {
+            "evaluations_used": eval_count,
+            "evaluations_limit": FREE_EVALUATION_LIMIT,
+            "evaluations_remaining": max(0, FREE_EVALUATION_LIMIT - eval_count),
+            "applications_used": app_count,
+            "applications_limit": FREE_APPLICATION_LIMIT,
+            "applications_remaining": max(0, FREE_APPLICATION_LIMIT - app_count),
+            "is_free_tier": True
+        }
+    except Exception:
+        return {
+            "evaluations_used": 0, "evaluations_limit": FREE_EVALUATION_LIMIT,
+            "evaluations_remaining": FREE_EVALUATION_LIMIT,
+            "applications_used": 0, "applications_limit": FREE_APPLICATION_LIMIT,
+            "applications_remaining": FREE_APPLICATION_LIMIT, "is_free_tier": True
+        }
+
+
+@router.get("/usage/{session_id}")
+async def get_session_usage(session_id: str):
+    return get_usage(session_id)
+
+
+@router.post("/evaluate-jd")
+async def evaluate_jd(request: EvaluationRequest):
+    if len(request.jd_text.strip()) < 50:
+        raise HTTPException(status_code=400, detail="Job description too short")
+
+    usage = get_usage(request.session_id)
+    if usage["evaluations_remaining"] <= 0:
+        raise HTTPException(status_code=429, detail={
+            "message": "Free tier limit reached",
+            "evaluations_used": usage["evaluations_used"],
+            "evaluations_limit": usage["evaluations_limit"],
+            "upgrade_message": "You've used all 3 free evaluations. Upgrade to Pro for unlimited evaluations, CV tailoring, and STAR interview prep."
+        })
+
+    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+    profile_context = ""
+    if request.cv_skills:
+        profile_context = f"""
+Candidate profile:
+- Current title: {request.cv_title or 'Not provided'}
+- Experience: {request.cv_years_exp or 'Not provided'}
+- Skills: {', '.join(request.cv_skills[:20])}
+"""
+
+    user_prompt = f"""Evaluate this job opportunity for the candidate:
+
+JOB DESCRIPTION:
 {request.jd_text[:4000]}
 
 {profile_context}
 
-Provide the full 6-block evaluation as JSON."""
+Return the full evaluation as JSON."""
 
     try:
         message = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model="claude-opus-4-5",
             max_tokens=1500,
-            system=system_prompt,
+            system=[
+                {
+                    "type": "text",
+                    "text": EVALUATION_SYSTEM_PROMPT,
+                    "cache_control": {"type": "ephemeral"}
+                }
+            ],
             messages=[{"role": "user", "content": user_prompt}]
         )
 
-        raw = message.content[0].text.strip()
-        raw = raw.replace("```json", "").replace("```", "").strip()
+        raw = message.content[0].text.strip().replace("```json", "").replace("```", "").strip()
         evaluation = json.loads(raw)
+
+        # Log cache usage if available
+        usage_meta = getattr(message, 'usage', None)
+        if usage_meta:
+            cache_read = getattr(usage_meta, 'cache_read_input_tokens', 0)
+            if cache_read:
+                print(f"Cache hit: {cache_read} tokens reused")
 
         # Save to Supabase
         try:
             supabase = get_supabase()
-            record = {
+            supabase.table("jd_evaluations").insert({
                 "user_session": request.session_id,
                 "jd_text": request.jd_text[:3000],
                 "grade": evaluation.get("grade"),
@@ -167,17 +161,12 @@ Provide the full 6-block evaluation as JSON."""
                 "recommended_action": evaluation.get("recommended_action"),
                 "salary_min": evaluation.get("salary_range", {}).get("min"),
                 "salary_max": evaluation.get("salary_range", {}).get("max"),
-            }
-            if request.application_id:
-                record["application_id"] = request.application_id
-            supabase.table("jd_evaluations").insert(record).execute()
+                **({"application_id": request.application_id} if request.application_id else {})
+            }).execute()
         except Exception:
             pass
 
-        # Add usage info to response
-        updated_usage = get_usage(request.session_id)
-        evaluation["_usage"] = updated_usage
-
+        evaluation["_usage"] = get_usage(request.session_id)
         return evaluation
 
     except json.JSONDecodeError as e:
@@ -188,15 +177,9 @@ Provide the full 6-block evaluation as JSON."""
 
 @router.get("/history/{session_id}")
 async def get_evaluation_history(session_id: str):
-    """Get past evaluations for a session."""
     try:
         supabase = get_supabase()
-        result = supabase.table("jd_evaluations")\
-            .select("*")\
-            .eq("user_session", session_id)\
-            .order("created_at", desc=True)\
-            .limit(20)\
-            .execute()
+        result = supabase.table("jd_evaluations").select("*").eq("user_session", session_id).order("created_at", desc=True).limit(20).execute()
         return result.data or []
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

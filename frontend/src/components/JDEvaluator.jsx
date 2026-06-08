@@ -47,13 +47,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, onResul
   const [usage, setUsage]       = useState(null)
   const [expanded, setExpanded] = useState({ match: true, gaps: true, flags: false, salary: false })
 
-  // Use lifted state from parent
-  const result  = savedResult
-  const jdText  = savedJdText
-
-  useEffect(() => {
-    loadUsage()
-  }, [])
+  useEffect(() => { loadUsage() }, [])
 
   async function loadUsage() {
     try {
@@ -67,14 +61,8 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, onResul
     setExpanded(prev => ({ ...prev, [key]: !prev[key] }))
   }
 
-  function handleNewEvaluation() {
-    onResultChange(null)
-    onJdTextChange('')
-    setError(null)
-  }
-
   async function handleEvaluate() {
-    if (!jdText.trim() || jdText.length < 50) {
+    if (!savedJdText?.trim() || savedJdText.length < 50) {
       setError('Paste a complete job description first.')
       return
     }
@@ -84,7 +72,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, onResul
     setLimitHit(false)
     try {
       const { data } = await api.post('/api/evaluate/evaluate-jd', {
-        jd_text: jdText,
+        jd_text: savedJdText,
         session_id: getSessionId(),
         cv_skills: profile?.skills || [],
         cv_title: profile?.title || '',
@@ -105,13 +93,15 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, onResul
     }
   }
 
+  const result = savedResult
   const grade = result?.grade
   const gradeConfig = grade ? GRADE_CONFIG[grade] : null
   const actionConfig = result?.recommended_action ? ACTION_CONFIG[result.recommended_action] : null
 
   return (
-    <div>
-      {/* Usage indicator */}
+    <div className="space-y-4">
+
+      {/* Usage bar — always visible */}
       {usage && (
         <div className={`card ${usage.evaluations_remaining <= 1 ? 'border-amber-200 bg-amber-50' : ''}`}>
           <div className="flex items-center justify-between mb-2">
@@ -131,42 +121,41 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, onResul
 
       {/* Limit hit wall */}
       {limitHit && (
-        <div className="card border-2 border-gray-900 text-center py-8 mt-4">
+        <div className="card border-2 border-gray-900 text-center py-8">
           <Lock size={28} className="mx-auto mb-3 text-gray-400" />
           <div className="font-medium text-gray-900 mb-1">You've used your 3 free evaluations</div>
           <p className="text-sm text-gray-500 mb-4 max-w-sm mx-auto">
             Upgrade to Pro for unlimited JD evaluations, CV tailoring per role, and STAR interview prep stories.
           </p>
-          <div className="inline-flex flex-col items-center gap-2">
-            <div className="bg-gray-900 text-white px-6 py-2.5 rounded-lg text-sm font-medium">
-              Pro — ₹499/month <span className="text-gray-400 text-xs ml-1">(coming soon)</span>
-            </div>
-            <p className="text-xs text-gray-400">Payments launching soon · Join the waitlist</p>
+          <div className="bg-gray-900 text-white px-6 py-2.5 rounded-lg text-sm font-medium inline-block">
+            Pro — ₹499/month <span className="text-gray-400 text-xs ml-1">(coming soon)</span>
           </div>
+          <p className="text-xs text-gray-400 mt-2">Payments launching soon · Join the waitlist</p>
         </div>
       )}
 
+      {/* Input form — show when no result yet and not limit hit */}
       {!limitHit && !result && (
-        <div className="card mt-4">
+        <div className="card">
           <div className="section-label">Paste job description</div>
           {!profile && (
             <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-100 rounded-lg mb-3 text-xs text-amber-700">
               <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
-              Upload your CV first on "My profile" for a personalised evaluation.
+              Upload your CV on "My profile" first for a personalised evaluation.
             </div>
           )}
           {profile && (
             <div className="flex items-center gap-2 p-2.5 bg-gray-50 border border-gray-100 rounded-lg mb-3">
               <div className="w-6 h-6 rounded-full bg-blue-50 flex items-center justify-center text-blue-700 text-xs font-medium flex-shrink-0">
-                {profile.initials || '?'}
+                {profile.initials || profile.name?.split(' ').map(w=>w[0]).join('').slice(0,2) || '?'}
               </div>
-              <span className="text-xs text-gray-600">Evaluating as <strong>{profile.name}</strong> — {profile.title}</span>
+              <span className="text-xs text-gray-600">Evaluating as <strong>{profile.name}</strong> · {profile.title}</span>
             </div>
           )}
           <textarea
             className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-gray-50 text-gray-900 resize-y min-h-48 focus:outline-none focus:border-gray-400 leading-relaxed"
             placeholder="Paste the full job description here. Claude will evaluate the role, score your fit, flag red flags, and estimate salary..."
-            value={jdText}
+            value={savedJdText || ''}
             onChange={e => onJdTextChange(e.target.value)}
           />
           {error && (
@@ -177,7 +166,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, onResul
           <button
             className="btn-primary w-full justify-center mt-3"
             onClick={handleEvaluate}
-            disabled={loading || !jdText.trim()}
+            disabled={loading || !savedJdText?.trim()}
           >
             {loading
               ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Evaluating with AI...</>
@@ -187,9 +176,10 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, onResul
         </div>
       )}
 
+      {/* Results — show when result exists, persists across tab switches */}
       {result && gradeConfig && (
-        <div className="space-y-3 mt-4">
-          {/* Header with profile context + new evaluation button */}
+        <>
+          {/* Profile + new eval button */}
           <div className="flex items-center justify-between">
             {profile && (
               <div className="flex items-center gap-2">
@@ -200,13 +190,16 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, onResul
               </div>
             )}
             {!limitHit && (
-              <button onClick={handleNewEvaluation} className="btn-ghost text-xs py-1.5 ml-auto">
+              <button
+                onClick={() => { onResultChange(null); onJdTextChange('') }}
+                className="btn-ghost text-xs py-1.5 ml-auto"
+              >
                 <RefreshCw size={12} />Evaluate another JD
               </button>
             )}
           </div>
 
-          {/* Grade + Action */}
+          {/* Grade */}
           <div className={`card border ${gradeConfig.border} ${gradeConfig.bg}`}>
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center gap-4">
@@ -249,9 +242,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, onResul
               <div className="mt-3">
                 <p className="text-sm text-gray-600 mb-3">{result.cv_match?.match_summary}</p>
                 <div className="flex flex-wrap gap-1">
-                  {result.cv_match?.matched_skills?.map((s, i) => (
-                    <span key={i} className="skill-chip-match">{s}</span>
-                  ))}
+                  {result.cv_match?.matched_skills?.map((s, i) => <span key={i} className="skill-chip-match">{s}</span>)}
                 </div>
               </div>
             )}
@@ -302,9 +293,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, onResul
                       <div className="text-xs font-medium text-green-700 mb-2">Green flags</div>
                       <ul className="space-y-1">
                         {result.green_flags.map((f, i) => (
-                          <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
-                            <span className="text-green-500 mt-0.5">✓</span>{f}
-                          </li>
+                          <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5"><span className="text-green-500 mt-0.5">✓</span>{f}</li>
                         ))}
                       </ul>
                     </div>
@@ -314,9 +303,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, onResul
                       <div className="text-xs font-medium text-red-700 mb-2">Red flags</div>
                       <ul className="space-y-1">
                         {result.red_flags.map((f, i) => (
-                          <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5">
-                            <span className="text-red-500 mt-0.5">✗</span>{f}
-                          </li>
+                          <li key={i} className="text-xs text-gray-600 flex items-start gap-1.5"><span className="text-red-500 mt-0.5">✗</span>{f}</li>
                         ))}
                       </ul>
                     </div>
@@ -357,7 +344,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, onResul
               </button>
             )}
           </div>
-        </div>
+        </>
       )}
     </div>
   )
