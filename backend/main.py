@@ -5,7 +5,7 @@ import os
 
 load_dotenv()
 
-from routers import cv, jobs, applications, recruiter
+from routers import cv, jobs, applications, recruiter, evaluate
 
 app = FastAPI(
     title="JobTrack AI API",
@@ -27,6 +27,7 @@ app.include_router(cv.router, prefix="/api/cv", tags=["CV"])
 app.include_router(jobs.router, prefix="/api/jobs", tags=["Jobs"])
 app.include_router(applications.router, prefix="/api/applications", tags=["Applications"])
 app.include_router(recruiter.router, prefix="/api/recruiter", tags=["Recruiter"])
+app.include_router(evaluate.router, prefix="/api/evaluate", tags=["Evaluate"])
 
 @app.get("/")
 def root():

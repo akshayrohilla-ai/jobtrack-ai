@@ -1,65 +1,53 @@
 import { useState, useEffect } from 'react'
-import { FileText, Search, LayoutDashboard, Kanban, AlertCircle } from 'lucide-react'
+import { FileText, Search, LayoutDashboard, Kanban, ClipboardCheck, AlertCircle } from 'lucide-react'
 import CVProfile from '../components/CVProfile'
 import JobSearch from '../components/JobSearch'
 import Tracker from '../components/Tracker'
 import Dashboard from '../components/Dashboard'
+import JDEvaluator from '../components/JDEvaluator'
 import { getApplications } from '../lib/api'
 import { getSessionId } from '../lib/session'
 
 const TABS = [
-  { id: 'cv',        label: 'My profile', icon: FileText },
-  { id: 'jobs',      label: 'Find jobs',  icon: Search },
-  { id: 'tracker',   label: 'Tracker',    icon: Kanban },
-  { id: 'dashboard', label: 'Dashboard',  icon: LayoutDashboard },
+  { id: 'cv',       label: 'My profile',  icon: FileText },
+  { id: 'evaluate', label: 'Evaluate JD', icon: ClipboardCheck },
+  { id: 'jobs',     label: 'Find jobs',   icon: Search },
+  { id: 'tracker',  label: 'Tracker',     icon: Kanban },
+  { id: 'dashboard',label: 'Dashboard',   icon: LayoutDashboard },
 ]
 
 export default function SeekerMode() {
-  const [tab, setTab]                 = useState('cv')
-  const [profile, setProfile]         = useState(null)
+  const [tab, setTab]                   = useState('cv')
+  const [profile, setProfile]           = useState(null)
   const [applications, setApplications] = useState([])
-  const [loadingApps, setLoadingApps] = useState(true)
-  const [loadError, setLoadError]     = useState(null)
+  const [loadingApps, setLoadingApps]   = useState(true)
+  const [loadError, setLoadError]       = useState(null)
 
-  useEffect(() => {
-    loadApps()
-  }, [])
+  useEffect(() => { loadApps() }, [])
 
   async function loadApps() {
     setLoadingApps(true)
     setLoadError(null)
     try {
-      const sessionId = getSessionId()
-      console.log('Loading apps for session:', sessionId)
-      const { data } = await getApplications(sessionId)
-      console.log('Loaded applications:', data)
+      const { data } = await getApplications(getSessionId())
       if (Array.isArray(data)) {
         setApplications(data.map(a => ({ ...a, jobId: a.id })))
       }
     } catch (e) {
-      console.error('Failed to load applications:', e)
       setLoadError(e.response?.data?.detail || e.message || 'Failed to load applications')
     } finally {
       setLoadingApps(false)
     }
   }
 
-  function handleApply(app) {
-    console.log('New application tracked:', app)
-    setApplications(prev => {
-      const exists = prev.find(a => a.id === app.id)
-      return exists ? prev : [...prev, app]
-    })
-  }
-
   return (
     <div>
-      <nav className="bg-white border-b border-gray-100 px-4 flex">
+      <nav className="bg-white border-b border-gray-100 px-4 flex overflow-x-auto">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm border-b-2 transition-colors ${
+            className={`flex items-center gap-2 px-4 py-3 text-sm border-b-2 transition-colors whitespace-nowrap ${
               tab === id
                 ? 'border-gray-900 text-gray-900 font-medium'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -92,15 +80,21 @@ export default function SeekerMode() {
         {tab === 'cv' && (
           <CVProfile
             profile={profile}
-            onProfileParsed={(p) => { setProfile(p); setTab('jobs') }}
+            onProfileParsed={(p) => { setProfile(p); setTab('evaluate') }}
             onSwap={() => setProfile(null)}
           />
+        )}
+        {tab === 'evaluate' && (
+          <JDEvaluator profile={profile} />
         )}
         {tab === 'jobs' && (
           <JobSearch
             profile={profile}
             applications={applications}
-            onApply={handleApply}
+            onApply={(app) => setApplications(prev => {
+              const exists = prev.find(a => a.id === app.id)
+              return exists ? prev : [...prev, app]
+            })}
           />
         )}
         {tab === 'tracker' && (
