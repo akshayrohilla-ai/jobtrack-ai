@@ -8,7 +8,7 @@ from services.supabase_client import get_supabase
 
 router = APIRouter()
 
-FREE_EVALUATION_LIMIT = 3
+FREE_EVALUATION_LIMIT = 2
 FREE_APPLICATION_LIMIT = 5
 
 # Cached system prompt — reused across all evaluation calls (saves ~30% tokens)
