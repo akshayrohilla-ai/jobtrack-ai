@@ -1,15 +1,13 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request, Depends
 from pydantic import BaseModel
 from typing import Optional
 import anthropic
 import os
 import json
 from services.supabase_client import get_supabase
+from middleware.auth import get_current_user, require_credits, get_credit_balance
 
 router = APIRouter()
-
-FREE_EVALUATION_LIMIT = 2
-FREE_APPLICATION_LIMIT = 5
 
 # Cached system prompt — reused across all evaluation calls (saves ~30% tokens)
 EVALUATION_SYSTEM_PROMPT = """You are a senior career advisor evaluating job opportunities for candidates.
@@ -54,70 +52,47 @@ IMPORTANT: Be strict about domain fit. A finance professional applying for a cus
 
 class EvaluationRequest(BaseModel):
     jd_text: str
-    session_id: str
     cv_skills: Optional[list] = []
     cv_title: Optional[str] = ""
     cv_years_exp: Optional[str] = ""
     application_id: Optional[str] = None
 
 
-def get_usage(session_id: str) -> dict:
-    try:
-        supabase = get_supabase()
-        eval_count = len(supabase.table("jd_evaluations").select("id").eq("user_session", session_id).execute().data or [])
-        app_count  = len(supabase.table("applications").select("id").eq("user_session", session_id).execute().data or [])
-        return {
-            "evaluations_used": eval_count,
-            "evaluations_limit": FREE_EVALUATION_LIMIT,
-            "evaluations_remaining": max(0, FREE_EVALUATION_LIMIT - eval_count),
-            "applications_used": app_count,
-            "applications_limit": FREE_APPLICATION_LIMIT,
-            "applications_remaining": max(0, FREE_APPLICATION_LIMIT - app_count),
-            "is_free_tier": True
-        }
-    except Exception:
-        return {
-            "evaluations_used": 0, "evaluations_limit": FREE_EVALUATION_LIMIT,
-            "evaluations_remaining": FREE_EVALUATION_LIMIT,
-            "applications_used": 0, "applications_limit": FREE_APPLICATION_LIMIT,
-            "applications_remaining": FREE_APPLICATION_LIMIT, "is_free_tier": True
-        }
-
-
-@router.get("/usage/{session_id}")
-async def get_session_usage(session_id: str):
-    return get_usage(session_id)
+@router.get("/balance")
+async def get_balance(request: Request):
+    """Returns current credit balance for the authenticated user."""
+    user_id = await get_current_user(request)
+    balance = await get_credit_balance(user_id)
+    return {"balance": balance, "user_id": user_id}
 
 
 @router.post("/evaluate-jd")
-async def evaluate_jd(request: EvaluationRequest):
-    if len(request.jd_text.strip()) < 50:
+async def evaluate_jd(request: Request, payload: EvaluationRequest):
+    # 1. Verify JWT — raises 401 if missing/invalid
+    user_id = await get_current_user(request)
+
+    if len(payload.jd_text.strip()) < 50:
         raise HTTPException(status_code=400, detail="Job description too short")
 
-    usage = get_usage(request.session_id)
-    if usage["evaluations_remaining"] <= 0:
-        raise HTTPException(status_code=429, detail={
-            "message": "Free tier limit reached",
-            "evaluations_used": usage["evaluations_used"],
-            "evaluations_limit": usage["evaluations_limit"],
-            "upgrade_message": "You've used all 3 free evaluations. Upgrade to Pro for unlimited evaluations, CV tailoring, and STAR interview prep."
-        })
+    # 2. Check + decrement credits — raises 402 if balance is 0
+    new_balance = await require_credits(user_id, action="jd_evaluate", cost=1)
 
+    # 3. Build prompt
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
     profile_context = ""
-    if request.cv_skills:
+    if payload.cv_skills:
         profile_context = f"""
 Candidate profile:
-- Current title: {request.cv_title or 'Not provided'}
-- Experience: {request.cv_years_exp or 'Not provided'}
-- Skills: {', '.join(request.cv_skills[:20])}
+- Current title: {payload.cv_title or 'Not provided'}
+- Experience: {payload.cv_years_exp or 'Not provided'}
+- Skills: {', '.join(payload.cv_skills[:20])}
 """
 
     user_prompt = f"""Evaluate this job opportunity for the candidate:
 
 JOB DESCRIPTION:
-{request.jd_text[:4000]}
+{payload.jd_text[:4000]}
 
 {profile_context}
 
@@ -140,19 +115,19 @@ Return the full evaluation as JSON."""
         raw = message.content[0].text.strip().replace("```json", "").replace("```", "").strip()
         evaluation = json.loads(raw)
 
-        # Log cache usage if available
+        # Log cache hit if present
         usage_meta = getattr(message, 'usage', None)
         if usage_meta:
             cache_read = getattr(usage_meta, 'cache_read_input_tokens', 0)
             if cache_read:
                 print(f"Cache hit: {cache_read} tokens reused")
 
-        # Save to Supabase
+        # 4. Save evaluation to Supabase (now keyed to user_id, not session_id)
         try:
             supabase = get_supabase()
             supabase.table("jd_evaluations").insert({
-                "user_session": request.session_id,
-                "jd_text": request.jd_text[:3000],
+                "user_id": user_id,
+                "jd_text": payload.jd_text[:3000],
                 "grade": evaluation.get("grade"),
                 "role_summary": evaluation.get("role_summary"),
                 "matched_skills": evaluation.get("cv_match", {}).get("matched_skills", []),
@@ -161,12 +136,13 @@ Return the full evaluation as JSON."""
                 "recommended_action": evaluation.get("recommended_action"),
                 "salary_min": evaluation.get("salary_range", {}).get("min"),
                 "salary_max": evaluation.get("salary_range", {}).get("max"),
-                **({"application_id": request.application_id} if request.application_id else {})
+                **({"application_id": payload.application_id} if payload.application_id else {})
             }).execute()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Failed to save evaluation to DB: {e}")
 
-        evaluation["_usage"] = get_usage(request.session_id)
+        # 5. Return evaluation + remaining balance
+        evaluation["_credits"] = {"balance": new_balance}
         return evaluation
 
     except json.JSONDecodeError as e:
@@ -175,11 +151,18 @@ Return the full evaluation as JSON."""
         raise HTTPException(status_code=500, detail=f"Evaluation failed: {str(e)}")
 
 
-@router.get("/history/{session_id}")
-async def get_evaluation_history(session_id: str):
+@router.get("/history")
+async def get_evaluation_history(request: Request):
+    """Returns evaluation history for the authenticated user."""
+    user_id = await get_current_user(request)
     try:
         supabase = get_supabase()
-        result = supabase.table("jd_evaluations").select("*").eq("user_session", session_id).order("created_at", desc=True).limit(20).execute()
+        result = supabase.table("jd_evaluations") \
+            .select("*") \
+            .eq("user_id", user_id) \
+            .order("created_at", desc=True) \
+            .limit(20) \
+            .execute()
         return result.data or []
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
