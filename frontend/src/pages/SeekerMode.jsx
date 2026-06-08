@@ -25,6 +25,8 @@ export default function SeekerMode() {
   // Lift evaluation state up so it persists across tab switches
   const [evalResult, setEvalResult]       = useState(null)
   const [evalJdText, setEvalJdText]       = useState('')
+  const [evalRole, setEvalRole]           = useState('')
+  const [evalCompany, setEvalCompany]     = useState('')
 
   useEffect(() => { loadApps() }, [])
 
@@ -48,6 +50,8 @@ export default function SeekerMode() {
     setProfile(p)
     setEvalResult(null)
     setEvalJdText('')
+    setEvalRole('')
+    setEvalCompany('')
     setTab('evaluate')
   }
 
@@ -96,6 +100,8 @@ export default function SeekerMode() {
               setProfile(null)
               setEvalResult(null)
               setEvalJdText('')
+              setEvalRole('')
+              setEvalCompany('')
             }}
           />
         )}
@@ -106,6 +112,10 @@ export default function SeekerMode() {
             savedJdText={evalJdText}
             onResultChange={setEvalResult}
             onJdTextChange={setEvalJdText}
+            savedRole={evalRole}
+            savedCompany={evalCompany}
+            onRoleChange={setEvalRole}
+            onCompanyChange={setEvalCompany}
             onTrack={(app) => setApplications(prev => [...prev, { ...app, jobId: app.id }])}
           />
         )}

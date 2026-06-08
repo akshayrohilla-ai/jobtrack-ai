@@ -63,7 +63,7 @@ export default function Dashboard({ applications }) {
                 <div className="flex items-center gap-3">
                   {a.match_score && (
                     <span className={`text-xs font-medium ${a.match_score >= 90 ? 'text-green-600' : 'text-amber-600'}`}>
-                      {a.match_score}/10
+                      {a.match_score}%
                     </span>
                   )}
                   <span className={

@@ -40,7 +40,7 @@ function UsageBar({ used, limit }) {
   )
 }
 
-export default function JDEvaluator({ profile, savedResult, savedJdText, onResultChange, onJdTextChange, onTrack }) {
+export default function JDEvaluator({ profile, savedResult, savedJdText, savedRole, savedCompany, onResultChange, onJdTextChange, onRoleChange, onCompanyChange, onTrack }) {
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState(null)
   const [limitHit, setLimitHit] = useState(false)
@@ -154,6 +154,26 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, onResul
               <span className="text-xs text-gray-600">Evaluating as <strong>{profile.name}</strong> · {profile.title}</span>
             </div>
           )}
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Role title <span className="text-gray-300">(optional)</span></label>
+              <input
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400"
+                placeholder="e.g. Senior Business Analyst"
+                value={savedRole || ''}
+                onChange={e => onRoleChange(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 mb-1 block">Company <span className="text-gray-300">(optional)</span></label>
+              <input
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gray-400"
+                placeholder="e.g. Accenture"
+                value={savedCompany || ''}
+                onChange={e => onCompanyChange(e.target.value)}
+              />
+            </div>
+          </div>
           <textarea
             className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-gray-50 text-gray-900 resize-y min-h-48 focus:outline-none focus:border-gray-400 leading-relaxed"
             placeholder="Paste the full job description here. Claude will evaluate the role, score your fit, flag red flags, and estimate salary..."
@@ -354,8 +374,8 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, onResul
                     try {
                       const { data } = await createApplication({
                         session_id: getSessionId(),
-                        job_title: result.role_summary?.split('.')[0]?.slice(0, 80) || 'Job from evaluation',
-                        company: 'From JD evaluation',
+                        job_title: savedRole || result.role_summary?.split('.')[0]?.slice(0, 80) || 'Job from evaluation',
+                        company: savedCompany || 'From JD evaluation',
                         location: profile?.location || '',
                         match_score: result.grade === 'A' ? 95 : result.grade === 'B' ? 80 : result.grade === 'C' ? 60 : 40,
                         notes: result.recommended_action_reason || ''
