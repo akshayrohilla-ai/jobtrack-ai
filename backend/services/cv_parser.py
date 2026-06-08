@@ -68,7 +68,11 @@ Required format:
 }
 
 Rules:
-- skills: extract up to 15 most relevant technical and soft skills
+- skills: extract up to 25 skills covering BOTH tools AND competencies
+  * Tools/platforms: Power BI, SQL, PostgreSQL, Python, Jira, Confluence, VMware, etc.
+  * Competencies: Root cause analysis, Stakeholder management, Dashboard monitoring, Reporting, Documentation, SOP development, Process improvement, Requirements elicitation, Data analysis, Change management, KPI development, etc.
+  * Include skills even if only mentioned once in the CV — breadth matters for matching
+- Use short 1-3 word skill names that match how JDs describe them
 - years_exp: calculate from earliest to most recent role, or use stated years
 - seniority: infer from titles and years
 - initials: first letter of first name + first letter of last name

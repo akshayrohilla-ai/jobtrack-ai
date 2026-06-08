@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Query
-from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -15,93 +14,113 @@ LOCATION_MAP = {
     "dubai": "Dubai%2C+United+Arab+Emirates",
 }
 
-SENIORITY_FILTER = "f_E=4"   # Senior level on LinkedIn
-RECENCY_FILTER = "f_TPR=r604800"  # Last 7 days
+RECENCY_MAP = {
+    "24h":   ("f_TPR=r86400",   "Last 24 hours"),
+    "week":  ("f_TPR=r604800",  "Last 7 days"),
+    "month": ("f_TPR=r2592000", "Last 30 days"),
+    "any":   ("",               "Any time"),
+}
 
-
-class JobSearchResult(BaseModel):
-    title: str
-    search_url: str
-    location: str
-    seniority_label: str
-    filters_applied: list[str]
+SENIORITY_MAP = {
+    "senior": "f_E=4",
+    "mid":    "f_E=3",
+    "any":    "",
+}
 
 
 @router.get("/search")
 async def search_jobs(
-    query: str = Query(..., description="Job title or keywords"),
-    location: str = Query("pune", description="City name"),
-    seniority: str = Query("senior", description="senior | mid | any"),
-    recency: str = Query("week", description="week | month | any")
+    query: str = Query(...),
+    location: str = Query("pune"),
+    seniority: str = Query("senior"),
+    recency: str = Query("week")
 ):
-    """
-    Build LinkedIn job search URLs for the given query and location.
-    Returns multiple search URL variants for best coverage.
-    """
     loc_key = location.lower().strip()
     li_location = LOCATION_MAP.get(loc_key, location.replace(" ", "+"))
 
+    # Strip leading "Senior " or "Lead " from query to avoid doubling
+    clean_query = query.strip()
+    for prefix in ["Senior ", "Lead ", "Staff ", "Principal "]:
+        if clean_query.lower().startswith(prefix.lower()):
+            clean_query = clean_query[len(prefix):]
+            break
+
+    encoded_query = query.strip().replace(" ", "+")
+    encoded_clean = clean_query.replace(" ", "+")
+
     filters = []
-    if seniority == "senior":
-        filters.append(SENIORITY_FILTER)
-    elif seniority == "mid":
-        filters.append("f_E=3")
+    seniority_filter = SENIORITY_MAP.get(seniority, "")
+    if seniority_filter:
+        filters.append(seniority_filter)
 
-    if recency == "week":
-        filters.append(RECENCY_FILTER)
-    elif recency == "month":
-        filters.append("f_TPR=r2592000")
+    recency_filter, recency_label = RECENCY_MAP.get(recency, RECENCY_MAP["week"])
+    if recency_filter:
+        filters.append(recency_filter)
 
-    def build_url(keywords: str) -> str:
-        base = f"https://www.linkedin.com/jobs/search/?keywords={keywords}&location={li_location}&count=25"
-        if filters:
-            base += "&" + "&".join(filters)
-        return base
+    filter_str = "&" + "&".join(filters) if filters else ""
 
-    encoded_query = query.replace(" ", "+")
-    title_words = query.split()
+    def url(kw: str) -> str:
+        return f"https://www.linkedin.com/jobs/search/?keywords={kw}&location={li_location}&count=25{filter_str}"
 
-    search_variants = [
+    search_urls = [
         {
-            "label": f"Exact: {query}",
-            "url": build_url(encoded_query),
-            "description": f"Exact title match for '{query}' in {location}"
+            "label": query,
+            "url": url(encoded_query),
+            "description": f"Exact: '{query}' in {location} · {recency_label}"
         },
         {
-            "label": f"Domain qualified: {query} Enterprise",
-            "url": build_url(encoded_query + "+Enterprise"),
-            "description": "Filtered to enterprise context"
+            "label": f"Senior {clean_query}",
+            "url": url("Senior+" + encoded_clean),
+            "description": f"Senior-level · {location} · {recency_label}"
         },
         {
-            "label": "Senior Business Analyst India",
-            "url": build_url("Senior+Business+Analyst"),
-            "description": "Broader BA search for coverage"
+            "label": f"{clean_query} – Enterprise",
+            "url": url(encoded_clean + "+Enterprise"),
+            "description": f"Enterprise context · {location} · {recency_label}"
+        },
+        {
+            "label": f"{clean_query} – Remote",
+            "url": f"https://www.linkedin.com/jobs/search/?keywords={encoded_clean}&location=India&f_WT=2{filter_str}",
+            "description": f"Remote roles across India · {recency_label}"
+        },
+        {
+            "label": f"Lead {clean_query}",
+            "url": url("Lead+" + encoded_clean),
+            "description": f"Lead/Principal level · {location} · {recency_label}"
+        },
+        {
+            "label": f"{clean_query} – AI",
+            "url": url(encoded_clean + "+AI"),
+            "description": f"AI-augmented roles · {location} · {recency_label}"
+        },
+        {
+            "label": f"{clean_query} – Consulting",
+            "url": url(encoded_clean + "+Consulting"),
+            "description": f"Consulting firms · {location} · {recency_label}"
+        },
+        {
+            "label": f"{clean_query} – MNC",
+            "url": url(encoded_clean + "+MNC"),
+            "description": f"Multinational companies · {location} · {recency_label}"
+        },
+        {
+            "label": f"Staff {clean_query}",
+            "url": url("Staff+" + encoded_clean),
+            "description": f"Staff-level · {location} · {recency_label}"
+        },
+        {
+            "label": f"{clean_query} – Fintech",
+            "url": url(encoded_clean + "+Fintech"),
+            "description": f"Fintech sector · {location} · {recency_label}"
         },
     ]
-
-    if "business" in query.lower() or "analyst" in query.lower():
-        search_variants.append({
-            "label": "Technical Business Analyst",
-            "url": build_url("Technical+Business+Analyst"),
-            "description": "Technical BA variant"
-        })
-
-    if "ai" in query.lower() or "data" in query.lower():
-        search_variants.append({
-            "label": f"AI {title_words[-1] if title_words else 'Analyst'}",
-            "url": build_url("AI+" + encoded_query),
-            "description": "AI-focused variant"
-        })
 
     return {
         "query": query,
         "location": location,
+        "recency": recency,
+        "recency_label": recency_label,
         "linkedin_location": li_location,
-        "filters": {
-            "seniority": seniority,
-            "recency": recency,
-            "raw": filters
-        },
-        "search_urls": search_variants,
-        "primary_url": search_variants[0]["url"]
+        "search_urls": search_urls,
+        "primary_url": search_urls[0]["url"]
     }

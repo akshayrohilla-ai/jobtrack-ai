@@ -21,7 +21,7 @@ export const searchJobs = (query, location, seniority = 'senior', recency = 'wee
 
 // Applications
 export const getApplications = (sessionId) =>
-  api.get(`/api/applications/${sessionId}`)
+  api.get(`/api/applications/session/${sessionId}`)
 
 export const createApplication = (data) =>
   api.post('/api/applications/', data)
@@ -33,7 +33,7 @@ export const deleteApplication = (id) =>
   api.delete(`/api/applications/${id}`)
 
 export const getStats = (sessionId) =>
-  api.get(`/api/applications/${sessionId}/stats`)
+  api.get(`/api/applications/stats/${sessionId}`)
 
 // Recruiter
 export const analyzeJD = (jdText, sessionId) =>
