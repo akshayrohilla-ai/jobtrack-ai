@@ -17,7 +17,7 @@ api.interceptors.request.use(async (config) => {
   return config
 })
 
-// CV
+// CV — parsing is FREE, no credits consumed
 export const parseCV = (file) => {
   const form = new FormData()
   form.append('file', file)
@@ -43,6 +43,14 @@ export const deleteApplication = (id) =>
 
 export const getStats = () =>
   api.get('/api/applications/stats')
+
+// CV Tailoring — costs 1 credit
+export const tailorCV = (jdText, cvRawText, cvProfile) =>
+  api.post('/api/tailor/tailor-cv', {
+    jd_text: jdText,
+    cv_raw_text: cvRawText,
+    cv_profile: cvProfile,
+  })
 
 // Recruiter
 export const analyzeJD = (jdText) =>

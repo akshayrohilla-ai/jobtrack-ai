@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react'
-import { FileText, Search, LayoutDashboard, Kanban, ClipboardCheck, AlertCircle } from 'lucide-react'
+import { FileText, Search, LayoutDashboard, Kanban, ClipboardCheck, AlertCircle, Wand2 } from 'lucide-react'
 import CVProfile from '../components/CVProfile'
 import JobSearch from '../components/JobSearch'
 import Tracker from '../components/Tracker'
 import Dashboard from '../components/Dashboard'
 import JDEvaluator from '../components/JDEvaluator'
+import CVTailor from '../components/CVTailor'
 import { getApplications } from '../lib/api'
 import { useAuth } from '../App'
 
-// Tab order: My Profile → Find Jobs → Evaluate JD → Tracker → Dashboard
+const SESSION_CV_KEY = 'jobtrack_raw_cv'
+
 const TABS = [
   { id: 'cv',        label: 'My profile',  icon: FileText },
   { id: 'jobs',      label: 'Find jobs',   icon: Search },
   { id: 'evaluate',  label: 'Evaluate JD', icon: ClipboardCheck },
+  { id: 'tailor',    label: 'Tailor CV',   icon: Wand2 },
   { id: 'tracker',   label: 'Tracker',     icon: Kanban },
   { id: 'dashboard', label: 'Dashboard',   icon: LayoutDashboard },
 ]
@@ -30,6 +33,12 @@ export default function SeekerMode() {
   const [evalRole, setEvalRole]         = useState('')
   const [evalCompany, setEvalCompany]   = useState('')
 
+  // Raw CV text stored in sessionStorage — survives refresh, clears on tab close
+  // Retrieved on mount so a page refresh doesn't lose the CV text
+  const [rawCvText, setRawCvText] = useState(() => {
+    try { return sessionStorage.getItem(SESSION_CV_KEY) || '' } catch { return '' }
+  })
+
   useEffect(() => {
     if (user) loadApps()
     else setApplications([])
@@ -45,14 +54,21 @@ export default function SeekerMode() {
     } finally { setLoadingApps(false) }
   }
 
-  // CV parsed — stay on My Profile tab, just update the profile state
   function handleProfileParsed(p) {
     setProfile(p)
     setEvalResult(null)
     setEvalJdText('')
     setEvalRole('')
     setEvalCompany('')
-    // No auto-navigate — user stays on My Profile and sees the two action buttons
+
+    // Store raw CV text in sessionStorage for tailoring
+    // raw_text is returned from backend alongside the parsed profile
+    if (p.raw_text) {
+      try {
+        sessionStorage.setItem(SESSION_CV_KEY, p.raw_text)
+        setRawCvText(p.raw_text)
+      } catch { }
+    }
   }
 
   function handleSwap() {
@@ -61,15 +77,12 @@ export default function SeekerMode() {
     setEvalJdText('')
     setEvalRole('')
     setEvalCompany('')
+    try { sessionStorage.removeItem(SESSION_CV_KEY) } catch { }
+    setRawCvText('')
   }
 
-  function goToFindJobs() {
-    setTab('jobs')
-  }
-
-  function goToEvaluateJD() {
-    setTab('evaluate')
-  }
+  function goToFindJobs()   { setTab('jobs') }
+  function goToEvaluateJD() { setTab('evaluate') }
 
   return (
     <div>
@@ -137,6 +150,15 @@ export default function SeekerMode() {
               const exists = prev.find(a => a.id === app.id)
               return exists ? prev : [...prev, { ...app, jobId: app.id }]
             })}
+          />
+        )}
+        {tab === 'tailor' && (
+          <CVTailor
+            profile={profile}
+            rawCvText={rawCvText}
+            evalJdText={evalJdText}
+            evalRole={evalRole}
+            evalCompany={evalCompany}
           />
         )}
         {tab === 'tracker'   && <Tracker applications={applications} loading={loadingApps} onUpdate={setApplications} onRefresh={loadApps} />}
