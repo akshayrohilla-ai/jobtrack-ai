@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { AlertTriangle, CheckCircle, TrendingUp, DollarSign, Star, BookmarkPlus, ChevronDown, ChevronUp, Zap, Lock, RefreshCw, Sparkles, Download } from 'lucide-react'
 import { createApplication } from '../lib/api'
 import { getAuthHeader } from '../lib/supabase'
@@ -192,19 +192,34 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
 
   const derivedTitle = savedRole || savedResult?.role_summary?.split('.')[0]?.slice(0, 80) || ''
 
-  // Duplicate check — once tracked this session, or if same JD text was already added
-  // Uses first 100 chars of JD as fingerprint to compare loosely
-  const jdSnippet = savedJdText?.slice(0, 100).toLowerCase().replace(/\s+/g, ' ').trim() || ''
-  const isDuplicate = !tracked && jdSnippet.length > 50 && applications.some(a =>
-    a.notes && a.notes.slice(0, 100).toLowerCase().replace(/\s+/g, ' ').trim() === jdSnippet
-  )
+  // Duplicate detection using localStorage fingerprint per user
+  // Stores first 150 chars of JD text (normalised) so same JD is never double-tracked
+  const jdFingerprint = savedJdText?.slice(0, 150).toLowerCase().replace(/\s+/g, ' ').trim() || ''
+
+  function getTrackedSet() {
+    if (!user?.id) return new Set()
+    try {
+      const raw = localStorage.getItem(`jobtrack_tracked_${user.id}`)
+      return raw ? new Set(JSON.parse(raw)) : new Set()
+    } catch { return new Set() }
+  }
+
+  function addToTrackedSet(fp) {
+    if (!user?.id || !fp) return
+    try {
+      const s = getTrackedSet(); s.add(fp)
+      localStorage.setItem(`jobtrack_tracked_${user.id}`, JSON.stringify([...s]))
+    } catch {}
+  }
+
+  const isDuplicate = !tracked && jdFingerprint.length > 50 && getTrackedSet().has(jdFingerprint)
 
   async function handleEvaluate() {
     if (!user) { setShowAuthModal(true); return }
     if (creditBalance !== null && creditBalance <= 0) return
     if (!savedJdText?.trim() || savedJdText.length < 50) { setError('Paste a complete job description first.'); return }
 
-    setLoading(true); setError(null); onResultChange(null); setTracked(false)
+    setLoading(true); setError(null); onResultChange(null)
 
     try {
       const headers = await getAuthHeader()
@@ -245,6 +260,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
         notes: savedJdText?.slice(0, 100) || savedResult.recommended_action_reason || ''
       })
       setTracked(true)
+      addToTrackedSet(jdFingerprint)
       if (onTrack) onTrack(data)
     } catch { }
     setTracking(false)
