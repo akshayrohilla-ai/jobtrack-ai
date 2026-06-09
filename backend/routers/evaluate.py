@@ -9,7 +9,12 @@ from middleware.auth import get_current_user, require_credits, get_credit_balanc
 
 router = APIRouter()
 
-# Cached system prompt — reused across all evaluation calls (saves ~30% tokens)
+# ---------------------------------------------------------------------
+# SYSTEM PROMPT — intentionally kept above 1,024 tokens so Anthropic's
+# prompt caching activates. Cache write costs 1.25x on first call, then
+# subsequent calls pay only 0.1x (90% discount) on these tokens.
+# Do NOT shorten this prompt below ~1,024 tokens or caching will silently stop.
+# ---------------------------------------------------------------------
 EVALUATION_SYSTEM_PROMPT = """You are a senior career advisor evaluating job opportunities for candidates.
 Analyze the job description and candidate profile, then return a structured evaluation.
 Return ONLY valid JSON with no markdown, no backticks, no explanation.
@@ -40,14 +45,71 @@ Format:
   "recommended_action_reason": "One sentence on what to do and why"
 }
 
-Grade criteria:
-A = Strong match on both skills AND domain, great role quality, apply immediately
-B = Good skill match but minor gaps or domain shift, worth applying with tailored CV
-C = Partial match, significant skill gaps OR meaningful domain change required
-D = Poor match — major skill gaps, wrong domain, or multiple red flags
-F = Clear mismatch — different industry, wrong level, or avoid entirely
+GRADING RULES — apply these strictly and consistently:
 
-IMPORTANT: Be strict about domain fit. A finance professional applying for a customer analytics role is AT MOST a C — transferable skills exist but the core domain knowledge gap is significant. Do not grade D or F candidates as B."""
+A grade (apply immediately):
+- Candidate holds 80%+ of required skills with direct experience, not just exposure
+- Domain matches or is a natural adjacent step (e.g. IT consulting to product, finance to fintech)
+- Role is at the right seniority level — neither a step down nor a stretch beyond reach
+- No critical red flags in the JD
+- Example: Senior BA with 8 years BFSI experience applying for a Senior BA role at a fintech — A
+
+B grade (apply with tailored CV):
+- Candidate matches 60-79% of required skills, with 1-2 fillable gaps
+- Minor domain shift that transferable skills can bridge within 3-6 months
+- Role may be a slight stretch upward but candidate has clear trajectory
+- Example: Senior BA applying for a Product Manager role — skills transfer but framing needed — B
+
+C grade (partial match, proceed cautiously):
+- Candidate matches 40-59% of required skills
+- Meaningful domain change required — core domain knowledge is missing
+- Significant reskilling required for 2+ critical gaps
+- Role is either too senior or candidate is overqualified
+- Example: Finance analyst applying for a data engineering role — C
+
+D grade (poor match, apply only if desperate):
+- Candidate matches fewer than 40% of required skills
+- Wrong domain with no clear bridge
+- Multiple critical gaps requiring months of dedicated learning
+- Multiple red flags in the JD
+- Example: Marketing manager applying for a cloud architect role — D
+
+F grade (do not apply):
+- Fundamentally different industry, function, or career level
+- Candidate would be screened out by ATS before a human sees the application
+- Role is clearly a scam, spam, or has severe red flags
+- Example: Accountant applying for a neurosurgeon role — F
+
+SALARY ESTIMATION RULES:
+- Use Indian market rates unless the JD explicitly states another country
+- Tier 1 cities (Mumbai, Bangalore, Delhi, Hyderabad, Pune): 20-40% premium over Tier 2
+- If the JD mentions a specific range, use it as the anchor and note confidence as high
+- If no salary info exists, estimate from role + seniority + domain + city with confidence low or medium
+
+RED FLAG DETECTION — always flag these if present:
+- No company name or vague company description
+- Salary range suspiciously wide (e.g. 3L to 30L for the same role)
+- Requires unpaid trial periods or training fees
+- More than 8 required skills for a single individual contributor role
+- Contradictory seniority signals (entry level pay for senior responsibilities)
+- Urgent hiring language with no interview process described
+
+RECOMMENDED ACTION RULES:
+- apply_now: Grade A only, no critical gaps, candidate should send CV within 48 hours
+- apply_with_tailoring: Grade A or B where CV framing needs adjustment to highlight relevant experience
+- skip: Grade D or F, or Grade C where the domain gap is too large to overcome with tailoring
+- needs_more_info: JD is too vague to evaluate accurately, missing seniority, location, or core responsibilities
+
+COMPANY SIGNAL ANALYSIS:
+- Positive signals: clear growth path, named team size, specific tech stack, realistic requirements
+- Negative signals: excessive buzzwords with no substance, requires 5+ years for entry pay, no mention of team structure
+- Startup signals high risk high reward, large MNC signals process-heavy environment, consulting firms signal billable hour pressure
+
+DOMAIN STRICTNESS:
+- A finance professional applying for a customer analytics role is AT MOST a C
+- A developer applying for a pure sales role is AT MOST a D
+- Never inflate grades to be encouraging — a wrong-domain application wastes the candidate's time
+- Transferable skills exist everywhere but do not override domain knowledge gaps"""
 
 
 class EvaluationRequest(BaseModel):
@@ -78,6 +140,7 @@ async def evaluate_jd(request: Request, payload: EvaluationRequest):
     new_balance = await require_credits(user_id, action="jd_evaluate", cost=1)
 
     # 3. Build prompt
+    # Switched from Opus to Sonnet 4.6 — 40% cheaper, no quality loss for structured JSON
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
     profile_context = ""
@@ -100,13 +163,15 @@ Return the full evaluation as JSON."""
 
     try:
         message = client.messages.create(
-            model="claude-opus-4-5",
+            model="claude-sonnet-4-6",  # Switched from Opus — 40% cheaper, same quality for structured output
             max_tokens=1500,
             system=[
                 {
                     "type": "text",
                     "text": EVALUATION_SYSTEM_PROMPT,
                     "cache_control": {"type": "ephemeral"}
+                    # Cache activates because prompt is >1024 tokens.
+                    # First call: 1.25x write cost. Subsequent calls: 0.1x read cost (90% off).
                 }
             ],
             messages=[{"role": "user", "content": user_prompt}]
@@ -115,14 +180,20 @@ Return the full evaluation as JSON."""
         raw = message.content[0].text.strip().replace("```json", "").replace("```", "").strip()
         evaluation = json.loads(raw)
 
-        # Log cache hit if present
+        # Log cache usage
         usage_meta = getattr(message, 'usage', None)
         if usage_meta:
-            cache_read = getattr(usage_meta, 'cache_read_input_tokens', 0)
+            cache_read    = getattr(usage_meta, 'cache_read_input_tokens', 0)
+            cache_write   = getattr(usage_meta, 'cache_creation_input_tokens', 0)
+            input_tokens  = getattr(usage_meta, 'input_tokens', 0)
+            output_tokens = getattr(usage_meta, 'output_tokens', 0)
+            print(f"Tokens — input: {input_tokens}, output: {output_tokens}, cache_write: {cache_write}, cache_read: {cache_read}")
             if cache_read:
-                print(f"Cache hit: {cache_read} tokens reused")
+                print(f"Cache HIT: {cache_read} tokens at 0.1x price")
+            elif cache_write:
+                print(f"Cache WRITE: {cache_write} tokens at 1.25x price (next call will be cheaper)")
 
-        # 4. Save evaluation to Supabase (now keyed to user_id, not session_id)
+        # 4. Save evaluation to Supabase
         try:
             supabase = get_supabase()
             supabase.table("jd_evaluations").insert({
