@@ -133,10 +133,8 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
   const [showFullSummary, setShowFullSummary] = useState(true)
 
   const outOfCredits = user && creditBalance !== null && creditBalance <= 0
-  const missingProfile = !profile
-  const missingRawText = !rawCvText
-  const missingCV    = missingProfile || missingRawText
-  const missingJD    = !evalJdText || evalJdText.trim().length < 50
+  const missingCV = !profile || !rawCvText
+  const missingJD = !evalJdText || evalJdText.trim().length < 50
 
   async function handleTailor() {
     if (!user) { setShowAuthModal(true); return }
@@ -226,9 +224,8 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
           {/* Checklist */}
           <div className="space-y-2 mb-5">
             {[
-              { label: 'CV parsed', done: !!profile, hint: 'Upload your CV on My profile tab' },
-              { label: 'CV text loaded', done: !!rawCvText, hint: 'Re-upload your CV — needed for full rewrite' },
-              { label: 'JD evaluated', done: !missingJD, hint: 'Evaluate a job description first' },
+              { label: 'CV uploaded and parsed', done: !!profile && !!rawCvText, hint: 'Upload your CV on My profile tab' },
+              { label: 'JD evaluated', done: !missingJD, hint: 'Evaluate a job description on the Evaluate JD tab first' },
             ].map(({ label, done, hint }) => (
               <div key={label} className="flex items-center gap-3 p-3 rounded-lg"
                 style={{ background: done ? 'var(--success-bg)' : 'var(--surface-raised)', border: `1px solid ${done ? '#6EE7B7' : 'var(--border-light)'}` }}>

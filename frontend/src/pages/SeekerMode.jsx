@@ -33,8 +33,7 @@ export default function SeekerMode() {
   const [evalRole, setEvalRole]         = useState('')
   const [evalCompany, setEvalCompany]   = useState('')
 
-  // Raw CV text stored in sessionStorage — survives refresh, clears on tab close
-  // Retrieved on mount so a page refresh doesn't lose the CV text
+  // Raw CV text — stored in sessionStorage so it survives page refresh
   const [rawCvText, setRawCvText] = useState(() => {
     try { return sessionStorage.getItem(SESSION_CV_KEY) || '' } catch { return '' }
   })
@@ -42,35 +41,12 @@ export default function SeekerMode() {
   useEffect(() => {
     if (user) {
       loadApps()
-      // If rawCvText is empty (e.g. after refresh or new session),
-      // try to restore it from the last saved CV profile in Supabase
-      if (!rawCvText) restoreRawCvText()
+      // Restore profile + raw CV text from DB if not in state/sessionStorage
+      if (!profile) restoreFromDB()
     } else {
       setApplications([])
     }
   }, [user])
-
-  async function restoreRawCvText() {
-    try {
-      const { data } = await getProfile()
-      if (data?.raw_text) {
-        try { sessionStorage.setItem(SESSION_CV_KEY, data.raw_text) } catch {}
-        setRawCvText(data.raw_text)
-        // Restore parsed profile if not already in state
-        if (!profile && data) {
-          setProfile({
-            name: data.name, title: data.title, location: data.location,
-            years_exp: data.years_exp, seniority: data.seniority, domain: data.domain,
-            skills: data.skills || [], summary: data.summary, initials: data.initials,
-          })
-        }
-      }
-      // If data exists but raw_text is null (old row before deploy),
-      // silently skip — user will get raw_text on next parse
-    } catch {
-      // 404 = no saved profile yet, or old rows without user_id — silently ignore
-    }
-  }
 
   async function loadApps() {
     setLoadingApps(true); setLoadError(null)
@@ -82,27 +58,51 @@ export default function SeekerMode() {
     } finally { setLoadingApps(false) }
   }
 
-  function handleProfileParsed(p) {
-    setProfile(p)
-    setEvalResult(null)
-    setEvalJdText('')
-    setEvalRole('')
-    setEvalCompany('')
+  async function restoreFromDB() {
+    // Silently try to restore last saved CV profile + raw_text from Supabase
+    // This runs on every sign-in so returning users don't need to re-upload
+    try {
+      const { data } = await getProfile()
+      if (!data) return
 
-    // Store raw CV text in sessionStorage for tailoring
-    // raw_text is returned from backend alongside the parsed profile
-    if (p.raw_text) {
-      try {
-        sessionStorage.setItem(SESSION_CV_KEY, p.raw_text)
-        setRawCvText(p.raw_text)
-      } catch { }
+      // Restore parsed profile into state
+      setProfile({
+        name: data.name, title: data.title, location: data.location,
+        years_exp: data.years_exp, seniority: data.seniority, domain: data.domain,
+        skills: data.skills || [], summary: data.summary, initials: data.initials,
+      })
+
+      // Restore raw CV text if available
+      if (data.raw_text) {
+        try { sessionStorage.setItem(SESSION_CV_KEY, data.raw_text) } catch {}
+        setRawCvText(data.raw_text)
+      }
+    } catch {
+      // 404 = no saved profile yet — user needs to upload CV first time
+      // Any other error — silently ignore, user can still upload
     }
   }
 
+  function handleProfileParsed(p) {
+    // p includes raw_text from the backend response
+    setProfile(p)
+
+    // Store raw CV text in sessionStorage — survives refresh, clears on tab close
+    if (p.raw_text) {
+      try { sessionStorage.setItem(SESSION_CV_KEY, p.raw_text) } catch {}
+      setRawCvText(p.raw_text)
+    }
+
+    // INTENTIONALLY do NOT reset JD state here
+    // User may have already evaluated a JD and then uploaded a different CV
+    // Resetting would waste their credit
+  }
+
   function handleSwap() {
-    // Only reset CV state — preserve JD evaluation so user doesn't lose credits
+    // Only reset CV — NEVER reset JD state
+    // User keeps their JD evaluation when swapping CV
     setProfile(null)
-    try { sessionStorage.removeItem(SESSION_CV_KEY) } catch { }
+    try { sessionStorage.removeItem(SESSION_CV_KEY) } catch {}
     setRawCvText('')
   }
 
