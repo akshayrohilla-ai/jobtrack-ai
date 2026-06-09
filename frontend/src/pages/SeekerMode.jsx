@@ -56,17 +56,19 @@ export default function SeekerMode() {
       if (data?.raw_text) {
         try { sessionStorage.setItem(SESSION_CV_KEY, data.raw_text) } catch {}
         setRawCvText(data.raw_text)
-        // Also restore the parsed profile if not already set
+        // Restore parsed profile if not already in state
         if (!profile && data) {
           setProfile({
             name: data.name, title: data.title, location: data.location,
             years_exp: data.years_exp, seniority: data.seniority, domain: data.domain,
-            skills: data.skills || [], summary: data.summary, initials: data.initials
+            skills: data.skills || [], summary: data.summary, initials: data.initials,
           })
         }
       }
+      // If data exists but raw_text is null (old row before deploy),
+      // silently skip — user will get raw_text on next parse
     } catch {
-      // No saved profile — user needs to upload CV
+      // 404 = no saved profile yet, or old rows without user_id — silently ignore
     }
   }
 
@@ -98,11 +100,8 @@ export default function SeekerMode() {
   }
 
   function handleSwap() {
+    // Only reset CV state — preserve JD evaluation so user doesn't lose credits
     setProfile(null)
-    setEvalResult(null)
-    setEvalJdText('')
-    setEvalRole('')
-    setEvalCompany('')
     try { sessionStorage.removeItem(SESSION_CV_KEY) } catch { }
     setRawCvText('')
   }
