@@ -133,7 +133,9 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
   const [showFullSummary, setShowFullSummary] = useState(true)
 
   const outOfCredits = user && creditBalance !== null && creditBalance <= 0
-  const missingCV    = !profile || !rawCvText
+  const missingProfile = !profile
+  const missingRawText = !rawCvText
+  const missingCV    = missingProfile || missingRawText
   const missingJD    = !evalJdText || evalJdText.trim().length < 50
 
   async function handleTailor() {
@@ -225,6 +227,7 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
           <div className="space-y-2 mb-5">
             {[
               { label: 'CV parsed', done: !!profile, hint: 'Upload your CV on My profile tab' },
+              { label: 'CV text loaded', done: !!rawCvText, hint: 'Re-upload your CV — needed for full rewrite' },
               { label: 'JD evaluated', done: !missingJD, hint: 'Evaluate a job description first' },
             ].map(({ label, done, hint }) => (
               <div key={label} className="flex items-center gap-3 p-3 rounded-lg"

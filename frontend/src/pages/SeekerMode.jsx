@@ -6,7 +6,7 @@ import Tracker from '../components/Tracker'
 import Dashboard from '../components/Dashboard'
 import JDEvaluator from '../components/JDEvaluator'
 import CVTailor from '../components/CVTailor'
-import { getApplications } from '../lib/api'
+import { getApplications, getProfile } from '../lib/api'
 import { useAuth } from '../App'
 
 const SESSION_CV_KEY = 'jobtrack_raw_cv'
@@ -40,9 +40,35 @@ export default function SeekerMode() {
   })
 
   useEffect(() => {
-    if (user) loadApps()
-    else setApplications([])
+    if (user) {
+      loadApps()
+      // If rawCvText is empty (e.g. after refresh or new session),
+      // try to restore it from the last saved CV profile in Supabase
+      if (!rawCvText) restoreRawCvText()
+    } else {
+      setApplications([])
+    }
   }, [user])
+
+  async function restoreRawCvText() {
+    try {
+      const { data } = await getProfile()
+      if (data?.raw_text) {
+        try { sessionStorage.setItem(SESSION_CV_KEY, data.raw_text) } catch {}
+        setRawCvText(data.raw_text)
+        // Also restore the parsed profile if not already set
+        if (!profile && data) {
+          setProfile({
+            name: data.name, title: data.title, location: data.location,
+            years_exp: data.years_exp, seniority: data.seniority, domain: data.domain,
+            skills: data.skills || [], summary: data.summary, initials: data.initials
+          })
+        }
+      }
+    } catch {
+      // No saved profile — user needs to upload CV
+    }
+  }
 
   async function loadApps() {
     setLoadingApps(true); setLoadError(null)

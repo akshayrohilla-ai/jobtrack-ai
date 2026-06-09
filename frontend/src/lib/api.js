@@ -24,6 +24,9 @@ export const parseCV = (file) => {
   return api.post('/api/cv/parse', form)
 }
 
+export const getProfile = () =>
+  api.get('/api/cv/profile')
+
 // Jobs
 export const searchJobs = (query, location, seniority = 'senior', recency = 'week') =>
   api.get('/api/jobs/search', { params: { query, location, seniority, recency } })
