@@ -1,5 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Request
 from pydantic import BaseModel
+from typing import Optional
 from services.cv_parser import extract_text_from_file, parse_cv_with_ai
 from services.supabase_client import get_supabase
 from middleware.auth import get_current_user
@@ -8,15 +9,16 @@ router = APIRouter()
 
 
 class CVProfile(BaseModel):
-    name: str | None
-    title: str | None
-    location: str | None
-    years_exp: str | None
-    seniority: str | None
-    domain: str | None
-    skills: list[str]
-    summary: str | None
-    initials: str | None
+    name: Optional[str] = None
+    title: Optional[str] = None
+    location: Optional[str] = None
+    years_exp: Optional[str] = None
+    seniority: Optional[str] = None
+    domain: Optional[str] = None
+    skills: list[str] = []
+    summary: Optional[str] = None
+    initials: Optional[str] = None
+    raw_text: Optional[str] = None  # Returned to frontend for CV tailoring
 
 
 @router.post("/parse", response_model=CVProfile)
@@ -24,7 +26,11 @@ async def parse_cv(
     request: Request,
     file: UploadFile = File(...),
 ):
-    """Upload a CV file and get a structured profile back using AI."""
+    """
+    Upload a CV file and get a structured profile back using AI.
+    CV parsing is FREE — no credits consumed.
+    raw_text is returned so the frontend can use it for CV tailoring without re-uploading.
+    """
     user_id = await get_current_user(request)
 
     allowed = [".pdf", ".docx", ".txt"]
@@ -48,7 +54,7 @@ async def parse_cv(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI parsing failed: {str(e)}")
 
-    # Save to Supabase scoped to user_id
+    # Save to Supabase scoped to user_id (best-effort, non-blocking)
     try:
         supabase = get_supabase()
         supabase.table("cv_profiles").insert({
@@ -60,12 +66,14 @@ async def parse_cv(
             "seniority": profile.get("seniority"),
             "domain": profile.get("domain"),
             "skills": profile.get("skills", []),
-            "raw_text": cv_text[:5000]
+            "raw_text": cv_text[:8000]  # Store more text for tailoring quality
         }).execute()
     except Exception:
         pass
 
-    return profile
+    # Return profile + raw_text so frontend can store in sessionStorage
+    # raw_text is used for CV tailoring without requiring re-upload
+    return {**profile, "raw_text": cv_text[:8000]}
 
 
 @router.get("/profile")
