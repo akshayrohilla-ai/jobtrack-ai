@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, Cpu, RefreshCw, MapPin, CheckCircle, AlertCircle, Briefcase, Clock } from 'lucide-react'
 import { parseCV } from '../lib/api'
-import { getSessionId } from '../lib/session'
 
 export default function CVProfile({ profile, onProfileParsed, onSwap }) {
   const [file, setFile]       = useState(null)
@@ -15,7 +14,11 @@ export default function CVProfile({ profile, onProfileParsed, onSwap }) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { 'application/pdf': ['.pdf'], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'], 'text/plain': ['.txt'] },
+    accept: {
+      'application/pdf': ['.pdf'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'text/plain': ['.txt']
+    },
     maxFiles: 1
   })
 
@@ -23,7 +26,7 @@ export default function CVProfile({ profile, onProfileParsed, onSwap }) {
     if (!file) return
     setLoading(true); setError(null)
     try {
-      const { data } = await parseCV(file, getSessionId())
+      const { data } = await parseCV(file)
       onProfileParsed(data)
     } catch (e) {
       setError(e.response?.data?.detail || 'Parsing failed. Check your backend is running.')
@@ -34,7 +37,6 @@ export default function CVProfile({ profile, onProfileParsed, onSwap }) {
     const initials = profile.initials || profile.name?.split(' ').map(w => w[0]).join('').slice(0, 2) || '?'
     return (
       <div className="animate-slide-up">
-        {/* Profile hero card */}
         <div className="card" style={{ borderLeft: '3px solid var(--blue-accent)', padding: '24px' }}>
           <div className="flex items-start gap-4 mb-5">
             <div className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-semibold text-lg flex-shrink-0"
@@ -99,7 +101,6 @@ export default function CVProfile({ profile, onProfileParsed, onSwap }) {
 
   return (
     <div className="animate-slide-up">
-      {/* Upload hero */}
       <div className="text-center mb-8">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-4"
           style={{ background: 'var(--blue-pale)', border: '1px solid #BFDBFE' }}>

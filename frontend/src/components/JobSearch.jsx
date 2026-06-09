@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Search, ExternalLink, CheckCircle, BookmarkPlus, Clock, Users, Globe } from 'lucide-react'
 import { searchJobs, createApplication } from '../lib/api'
-import { getSessionId } from '../lib/session'
 
 const LOCATIONS = ['Pune', 'Bangalore', 'Hyderabad', 'Mumbai', 'Gurgaon', 'Chennai', 'UAE']
 const RECENCY_OPTIONS = [
@@ -17,13 +16,13 @@ const SENIORITY_OPTIONS = [
 ]
 
 export default function JobSearch({ profile, applications, onApply }) {
-  const [query, setQuery]       = useState('')
-  const [location, setLocation] = useState('Pune')
-  const [recency, setRecency]   = useState('week')
+  const [query, setQuery]         = useState('')
+  const [location, setLocation]   = useState('Pune')
+  const [recency, setRecency]     = useState('week')
   const [seniority, setSeniority] = useState('senior')
-  const [results, setResults]   = useState(null)
-  const [loading, setLoading]   = useState(false)
-  const [showManual, setShowManual] = useState(false)
+  const [results, setResults]     = useState(null)
+  const [loading, setLoading]     = useState(false)
+  const [showManual, setShowManual]     = useState(false)
   const [manualTitle, setManualTitle]   = useState('')
   const [manualCompany, setManualCompany] = useState('')
   const [manualUrl, setManualUrl]       = useState('')
@@ -53,13 +52,22 @@ export default function JobSearch({ profile, applications, onApply }) {
     setAddingManual(true)
     try {
       const { data } = await createApplication({
-        session_id: getSessionId(), job_title: manualTitle, company: manualCompany,
-        location, match_score: null, linkedin_url: manualUrl || null
+        job_title: manualTitle,
+        company: manualCompany,
+        location,
+        match_score: null,
+        linkedin_url: manualUrl || null
       })
       onApply({ ...data, jobId: data.id })
       setManualTitle(''); setManualCompany(''); setManualUrl(''); setShowManual(false)
     } catch {
-      onApply({ id: Date.now().toString(), jobId: Date.now().toString(), job_title: manualTitle, company: manualCompany, location, match_score: null, status: 'applied', applied_date: new Date().toISOString().split('T')[0] })
+      // Optimistic fallback — show in UI even if backend failed
+      onApply({
+        id: Date.now().toString(), jobId: Date.now().toString(),
+        job_title: manualTitle, company: manualCompany,
+        location, match_score: null, status: 'applied',
+        applied_date: new Date().toISOString().split('T')[0]
+      })
       setManualTitle(''); setManualCompany(''); setManualUrl(''); setShowManual(false)
     } finally { setAddingManual(false) }
   }
@@ -97,7 +105,7 @@ export default function JobSearch({ profile, applications, onApply }) {
         </div>
         {profile?.skills?.length > 0 && (
           <p className="text-xs mt-3 pt-3" style={{ color: 'var(--text-ghost)', borderTop: '1px solid var(--border-light)' }}>
-            Profile loaded — {profile.skills.length} skills · searches filtered to {seniority} level · {RECENCY_OPTIONS.find(r=>r.value===recency)?.label.toLowerCase()}
+            Profile loaded — {profile.skills.length} skills · searches filtered to {seniority} level · {RECENCY_OPTIONS.find(r => r.value === recency)?.label.toLowerCase()}
           </p>
         )}
       </div>

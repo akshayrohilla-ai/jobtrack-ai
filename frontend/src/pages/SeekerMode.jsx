@@ -6,7 +6,7 @@ import Tracker from '../components/Tracker'
 import Dashboard from '../components/Dashboard'
 import JDEvaluator from '../components/JDEvaluator'
 import { getApplications } from '../lib/api'
-import { getSessionId } from '../lib/session'
+import { useAuth } from '../App'
 
 const TABS = [
   { id: 'cv',        label: 'My profile',  icon: FileText },
@@ -17,22 +17,28 @@ const TABS = [
 ]
 
 export default function SeekerMode() {
-  const [tab, setTab]                     = useState('cv')
-  const [profile, setProfile]             = useState(null)
-  const [applications, setApplications]   = useState([])
-  const [loadingApps, setLoadingApps]     = useState(true)
-  const [loadError, setLoadError]         = useState(null)
-  const [evalResult, setEvalResult]       = useState(null)
-  const [evalJdText, setEvalJdText]       = useState('')
-  const [evalRole, setEvalRole]           = useState('')
-  const [evalCompany, setEvalCompany]     = useState('')
+  const { user } = useAuth()
 
-  useEffect(() => { loadApps() }, [])
+  const [tab, setTab]                   = useState('cv')
+  const [profile, setProfile]           = useState(null)
+  const [applications, setApplications] = useState([])
+  const [loadingApps, setLoadingApps]   = useState(false)
+  const [loadError, setLoadError]       = useState(null)
+  const [evalResult, setEvalResult]     = useState(null)
+  const [evalJdText, setEvalJdText]     = useState('')
+  const [evalRole, setEvalRole]         = useState('')
+  const [evalCompany, setEvalCompany]   = useState('')
+
+  // Only load applications when user is signed in
+  useEffect(() => {
+    if (user) loadApps()
+    else setApplications([])
+  }, [user])
 
   async function loadApps() {
     setLoadingApps(true); setLoadError(null)
     try {
-      const { data } = await getApplications(getSessionId())
+      const { data } = await getApplications()
       if (Array.isArray(data)) setApplications(data.map(a => ({ ...a, jobId: a.id })))
     } catch (e) {
       setLoadError(e.response?.data?.detail || e.message || 'Failed to load applications')
@@ -86,7 +92,7 @@ export default function SeekerMode() {
       )}
 
       <div className="app-content">
-        {tab === 'cv' && <CVProfile profile={profile} onProfileParsed={handleProfileParsed} onSwap={handleSwap} />}
+        {tab === 'cv'       && <CVProfile profile={profile} onProfileParsed={handleProfileParsed} onSwap={handleSwap} />}
         {tab === 'evaluate' && (
           <JDEvaluator
             profile={profile}
@@ -107,7 +113,7 @@ export default function SeekerMode() {
               return exists ? prev : [...prev, app]
             })} />
         )}
-        {tab === 'tracker' && <Tracker applications={applications} loading={loadingApps} onUpdate={setApplications} onRefresh={loadApps} />}
+        {tab === 'tracker'   && <Tracker applications={applications} loading={loadingApps} onUpdate={setApplications} onRefresh={loadApps} />}
         {tab === 'dashboard' && <Dashboard applications={applications} />}
       </div>
     </div>

@@ -2,7 +2,6 @@ import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Users, Upload, AlertCircle, CheckCircle } from 'lucide-react'
 import { scoreCandidate } from '../lib/api'
-import { getSessionId } from '../lib/session'
 
 function MatchBar({ score }) {
   const color = score >= 75 ? 'var(--success)' : score >= 50 ? 'var(--warning)' : 'var(--danger)'
@@ -27,17 +26,32 @@ export default function CandidateScorer({ jdAnalysis, shortlist, onShortlist }) 
     const results = []
     for (const file of files) {
       try {
-        const { data } = await scoreCandidate(file, getSessionId(), jdAnalysis.required_skills || [], jdAnalysis.nice_to_have || [])
+        const { data } = await scoreCandidate(file, jdAnalysis.required_skills || [], jdAnalysis.nice_to_have || [])
         results.push({ ...data, id: Math.random().toString(36).slice(2) })
       } catch (e) {
-        results.push({ id: Math.random().toString(36).slice(2), filename: file.name, error: e.response?.data?.detail || 'Failed to parse', candidate: { name: file.name, title: 'Parse error', skills: [] }, score: 0, label: 'Error', matched_required: [], matched_nice: [] })
+        results.push({
+          id: Math.random().toString(36).slice(2),
+          filename: file.name,
+          error: e.response?.data?.detail || 'Failed to parse',
+          candidate: { name: file.name, title: 'Parse error', skills: [] },
+          score: 0, label: 'Error', matched_required: [], matched_nice: []
+        })
       }
     }
     setCandidates(prev => [...prev, ...results])
     setLoading(false)
   }, [jdAnalysis])
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: { 'application/pdf': ['.pdf'], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'], 'text/plain': ['.txt'] }, multiple: true })
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'text/plain': ['.txt']
+    },
+    multiple: true
+  })
+
   const shortlistedNames = new Set(shortlist.map(s => s.candidate?.name))
 
   return (
@@ -106,7 +120,7 @@ export default function CandidateScorer({ jdAnalysis, shortlist, onShortlist }) 
                     </div>
                     <div className="flex flex-wrap mb-3">
                       {c.matched_required?.slice(0, 4).map((s, i) => <span key={i} className="skill-chip-match">{s}</span>)}
-                      {c.candidate?.skills?.filter(s => !c.matched_required?.map(r=>r.toLowerCase()).includes(s.toLowerCase())).slice(0, 2).map((s, i) => <span key={i} className="skill-chip">{s}</span>)}
+                      {c.candidate?.skills?.filter(s => !c.matched_required?.map(r => r.toLowerCase()).includes(s.toLowerCase())).slice(0, 2).map((s, i) => <span key={i} className="skill-chip">{s}</span>)}
                     </div>
                     {isShortlisted ? (
                       <span className="badge-green w-full justify-center py-2"><CheckCircle size={12} />Shortlisted</span>

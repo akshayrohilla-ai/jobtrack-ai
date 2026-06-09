@@ -1,13 +1,13 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional
 from services.supabase_client import get_supabase
+from middleware.auth import get_current_user
 
 router = APIRouter()
 
 
 class ApplicationCreate(BaseModel):
-    session_id: str
     job_title: str
     company: str
     location: Optional[str] = None
@@ -24,14 +24,15 @@ class ApplicationUpdate(BaseModel):
 VALID_STATUSES = {"applied", "interview", "offer", "rejected"}
 
 
-@router.get("/session/{session_id}")
-async def get_applications(session_id: str):
-    """Get all applications for a session."""
+@router.get("/")
+async def get_applications(request: Request):
+    """Get all applications for the authenticated user."""
+    user_id = await get_current_user(request)
     try:
         supabase = get_supabase()
         result = supabase.table("applications")\
             .select("*")\
-            .eq("user_session", session_id)\
+            .eq("user_id", user_id)\
             .order("created_at", desc=True)\
             .execute()
         return result.data or []
@@ -39,14 +40,15 @@ async def get_applications(session_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/stats/{session_id}")
-async def get_stats(session_id: str):
-    """Get dashboard statistics for a session."""
+@router.get("/stats")
+async def get_stats(request: Request):
+    """Get dashboard statistics for the authenticated user."""
+    user_id = await get_current_user(request)
     try:
         supabase = get_supabase()
         result = supabase.table("applications")\
             .select("status, match_score")\
-            .eq("user_session", session_id)\
+            .eq("user_id", user_id)\
             .execute()
 
         apps = result.data or []
@@ -75,12 +77,13 @@ async def get_stats(session_id: str):
 
 
 @router.post("/")
-async def create_application(app: ApplicationCreate):
-    """Add a new job application to the tracker."""
+async def create_application(request: Request, app: ApplicationCreate):
+    """Add a new job application for the authenticated user."""
+    user_id = await get_current_user(request)
     try:
         supabase = get_supabase()
         result = supabase.table("applications").insert({
-            "user_session": app.session_id,
+            "user_id": user_id,
             "job_title": app.job_title,
             "company": app.company,
             "location": app.location,
@@ -101,8 +104,10 @@ async def create_application(app: ApplicationCreate):
 
 
 @router.patch("/{application_id}")
-async def update_application(application_id: str, update: ApplicationUpdate):
-    """Update application status or notes."""
+async def update_application(request: Request, application_id: str, update: ApplicationUpdate):
+    """Update application status or notes — only if it belongs to the authenticated user."""
+    user_id = await get_current_user(request)
+
     if update.status and update.status not in VALID_STATUSES:
         raise HTTPException(
             status_code=400,
@@ -115,9 +120,11 @@ async def update_application(application_id: str, update: ApplicationUpdate):
         if not payload:
             raise HTTPException(status_code=400, detail="No fields to update")
 
+        # Scope update to user_id — prevents one user editing another's applications
         result = supabase.table("applications")\
             .update(payload)\
             .eq("id", application_id)\
+            .eq("user_id", user_id)\
             .execute()
 
         if not result.data:
@@ -131,13 +138,16 @@ async def update_application(application_id: str, update: ApplicationUpdate):
 
 
 @router.delete("/{application_id}")
-async def delete_application(application_id: str):
-    """Remove an application from the tracker."""
+async def delete_application(request: Request, application_id: str):
+    """Delete an application — only if it belongs to the authenticated user."""
+    user_id = await get_current_user(request)
     try:
         supabase = get_supabase()
+        # Scope delete to user_id — prevents one user deleting another's applications
         supabase.table("applications")\
             .delete()\
             .eq("id", application_id)\
+            .eq("user_id", user_id)\
             .execute()
         return {"deleted": application_id}
     except Exception as e:

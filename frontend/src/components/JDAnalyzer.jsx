@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Cpu, AlertCircle, ArrowRight } from 'lucide-react'
 import { analyzeJD } from '../lib/api'
-import { getSessionId } from '../lib/session'
 
 export default function JDAnalyzer({ onAnalyzed }) {
   const [jdText, setJdText] = useState('')
@@ -13,7 +12,7 @@ export default function JDAnalyzer({ onAnalyzed }) {
     if (!jdText.trim() || jdText.length < 50) { setError('Please paste a full job description first.'); return }
     setLoading(true); setError(null)
     try {
-      const { data } = await analyzeJD(jdText, getSessionId())
+      const { data } = await analyzeJD(jdText)
       setResult(data)
     } catch (e) {
       setError(e.response?.data?.detail || 'Analysis failed. Check your backend is running.')
