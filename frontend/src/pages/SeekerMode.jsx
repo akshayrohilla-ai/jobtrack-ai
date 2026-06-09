@@ -8,10 +8,11 @@ import JDEvaluator from '../components/JDEvaluator'
 import { getApplications } from '../lib/api'
 import { useAuth } from '../App'
 
+// Tab order: My Profile → Find Jobs → Evaluate JD → Tracker → Dashboard
 const TABS = [
   { id: 'cv',        label: 'My profile',  icon: FileText },
-  { id: 'evaluate',  label: 'Evaluate JD', icon: ClipboardCheck },
   { id: 'jobs',      label: 'Find jobs',   icon: Search },
+  { id: 'evaluate',  label: 'Evaluate JD', icon: ClipboardCheck },
   { id: 'tracker',   label: 'Tracker',     icon: Kanban },
   { id: 'dashboard', label: 'Dashboard',   icon: LayoutDashboard },
 ]
@@ -29,7 +30,6 @@ export default function SeekerMode() {
   const [evalRole, setEvalRole]         = useState('')
   const [evalCompany, setEvalCompany]   = useState('')
 
-  // Only load applications when user is signed in
   useEffect(() => {
     if (user) loadApps()
     else setApplications([])
@@ -45,13 +45,30 @@ export default function SeekerMode() {
     } finally { setLoadingApps(false) }
   }
 
+  // CV parsed — stay on My Profile tab, just update the profile state
   function handleProfileParsed(p) {
-    setProfile(p); setEvalResult(null); setEvalJdText(''); setEvalRole(''); setEvalCompany('')
-    setTab('evaluate')
+    setProfile(p)
+    setEvalResult(null)
+    setEvalJdText('')
+    setEvalRole('')
+    setEvalCompany('')
+    // No auto-navigate — user stays on My Profile and sees the two action buttons
   }
 
   function handleSwap() {
-    setProfile(null); setEvalResult(null); setEvalJdText(''); setEvalRole(''); setEvalCompany('')
+    setProfile(null)
+    setEvalResult(null)
+    setEvalJdText('')
+    setEvalRole('')
+    setEvalCompany('')
+  }
+
+  function goToFindJobs() {
+    setTab('jobs')
+  }
+
+  function goToEvaluateJD() {
+    setTab('evaluate')
   }
 
   return (
@@ -92,7 +109,22 @@ export default function SeekerMode() {
       )}
 
       <div className="app-content">
-        {tab === 'cv'       && <CVProfile profile={profile} onProfileParsed={handleProfileParsed} onSwap={handleSwap} />}
+        {tab === 'cv' && (
+          <CVProfile
+            profile={profile}
+            onProfileParsed={handleProfileParsed}
+            onSwap={handleSwap}
+            onFindJobs={goToFindJobs}
+            onEvaluateJD={goToEvaluateJD}
+          />
+        )}
+        {tab === 'jobs' && (
+          <JobSearch profile={profile} applications={applications}
+            onApply={(app) => setApplications(prev => {
+              const exists = prev.find(a => a.id === app.id)
+              return exists ? prev : [...prev, app]
+            })} />
+        )}
         {tab === 'evaluate' && (
           <JDEvaluator
             profile={profile}
@@ -105,13 +137,6 @@ export default function SeekerMode() {
               return exists ? prev : [...prev, { ...app, jobId: app.id }]
             })}
           />
-        )}
-        {tab === 'jobs' && (
-          <JobSearch profile={profile} applications={applications}
-            onApply={(app) => setApplications(prev => {
-              const exists = prev.find(a => a.id === app.id)
-              return exists ? prev : [...prev, app]
-            })} />
         )}
         {tab === 'tracker'   && <Tracker applications={applications} loading={loadingApps} onUpdate={setApplications} onRefresh={loadApps} />}
         {tab === 'dashboard' && <Dashboard applications={applications} />}

@@ -1,9 +1,9 @@
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, Cpu, RefreshCw, MapPin, CheckCircle, AlertCircle, Briefcase, Clock } from 'lucide-react'
+import { Upload, Cpu, RefreshCw, MapPin, CheckCircle, AlertCircle, Briefcase, Clock, Search, ClipboardCheck } from 'lucide-react'
 import { parseCV } from '../lib/api'
 
-export default function CVProfile({ profile, onProfileParsed, onSwap }) {
+export default function CVProfile({ profile, onProfileParsed, onSwap, onFindJobs, onEvaluateJD }) {
   const [file, setFile]       = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState(null)
@@ -77,7 +77,7 @@ export default function CVProfile({ profile, onProfileParsed, onSwap }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-3 gap-3 mb-5">
             {[['Experience', profile.years_exp], ['Seniority', profile.seniority], ['Domain', profile.domain]].map(([label, value]) => (
               <div key={label} className="rounded-lg p-3" style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-light)' }}>
                 <div className="text-xs mb-1" style={{ color: 'var(--text-ghost)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
@@ -86,11 +86,51 @@ export default function CVProfile({ profile, onProfileParsed, onSwap }) {
             ))}
           </div>
 
-          <div className="flex gap-2 pt-2" style={{ borderTop: '1px solid var(--border-light)' }}>
-            <button className="btn-primary flex-1 justify-center" onClick={() => onProfileParsed(profile)}>
-              <ClipboardCheck size={14} />Evaluate a JD
-            </button>
-            <button className="btn-ghost" onClick={onSwap}>
+          {/* What do you want to do next? */}
+          <div className="rounded-xl p-4 mb-4"
+            style={{ background: 'var(--surface-raised)', border: '1px solid var(--border-light)' }}>
+            <p className="text-xs font-medium mb-3" style={{ color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              What do you want to do next?
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={onFindJobs}
+                className="flex items-center gap-3 p-3 rounded-lg text-left transition-all"
+                style={{ background: 'var(--blue-pale)', border: '1px solid #BFDBFE' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--blue-accent)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = '#BFDBFE'}
+              >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'var(--blue-accent)' }}>
+                  <Search size={14} style={{ color: 'white' }} />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold" style={{ color: 'var(--navy-900)' }}>Find jobs</div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Search matching roles</div>
+                </div>
+              </button>
+
+              <button
+                onClick={onEvaluateJD}
+                className="flex items-center gap-3 p-3 rounded-lg text-left transition-all"
+                style={{ background: 'var(--surface-subtle)', border: '1px solid var(--border)' }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--blue-accent)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+              >
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'var(--navy-800)' }}>
+                  <ClipboardCheck size={14} style={{ color: 'rgba(255,255,255,0.8)' }} />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Evaluate a JD</div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Already have a role in mind?</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <div className="pt-3" style={{ borderTop: '1px solid var(--border-light)' }}>
+            <button className="btn-ghost text-xs" onClick={onSwap}>
               <RefreshCw size={13} />Swap CV
             </button>
           </div>
