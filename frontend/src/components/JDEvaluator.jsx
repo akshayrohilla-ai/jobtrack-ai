@@ -190,10 +190,13 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
 
   const outOfCredits = user && creditBalance !== null && creditBalance <= 0
 
-  // Duplicate check — compare job title against existing applications
   const derivedTitle = savedRole || savedResult?.role_summary?.split('.')[0]?.slice(0, 80) || ''
-  const isDuplicate = applications.some(a =>
-    a.job_title?.toLowerCase().trim() === derivedTitle?.toLowerCase().trim() && derivedTitle.length > 5
+
+  // Duplicate check — once tracked this session, or if same JD text was already added
+  // Uses first 100 chars of JD as fingerprint to compare loosely
+  const jdSnippet = savedJdText?.slice(0, 100).toLowerCase().replace(/\s+/g, ' ').trim() || ''
+  const isDuplicate = !tracked && jdSnippet.length > 50 && applications.some(a =>
+    a.notes && a.notes.slice(0, 100).toLowerCase().replace(/\s+/g, ' ').trim() === jdSnippet
   )
 
   async function handleEvaluate() {
@@ -239,7 +242,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
         company: savedCompany || 'From JD evaluation',
         location: profile?.location || '',
         match_score: savedResult.grade === 'A' ? 95 : savedResult.grade === 'B' ? 80 : savedResult.grade === 'C' ? 60 : 40,
-        notes: savedResult.recommended_action_reason || ''
+        notes: savedJdText?.slice(0, 100) || savedResult.recommended_action_reason || ''
       })
       setTracked(true)
       if (onTrack) onTrack(data)
@@ -391,8 +394,8 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
               {/* PDF Export */}
               <button
                 onClick={() => exportEvaluationToPDF(result, profile, savedRole, savedCompany)}
-                className="btn-ghost text-xs py-1.5">
-                <Download size={12} />Export PDF
+                className="btn-secondary text-xs py-1.5">
+                <Download size={12} />Export Report
               </button>
               {!outOfCredits && (
                 <button onClick={() => { onResultChange(null); onJdTextChange(''); setTracked(false) }}
