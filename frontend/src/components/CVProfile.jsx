@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, Cpu, RefreshCw, MapPin, CheckCircle, AlertCircle, Briefcase, Clock, Search, ClipboardCheck } from 'lucide-react'
+import { Upload, Cpu, RefreshCw, MapPin, CheckCircle, AlertCircle, Briefcase, Clock, Search } from 'lucide-react'
 import { parseCV } from '../lib/api'
 
 export default function CVProfile({ profile, onProfileParsed, onSwap, onFindJobs, onEvaluateJD }) {
