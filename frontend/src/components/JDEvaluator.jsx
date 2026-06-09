@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Cpu, AlertTriangle, CheckCircle, TrendingUp, DollarSign, Star, BookmarkPlus, ChevronDown, ChevronUp, Zap, Lock, RefreshCw, Sparkles } from 'lucide-react'
+import { AlertTriangle, CheckCircle, TrendingUp, DollarSign, Star, BookmarkPlus, ChevronDown, ChevronUp, Zap, Lock, RefreshCw, Sparkles, Download } from 'lucide-react'
 import { createApplication } from '../lib/api'
 import { getAuthHeader } from '../lib/supabase'
 import { useAuth } from '../App'
@@ -26,7 +26,7 @@ function formatSalary(n) {
 }
 
 function CreditMeter({ balance }) {
-  const limit = 2  // free tier baseline for display
+  const limit = 2
   const pct = Math.min(100, (balance / limit) * 100)
   const barColor = balance === 0 ? 'var(--danger)' : balance === 1 ? 'var(--warning)' : 'var(--blue-accent)'
   return (
@@ -61,7 +61,126 @@ function Section({ icon: Icon, iconColor, title, children, defaultOpen = false }
   )
 }
 
-export default function JDEvaluator({ profile, savedResult, savedJdText, savedRole, savedCompany, onResultChange, onJdTextChange, onRoleChange, onCompanyChange, onTrack }) {
+// --- PDF Export ---
+function exportEvaluationToPDF(result, profile, role, company) {
+  const title = role || result.role_summary?.split('.')[0]?.slice(0, 60) || 'Job Evaluation'
+  const companyName = company || 'Unknown Company'
+  const date = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+  const gc = GRADE_CONFIG[result.grade] || {}
+
+  const gradeColors = { A: '#059669', B: '#1B6FEB', C: '#D97706', D: '#EA580C', F: '#DC2626' }
+  const gradeColor = gradeColors[result.grade] || '#666'
+
+  const gapsHtml = (result.gaps || []).map(g => `
+    <div style="margin-bottom:8px;padding:10px 12px;border-radius:6px;background:#f8f9fa;border-left:3px solid ${g.importance === 'critical' ? '#DC2626' : '#D97706'}">
+      <div style="font-weight:600;font-size:13px;color:#1a1a2e">${g.skill} <span style="font-size:11px;font-weight:400;color:${g.importance === 'critical' ? '#DC2626' : '#D97706'}">(${g.importance})</span></div>
+      <div style="font-size:12px;color:#666;margin-top:3px">${g.mitigation}</div>
+    </div>`).join('')
+
+  const redFlagsHtml = (result.red_flags || []).map(f =>
+    `<li style="margin-bottom:4px;color:#DC2626">✗ ${f}</li>`).join('')
+
+  const greenFlagsHtml = (result.green_flags || []).map(f =>
+    `<li style="margin-bottom:4px;color:#059669">✓ ${f}</li>`).join('')
+
+  const skillsHtml = (result.cv_match?.matched_skills || []).map(s =>
+    `<span style="display:inline-block;background:#EBF2FF;color:#1D4ED8;border-radius:4px;padding:2px 8px;font-size:11px;margin:2px">${s}</span>`).join('')
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>JD Evaluation — ${title}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; background: white; padding: 40px; max-width: 800px; margin: 0 auto; }
+    .header { border-bottom: 2px solid #1B6FEB; padding-bottom: 20px; margin-bottom: 28px; }
+    .brand { font-size: 13px; color: #1B6FEB; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+    .job-title { font-size: 22px; font-weight: 700; color: #0A1628; }
+    .company { font-size: 14px; color: #666; margin-top: 4px; }
+    .meta { font-size: 12px; color: #999; margin-top: 4px; }
+    .grade-box { display: flex; align-items: center; gap: 20px; padding: 20px; border-radius: 10px; background: #f8f9fa; border: 1px solid #e5e7eb; margin-bottom: 20px; }
+    .grade-letter { font-size: 52px; font-weight: 700; line-height: 1; color: ${gradeColor}; }
+    .grade-label { font-size: 18px; font-weight: 600; color: ${gradeColor}; }
+    .grade-reasoning { font-size: 13px; color: #444; margin-top: 6px; line-height: 1.6; }
+    .next-step { font-size: 12px; color: #666; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb; }
+    .section { margin-bottom: 20px; }
+    .section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #999; margin-bottom: 10px; }
+    .text-body { font-size: 13px; color: #444; line-height: 1.6; }
+    .salary-box { background: #f8f9fa; border-radius: 8px; padding: 14px; }
+    .salary-amount { font-size: 18px; font-weight: 700; color: #1a1a2e; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    ul { list-style: none; padding: 0; }
+    .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #bbb; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">JobTrack AI — JD Evaluation Report</div>
+    <div class="job-title">${title}</div>
+    <div class="company">${companyName}</div>
+    <div class="meta">Evaluated on ${date}${profile?.name ? ` · ${profile.name}` : ''}</div>
+  </div>
+
+  <div class="grade-box">
+    <div class="grade-letter">${result.grade}</div>
+    <div>
+      <div class="grade-label">${gc.label || result.grade}</div>
+      <div class="grade-reasoning">${result.grade_reasoning || ''}</div>
+      ${result.recommended_action_reason ? `<div class="next-step"><strong>Next step:</strong> ${result.recommended_action_reason}</div>` : ''}
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Role Summary</div>
+    <div class="text-body">${result.role_summary || ''}</div>
+    ${result.company_signals ? `<div class="text-body" style="margin-top:8px;color:#888">${result.company_signals}</div>` : ''}
+  </div>
+
+  <div class="section">
+    <div class="section-title">CV Match — ${result.cv_match?.matched_skills?.length || 0} skills aligned</div>
+    <div class="text-body" style="margin-bottom:8px">${result.cv_match?.match_summary || ''}</div>
+    <div>${skillsHtml}</div>
+  </div>
+
+  ${result.gaps?.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Gaps — ${result.gaps.length} area${result.gaps.length !== 1 ? 's' : ''} to address</div>
+    ${gapsHtml}
+  </div>` : ''}
+
+  <div class="two-col">
+    ${(result.green_flags?.length > 0 || result.red_flags?.length > 0) ? `
+    <div class="section">
+      <div class="section-title">Signals</div>
+      ${result.green_flags?.length > 0 ? `<ul style="margin-bottom:8px">${greenFlagsHtml}</ul>` : ''}
+      ${result.red_flags?.length > 0 ? `<ul>${redFlagsHtml}</ul>` : ''}
+    </div>` : '<div></div>'}
+    <div class="section">
+      <div class="section-title">Salary Estimate</div>
+      <div class="salary-box">
+        <div class="salary-amount">${formatSalary(result.salary_range?.min)} – ${formatSalary(result.salary_range?.max)} / yr</div>
+        <div style="font-size:11px;color:#999;margin-top:4px">${result.salary_range?.confidence || 'low'} confidence</div>
+        <div style="font-size:12px;color:#666;margin-top:6px">${result.salary_range?.reasoning || ''}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">Generated by JobTrack AI · jobtrack-ai-six.vercel.app</div>
+</body>
+</html>`
+
+  const blob = new Blob([html], { type: 'text/html' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  const filename = `jobtrack-evaluation-${(role || companyName).toLowerCase().replace(/\s+/g, '-').slice(0, 30)}-${new Date().toISOString().split('T')[0]}.html`
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+export default function JDEvaluator({ profile, savedResult, savedJdText, savedRole, savedCompany, onResultChange, onJdTextChange, onRoleChange, onCompanyChange, onTrack, applications = [] }) {
   const { user, creditBalance, setCreditBalance, setShowAuthModal } = useAuth()
 
   const [loading, setLoading]   = useState(false)
@@ -71,27 +190,18 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
 
   const outOfCredits = user && creditBalance !== null && creditBalance <= 0
 
+  // Duplicate check — compare job title against existing applications
+  const derivedTitle = savedRole || savedResult?.role_summary?.split('.')[0]?.slice(0, 80) || ''
+  const isDuplicate = applications.some(a =>
+    a.job_title?.toLowerCase().trim() === derivedTitle?.toLowerCase().trim() && derivedTitle.length > 5
+  )
+
   async function handleEvaluate() {
-    // Gate 1 — must be signed in
-    if (!user) {
-      setShowAuthModal(true)
-      return
-    }
+    if (!user) { setShowAuthModal(true); return }
+    if (creditBalance !== null && creditBalance <= 0) return
+    if (!savedJdText?.trim() || savedJdText.length < 50) { setError('Paste a complete job description first.'); return }
 
-    // Gate 2 — must have credits
-    if (creditBalance !== null && creditBalance <= 0) {
-      return
-    }
-
-    if (!savedJdText?.trim() || savedJdText.length < 50) {
-      setError('Paste a complete job description first.')
-      return
-    }
-
-    setLoading(true)
-    setError(null)
-    onResultChange(null)
-    setTracked(false)
+    setLoading(true); setError(null); onResultChange(null); setTracked(false)
 
     try {
       const headers = await getAuthHeader()
@@ -108,42 +218,24 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
         })
       })
 
-      if (res.status === 401) {
-        setShowAuthModal(true)
-        setError('Session expired. Please sign in again.')
-        return
-      }
-
-      if (res.status === 402) {
-        setCreditBalance(0)
-        return
-      }
-
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.detail || 'Evaluation failed')
-      }
+      if (res.status === 401) { setShowAuthModal(true); setError('Session expired. Please sign in again.'); return }
+      if (res.status === 402) { setCreditBalance(0); return }
+      if (!res.ok) { const err = await res.json(); throw new Error(err.detail || 'Evaluation failed') }
 
       const data = await res.json()
       onResultChange(data)
-
-      // Update credit balance from response
-      if (data._credits?.balance !== undefined) {
-        setCreditBalance(data._credits.balance)
-      }
+      if (data._credits?.balance !== undefined) setCreditBalance(data._credits.balance)
 
     } catch (e) {
       setError(e.message || 'Evaluation failed. Make sure your backend is running.')
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
   async function handleTrack() {
     setTracking(true)
     try {
       const { data } = await createApplication({
-        job_title: savedRole || savedResult.role_summary?.split('.')[0]?.slice(0, 80) || 'Job from evaluation',
+        job_title: derivedTitle || 'Job from evaluation',
         company: savedCompany || 'From JD evaluation',
         location: profile?.location || '',
         match_score: savedResult.grade === 'A' ? 95 : savedResult.grade === 'B' ? 80 : savedResult.grade === 'C' ? 60 : 40,
@@ -163,7 +255,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
   return (
     <div className="animate-slide-up space-y-3">
 
-      {/* Credit meter — only shown when signed in */}
+      {/* Credit meter */}
       {user && creditBalance !== null && (
         <div className="card" style={{
           ...(creditBalance <= 1 ? { borderColor: 'var(--warning)', background: 'var(--warning-bg)' } : {})
@@ -181,21 +273,16 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
         </div>
       )}
 
-      {/* Not signed in — prompt */}
+      {/* Not signed in */}
       {!user && !result && (
         <div className="card text-center py-8" style={{ border: '1px dashed var(--border)' }}>
           <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3"
             style={{ background: 'var(--navy-900)' }}>
             <Lock size={18} style={{ color: 'rgba(255,255,255,0.6)' }} />
           </div>
-          <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-            Sign in to evaluate jobs
-          </h3>
-          <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-            Free account · 2 evaluations included
-          </p>
-          <button
-            onClick={() => setShowAuthModal(true)}
+          <h3 className="text-sm font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Sign in to evaluate jobs</h3>
+          <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>Free account · 2 evaluations included</p>
+          <button onClick={() => setShowAuthModal(true)}
             className="px-5 py-2 rounded-lg text-sm font-semibold text-white"
             style={{ background: 'var(--blue-accent)' }}>
             Sign in / Sign up
@@ -203,7 +290,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
         </div>
       )}
 
-      {/* Out of credits paywall */}
+      {/* Out of credits */}
       {outOfCredits && (
         <div className="card text-center py-10" style={{ border: '2px solid var(--navy-800)' }}>
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
@@ -214,7 +301,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
             You've used all your credits
           </h3>
           <p className="text-sm mt-2 mb-6 max-w-xs mx-auto" style={{ color: 'var(--text-muted)' }}>
-            Top up to keep evaluating jobs, tailoring your CV, and tracking applications.
+            Top up to keep evaluating jobs and tailoring your CV.
           </p>
           <div className="inline-flex flex-col items-center gap-2">
             <div className="px-6 py-3 rounded-xl text-sm font-semibold text-white"
@@ -222,12 +309,11 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
               ₹199 = 10 credits &nbsp;·&nbsp; ₹499 = 30 credits
               <span style={{ opacity: 0.6, fontWeight: 400 }}> (coming soon)</span>
             </div>
-            <p className="text-xs" style={{ color: 'var(--text-ghost)' }}>Credit packs launching soon</p>
           </div>
         </div>
       )}
 
-      {/* Input form — shown when signed in, has credits, no result yet */}
+      {/* Input form */}
       {user && !outOfCredits && !result && (
         <div className="card">
           {!profile && (
@@ -265,7 +351,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
 
           <label className="section-label">Job description</label>
           <textarea className="textarea-field"
-            placeholder="Paste the full job description here. Claude will evaluate the role, score your fit across 6 dimensions, flag red flags, and estimate salary..."
+            placeholder="Paste the full job description here..."
             value={savedJdText || ''} onChange={e => onJdTextChange(e.target.value)} />
 
           {error && (
@@ -288,7 +374,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
       {/* Results */}
       {result && gc && (
         <>
-          {/* Profile + reset */}
+          {/* Header row — profile + actions */}
           <div className="flex items-center justify-between">
             {profile && (
               <div className="flex items-center gap-2">
@@ -301,12 +387,20 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
                 </span>
               </div>
             )}
-            {!outOfCredits && (
-              <button onClick={() => { onResultChange(null); onJdTextChange(''); setTracked(false) }}
-                className="btn-ghost text-xs py-1.5 ml-auto">
-                <RefreshCw size={12} />Evaluate another JD
+            <div className="flex items-center gap-2 ml-auto">
+              {/* PDF Export */}
+              <button
+                onClick={() => exportEvaluationToPDF(result, profile, savedRole, savedCompany)}
+                className="btn-ghost text-xs py-1.5">
+                <Download size={12} />Export PDF
               </button>
-            )}
+              {!outOfCredits && (
+                <button onClick={() => { onResultChange(null); onJdTextChange(''); setTracked(false) }}
+                  className="btn-ghost text-xs py-1.5">
+                  <RefreshCw size={12} />Evaluate another JD
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Grade hero */}
@@ -426,11 +520,13 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
                 <div>
                   <div className="text-sm font-semibold text-white">Ready to apply?</div>
                   <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                    {tracked ? 'Added to your tracker' : 'Save this to your application tracker'}
+                    {tracked || isDuplicate ? 'Added to your tracker' : 'Save this to your application tracker'}
                   </div>
                 </div>
-                {tracked ? (
-                  <span className="badge-green"><CheckCircle size={12} />Tracked</span>
+                {tracked || isDuplicate ? (
+                  <span className="badge-green"><CheckCircle size={12} />
+                    {isDuplicate && !tracked ? 'Already tracked' : 'Tracked'}
+                  </span>
                 ) : (
                   <button
                     className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all"

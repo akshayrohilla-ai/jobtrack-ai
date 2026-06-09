@@ -132,6 +132,7 @@ export default function SeekerMode() {
             savedRole={evalRole} savedCompany={evalCompany}
             onResultChange={setEvalResult} onJdTextChange={setEvalJdText}
             onRoleChange={setEvalRole} onCompanyChange={setEvalCompany}
+            applications={applications}
             onTrack={(app) => setApplications(prev => {
               const exists = prev.find(a => a.id === app.id)
               return exists ? prev : [...prev, { ...app, jobId: app.id }]
