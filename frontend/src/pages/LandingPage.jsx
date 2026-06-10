@@ -162,6 +162,12 @@ export default function LandingPage({ onGetStarted }) {
         <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>
           No credit card required · CV parsing always free · Top up credits anytime from ₹199
         </p>
+        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', marginTop: 12 }}>
+          By signing up you agree to our{' '}
+          <a href="/terms" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'underline' }}>Terms & Conditions</a>
+          {' '}and{' '}
+          <a href="/privacy" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'underline' }}>Privacy Policy</a>
+        </p>
       </section>
 
       {/* Pain points */}
