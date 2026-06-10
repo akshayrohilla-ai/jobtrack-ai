@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext } from 'react'
 import SeekerMode from './pages/SeekerMode'
 import RecruiterMode from './pages/RecruiterMode'
 import AdminDashboard from './pages/AdminDashboard'
+import LandingPage from './pages/LandingPage'
 import AuthModal from './components/AuthModal'
 import PaymentModal from './components/PaymentModal'
 import { supabase, signOut } from './lib/supabase'
@@ -77,6 +78,16 @@ export default function App() {
   }
 
   const isAdmin = user?.id === ADMIN_USER_ID
+
+  // Show landing page for non-authenticated users (not admin route)
+  if (!authLoading && !user && !isAdminRoute) {
+    return (
+      <AuthContext.Provider value={{ user, creditBalance, setCreditBalance, setShowAuthModal }}>
+        <LandingPage onGetStarted={() => setShowAuthModal(true)} />
+        {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+      </AuthContext.Provider>
+    )
+  }
 
   return (
     <AuthContext.Provider value={{ user, creditBalance, setCreditBalance, setShowAuthModal }}>
@@ -199,6 +210,8 @@ export default function App() {
         <main>
           {isAdminRoute
             ? <AdminDashboard />
+            : !user && !authLoading
+            ? null
             : mode === 'seeker' ? <SeekerMode /> : <RecruiterMode />
           }
         </main>
