@@ -33,6 +33,21 @@ Output format:
       ]
     }
   ],
+  "technical_projects": [
+    {
+      "title": "Project title from CV",
+      "tech_stack": "Technologies used",
+      "bullets": ["Rewritten bullet highlighting relevance to this role"]
+    }
+  ],
+  "certifications": ["Certification name | Issuer | Date"],
+  "education": [
+    {
+      "degree": "Degree name",
+      "institution": "Institution name",
+      "location": "City, Country"
+    }
+  ],
   "application_briefing": {
     "lead_with": "What experience or achievement to open with in applications and interviews",
     "mirror_language": ["exact phrase from JD to use", "another JD phrase", "third phrase"],
@@ -76,6 +91,14 @@ ATS optimisation:
 - Use exact skill names from the JD — "Power BI" not "PowerBI", "Agile" not "agile methodology"
 - Include the job title from the JD in the professional summary if it matches the candidate's level
 - Repeat 3-5 key JD terms naturally across the summary and bullets
+
+CRITICAL COMPLETENESS RULES — never violate these:
+- NEVER remove or omit any role from the candidate's experience — include ALL roles even if less relevant
+- For older or less relevant roles, include them with 2-3 bullets focused on transferable elements
+- NEVER remove technical projects, certifications, or education — always include all of them
+- If a project is not directly relevant to the JD, keep it but reframe the bullets toward transferable skills
+- The output must be a COMPLETE CV the candidate can submit — not a partial rewrite
+- Only summary wording, skills order, and bullet language should change — all sections must be present
 
 QUALITY STANDARDS:
 - Every bullet must be specific and credible — never fabricate achievements

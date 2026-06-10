@@ -90,25 +90,74 @@ async function downloadTailoredCV(tailored, profile, role, company) {
     }
   }
 
-  // EDUCATION (placeholder)
-  sections_children.push(new Paragraph({
-    spacing: { before: 160, after: 80 },
-    children: [new TextRun({ text: 'EDUCATION', font: 'Arial', size: 22, bold: true, color: '1B6FEB' })]
-  }))
-  sections_children.push(new Paragraph({
-    spacing: { after: 60 },
-    children: [new TextRun({ text: '[Add your education here]', font: 'Arial', size: 20, color: '999999', italics: true })]
-  }))
+  // TECHNICAL PROJECTS
+  if (tailored.technical_projects?.length > 0) {
+    sections_children.push(new Paragraph({
+      spacing: { before: 160, after: 80 },
+      children: [new TextRun({ text: 'SELECTED TECHNICAL PROJECTS', font: 'Arial', size: 22, bold: true, color: '1B6FEB' })]
+    }))
+    for (const proj of tailored.technical_projects) {
+      sections_children.push(new Paragraph({
+        spacing: { before: 100, after: 30 },
+        children: [new TextRun({ text: proj.title || '', font: 'Arial', size: 22, bold: true })]
+      }))
+      if (proj.tech_stack) {
+        sections_children.push(new Paragraph({
+          spacing: { after: 40 },
+          children: [new TextRun({ text: proj.tech_stack, font: 'Arial', size: 20, italics: true, color: '666666' })]
+        }))
+      }
+      for (const b of (proj.bullets || [])) {
+        sections_children.push(new Paragraph({
+          numbering: { reference: 'bullets', level: 0 },
+          spacing: { after: 50 },
+          children: [new TextRun({ text: b, font: 'Arial', size: 20 })]
+        }))
+      }
+    }
+  }
 
-  // CERTIFICATIONS (placeholder)
+  // CERTIFICATIONS
   sections_children.push(new Paragraph({
     spacing: { before: 160, after: 80 },
     children: [new TextRun({ text: 'CERTIFICATIONS', font: 'Arial', size: 22, bold: true, color: '1B6FEB' })]
   }))
+  if (tailored.certifications?.length > 0) {
+    for (const cert of tailored.certifications) {
+      sections_children.push(new Paragraph({
+        spacing: { after: 50 },
+        children: [new TextRun({ text: cert, font: 'Arial', size: 20 })]
+      }))
+    }
+  } else {
+    sections_children.push(new Paragraph({
+      spacing: { after: 60 },
+      children: [new TextRun({ text: '[Add certifications here]', font: 'Arial', size: 20, color: '999999', italics: true })]
+    }))
+  }
+
+  // EDUCATION
   sections_children.push(new Paragraph({
-    spacing: { after: 60 },
-    children: [new TextRun({ text: '[Add certifications here]', font: 'Arial', size: 20, color: '999999', italics: true })]
+    spacing: { before: 160, after: 80 },
+    children: [new TextRun({ text: 'EDUCATION', font: 'Arial', size: 22, bold: true, color: '1B6FEB' })]
   }))
+  if (tailored.education?.length > 0) {
+    for (const edu of tailored.education) {
+      sections_children.push(new Paragraph({
+        spacing: { before: 80, after: 30 },
+        children: [new TextRun({ text: edu.degree || '', font: 'Arial', size: 22, bold: true })]
+      }))
+      sections_children.push(new Paragraph({
+        spacing: { after: 50 },
+        children: [new TextRun({ text: `${edu.institution || ''}${edu.location ? '  |  ' + edu.location : ''}`, font: 'Arial', size: 20, color: '444444' })]
+      }))
+    }
+  } else {
+    sections_children.push(new Paragraph({
+      spacing: { after: 60 },
+      children: [new TextRun({ text: '[Add your education here]', font: 'Arial', size: 20, color: '999999', italics: true })]
+    }))
+  }
 
   const doc = new Document({
     styles: {
@@ -435,6 +484,53 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
               </ul>
             </div>
           ))}
+
+          {/* Technical Projects */}
+          {result.technical_projects?.length > 0 && (
+            <div className="card">
+              <span className="section-label mb-3">Technical projects</span>
+              <div className="space-y-4">
+                {result.technical_projects.map((proj, i) => (
+                  <div key={i}>
+                    <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{proj.title}</div>
+                    {proj.tech_stack && <div className="text-xs mt-0.5 mb-2" style={{ color: 'var(--text-ghost)', fontStyle: 'italic' }}>{proj.tech_stack}</div>}
+                    <ul className="space-y-1">
+                      {proj.bullets?.map((b, j) => (
+                        <li key={j} className="flex items-start gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                          <span style={{ color: 'var(--blue-accent)', flexShrink: 0 }}>•</span>{b}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Certifications + Education */}
+          {(result.certifications?.length > 0 || result.education?.length > 0) && (
+            <div className="grid grid-cols-2 gap-3">
+              {result.education?.length > 0 && (
+                <div className="card">
+                  <span className="section-label mb-3">Education</span>
+                  {result.education.map((e, i) => (
+                    <div key={i} className="mb-2">
+                      <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{e.degree}</div>
+                      <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{e.institution}{e.location ? ` · ${e.location}` : ''}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {result.certifications?.length > 0 && (
+                <div className="card">
+                  <span className="section-label mb-3">Certifications</span>
+                  {result.certifications.map((c, i) => (
+                    <div key={i} className="text-sm mb-1.5" style={{ color: 'var(--text-secondary)' }}>{c}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Download CTA at bottom */}
           <div className="card" style={{ background: 'var(--navy-900)', border: 'none' }}>
