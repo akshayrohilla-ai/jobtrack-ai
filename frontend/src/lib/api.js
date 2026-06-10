@@ -17,6 +17,24 @@ api.interceptors.request.use(async (config) => {
   return config
 })
 
+// 402 → trigger payment modal via custom event
+api.interceptors.response.use(
+  res => res,
+  err => {
+    if (err.response?.status === 402) {
+      window.dispatchEvent(new CustomEvent('jobtrack:out-of-credits'))
+    }
+    return Promise.reject(err)
+  }
+)
+
+// Payments
+export const createOrder = (packId) =>
+  api.post('/api/payments/create-order', { pack_id: packId })
+
+export const verifyPayment = (data) =>
+  api.post('/api/payments/verify-payment', data)
+
 // CV — parsing is FREE, no credits consumed
 export const parseCV = (file) => {
   const form = new FormData()

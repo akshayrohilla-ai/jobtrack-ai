@@ -3,6 +3,7 @@ import SeekerMode from './pages/SeekerMode'
 import RecruiterMode from './pages/RecruiterMode'
 import AdminDashboard from './pages/AdminDashboard'
 import AuthModal from './components/AuthModal'
+import PaymentModal from './components/PaymentModal'
 import { supabase, signOut } from './lib/supabase'
 
 export const AuthContext = createContext(null)
@@ -16,6 +17,7 @@ export default function App() {
   const [user, setUser]             = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [creditBalance, setCreditBalance] = useState(null)
 
   // Check if current path is /admin
@@ -43,6 +45,12 @@ export default function App() {
     })
 
     return () => subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    const handler = () => setShowPaymentModal(true)
+    window.addEventListener('jobtrack:out-of-credits', handler)
+    return () => window.removeEventListener('jobtrack:out-of-credits', handler)
   }, [])
 
   useEffect(() => {
@@ -120,16 +128,25 @@ export default function App() {
 
               {/* Credit balance */}
               {user && creditBalance !== null && !isAdminRoute && (
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
-                  style={{
-                    background: creditBalance <= 1 ? 'rgba(220,53,69,0.15)' : 'rgba(255,255,255,0.08)',
-                    color: creditBalance <= 1 ? '#ff6b7a' : 'rgba(255,255,255,0.7)',
-                    border: creditBalance <= 1 ? '1px solid rgba(220,53,69,0.3)' : '1px solid transparent'
-                  }}>
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                  </svg>
-                  {creditBalance} {creditBalance === 1 ? 'credit' : 'credits'}
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
+                    style={{
+                      background: creditBalance <= 1 ? 'rgba(220,53,69,0.15)' : 'rgba(255,255,255,0.08)',
+                      color: creditBalance <= 1 ? '#ff6b7a' : 'rgba(255,255,255,0.7)',
+                      border: creditBalance <= 1 ? '1px solid rgba(220,53,69,0.3)' : '1px solid transparent'
+                    }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    {creditBalance} {creditBalance === 1 ? 'credit' : 'credits'}
+                  </div>
+                  <button onClick={() => setShowPaymentModal(true)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                    style={{ background: 'rgba(27,111,235,0.2)', color: 'var(--blue-light)', border: '1px solid rgba(27,111,235,0.3)' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(27,111,235,0.35)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(27,111,235,0.2)'}>
+                    + Buy
+                  </button>
                 </div>
               )}
 
@@ -187,6 +204,12 @@ export default function App() {
         </main>
 
         {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
+        {showPaymentModal && (
+          <PaymentModal
+            onClose={() => setShowPaymentModal(false)}
+            onSuccess={() => setShowPaymentModal(false)}
+          />
+        )}
       </div>
     </AuthContext.Provider>
   )
