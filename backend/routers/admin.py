@@ -74,9 +74,14 @@ async def get_admin_stats(request: Request):
     signup_map = {}
     try:
         auth_users = supabase.auth.admin.list_users()
-        for au in auth_users:
-            email_map[au.id] = au.email or ""
-            signup_map[au.id] = au.created_at.isoformat() if au.created_at else None
+        # SDK 2.x returns a list directly; guard for both response shapes
+        user_list = auth_users if isinstance(auth_users, list) else getattr(auth_users, 'users', [])
+        for au in user_list:
+            uid = au.id if hasattr(au, 'id') else au.get('id', '')
+            email = au.email if hasattr(au, 'email') else au.get('email', '')
+            created = au.created_at if hasattr(au, 'created_at') else au.get('created_at')
+            email_map[uid] = email or ""
+            signup_map[uid] = created.isoformat() if hasattr(created, 'isoformat') else (created or None)
     except Exception:
         pass
 
@@ -136,17 +141,25 @@ async def gift_credits(request: Request, payload: GiftCreditsRequest):
 
     supabase = get_supabase()
 
-    # Look up user_id by email via auth.users (admin API)
+    # Look up user_id by email — use listUsers filter which is more reliable than iterating
     try:
-        users_resp = supabase.auth.admin.list_users()
-        matched = next((u for u in users_resp if u.email == payload.email), None)
-    except Exception:
-        raise HTTPException(status_code=500, detail="Could not query users")
+        filter_resp = supabase.auth.admin.list_users()
+        user_list = filter_resp if isinstance(filter_resp, list) else getattr(filter_resp, 'users', [])
+        matched = next(
+            (u for u in user_list
+             if (u.email if hasattr(u, 'email') else u.get('email', '')) == payload.email),
+            None
+        )
+        if matched:
+            user_id = matched.id if hasattr(matched, 'id') else matched.get('id')
+        else:
+            # Fallback: query credits table for user_id if email lookup failed
+            user_id = None
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Could not query users: {str(e)}")
 
-    if not matched:
+    if not user_id:
         raise HTTPException(status_code=404, detail=f"No user found with email {payload.email}")
-
-    user_id = matched.id
 
     # Upsert credits row
     existing = supabase.table("credits").select("balance, lifetime_purchased").eq("user_id", user_id).execute()
