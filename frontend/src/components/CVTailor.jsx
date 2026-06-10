@@ -3,76 +3,145 @@ import { Sparkles, Lock, Download, CheckCircle, AlertTriangle, ChevronDown, Chev
 import { tailorCV } from '../lib/api'
 import { useAuth } from '../App'
 
-// --- DOCX export using plain XML ---
-function downloadTailoredCV(tailored, profile, role, company) {
+// --- DOCX export using docx-js (browser build) ---
+// Loaded from CDN in index.html — window.docx is available globally
+async function downloadTailoredCV(tailored, profile, role, company) {
+  const {
+    Document, Packer, Paragraph, TextRun, HeadingLevel,
+    AlignmentType, LevelFormat, BorderStyle
+  } = window.docx
+
   const name = profile?.name || 'Candidate'
-  const title = role || tailored.experience?.[0]?.title || profile?.title || 'Professional'
+  const sections_children = []
 
-  const skillsText = (tailored.skills || []).join(' • ')
+  // NAME
+  sections_children.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 0 },
+    children: [new TextRun({ text: name, bold: true, size: 36, font: 'Arial' })]
+  }))
 
-  const experienceXml = (tailored.experience || []).map(exp => `
-    <w:p><w:pPr><w:pStyle w:val="Heading2"/></w:pPr>
-      <w:r><w:t>${exp.company} — ${exp.title} (${exp.duration || ''})</w:t></w:r>
-    </w:p>
-    ${(exp.bullets || []).map(b => `
-    <w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr>
-      <w:r><w:t xml:space="preserve">${b.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</w:t></w:r>
-    </w:p>`).join('')}
-  `).join('')
+  // TITLE + LOCATION
+  sections_children.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 40 },
+    children: [new TextRun({
+      text: `${profile?.title || ''}${profile?.location ? '  |  ' + profile.location : ''}`,
+      size: 22, color: '444444', font: 'Arial'
+    })]
+  }))
 
-  const docxContent = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
-  xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
-<w:body>
-  <w:p>
-    <w:pPr><w:jc w:val="center"/></w:pPr>
-    <w:r><w:rPr><w:b/><w:sz w:val="36"/></w:rPr><w:t>${name}</w:t></w:r>
-  </w:p>
-  <w:p>
-    <w:pPr><w:jc w:val="center"/></w:pPr>
-    <w:r><w:rPr><w:sz w:val="24"/><w:color w:val="444444"/></w:rPr>
-      <w:t>${profile?.title || title}${profile?.location ? ' | ' + profile.location : ''}</w:t>
-    </w:r>
-  </w:p>
-  <w:p><w:r><w:t> </w:t></w:r></w:p>
+  // CONTACT PLACEHOLDER
+  sections_children.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 120 },
+    children: [new TextRun({
+      text: '[Add: Email  |  Phone  |  LinkedIn  |  GitHub]',
+      size: 20, color: '999999', italics: true, font: 'Arial'
+    })]
+  }))
 
-  <w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>
-    <w:r><w:t>Professional Summary</w:t></w:r>
-  </w:p>
-  <w:p>
-    <w:r><w:t xml:space="preserve">${(tailored.professional_summary || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</w:t></w:r>
-  </w:p>
-  <w:p><w:r><w:t> </w:t></w:r></w:p>
+  // Divider
+  sections_children.push(new Paragraph({
+    spacing: { after: 160 },
+    border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '1B6FEB', space: 1 } },
+    children: []
+  }))
 
-  <w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>
-    <w:r><w:t>Key Skills</w:t></w:r>
-  </w:p>
-  <w:p>
-    <w:r><w:t xml:space="preserve">${skillsText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</w:t></w:r>
-  </w:p>
-  <w:p><w:r><w:t> </w:t></w:r></w:p>
+  // PROFESSIONAL SUMMARY
+  sections_children.push(new Paragraph({
+    spacing: { before: 0, after: 80 },
+    children: [new TextRun({ text: 'PROFESSIONAL SUMMARY', font: 'Arial', size: 22, bold: true, color: '1B6FEB' })]
+  }))
+  sections_children.push(new Paragraph({
+    spacing: { after: 160 },
+    children: [new TextRun({ text: tailored.professional_summary || '', font: 'Arial', size: 22 })]
+  }))
 
-  <w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr>
-    <w:r><w:t>Professional Experience</w:t></w:r>
-  </w:p>
-  ${experienceXml}
+  // KEY SKILLS
+  sections_children.push(new Paragraph({
+    spacing: { before: 0, after: 80 },
+    children: [new TextRun({ text: 'KEY SKILLS', font: 'Arial', size: 22, bold: true, color: '1B6FEB' })]
+  }))
+  sections_children.push(new Paragraph({
+    spacing: { after: 160 },
+    children: [new TextRun({ text: (tailored.skills || []).join('  •  '), font: 'Arial', size: 20 })]
+  }))
 
-  <w:sectPr>
-    <w:pgSz w:w="12240" w:h="15840"/>
-    <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/>
-  </w:sectPr>
-</w:body>
-</w:document>`
+  // PROFESSIONAL EXPERIENCE
+  sections_children.push(new Paragraph({
+    spacing: { before: 0, after: 80 },
+    children: [new TextRun({ text: 'PROFESSIONAL EXPERIENCE', font: 'Arial', size: 22, bold: true, color: '1B6FEB' })]
+  }))
 
-  const blob = new Blob([docxContent], {
-    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  for (const exp of (tailored.experience || [])) {
+    sections_children.push(new Paragraph({
+      spacing: { before: 120, after: 40 },
+      children: [
+        new TextRun({ text: exp.company || '', font: 'Arial', size: 22, bold: true }),
+        new TextRun({ text: `  —  ${exp.title || ''}`, font: 'Arial', size: 22 }),
+        new TextRun({ text: `  |  ${exp.duration || ''}`, font: 'Arial', size: 20, color: '666666' }),
+      ]
+    }))
+    for (const bullet of (exp.bullets || [])) {
+      sections_children.push(new Paragraph({
+        numbering: { reference: 'bullets', level: 0 },
+        spacing: { after: 60 },
+        children: [new TextRun({ text: bullet, font: 'Arial', size: 20 })]
+      }))
+    }
+  }
+
+  // EDUCATION (placeholder)
+  sections_children.push(new Paragraph({
+    spacing: { before: 160, after: 80 },
+    children: [new TextRun({ text: 'EDUCATION', font: 'Arial', size: 22, bold: true, color: '1B6FEB' })]
+  }))
+  sections_children.push(new Paragraph({
+    spacing: { after: 60 },
+    children: [new TextRun({ text: '[Add your education here]', font: 'Arial', size: 20, color: '999999', italics: true })]
+  }))
+
+  // CERTIFICATIONS (placeholder)
+  sections_children.push(new Paragraph({
+    spacing: { before: 160, after: 80 },
+    children: [new TextRun({ text: 'CERTIFICATIONS', font: 'Arial', size: 22, bold: true, color: '1B6FEB' })]
+  }))
+  sections_children.push(new Paragraph({
+    spacing: { after: 60 },
+    children: [new TextRun({ text: '[Add certifications here]', font: 'Arial', size: 20, color: '999999', italics: true })]
+  }))
+
+  const doc = new Document({
+    styles: {
+      default: { document: { run: { font: 'Arial', size: 22 } } }
+    },
+    numbering: {
+      config: [{
+        reference: 'bullets',
+        levels: [{
+          level: 0, format: LevelFormat.BULLET, text: '\u2022',
+          alignment: AlignmentType.LEFT,
+          style: { paragraph: { indent: { left: 360, hanging: 360 } } }
+        }]
+      }]
+    },
+    sections: [{
+      properties: {
+        page: {
+          size: { width: 12240, height: 15840 },
+          margin: { top: 1080, right: 1080, bottom: 1080, left: 1080 }
+        }
+      },
+      children: sections_children
+    }]
   })
+
+  const blob = await Packer.toBlob(doc)
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
-  const filename = `${name.replace(/\s+/g, '-')}-tailored-CV-${new Date().toISOString().split('T')[0]}.docx`
   a.href = url
-  a.download = filename
+  a.download = `${name.replace(/\s+/g, '-')}-tailored-CV-${new Date().toISOString().split('T')[0]}.docx`
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -133,8 +202,10 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
   const [showFullSummary, setShowFullSummary] = useState(true)
 
   const outOfCredits = user && creditBalance !== null && creditBalance <= 0
-  const missingCV = !profile || !rawCvText
-  const missingJD = !evalJdText || evalJdText.trim().length < 50
+  const missingProfile = !profile
+  const missingRawText = !rawCvText
+  const missingCV    = missingProfile || missingRawText
+  const missingJD    = !evalJdText || evalJdText.trim().length < 50
 
   async function handleTailor() {
     if (!user) { setShowAuthModal(true); return }
@@ -224,8 +295,9 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
           {/* Checklist */}
           <div className="space-y-2 mb-5">
             {[
-              { label: 'CV uploaded and parsed', done: !!profile && !!rawCvText, hint: 'Upload your CV on My profile tab' },
-              { label: 'JD evaluated', done: !missingJD, hint: 'Evaluate a job description on the Evaluate JD tab first' },
+              { label: 'CV parsed', done: !!profile, hint: 'Upload your CV on My profile tab' },
+              { label: 'CV text loaded', done: !!rawCvText, hint: 'Re-upload your CV — needed for full rewrite' },
+              { label: 'JD evaluated', done: !missingJD, hint: 'Evaluate a job description first' },
             ].map(({ label, done, hint }) => (
               <div key={label} className="flex items-center gap-3 p-3 rounded-lg"
                 style={{ background: done ? 'var(--success-bg)' : 'var(--surface-raised)', border: `1px solid ${done ? '#6EE7B7' : 'var(--border-light)'}` }}>
