@@ -1,8 +1,13 @@
 import { useState, useEffect, createContext, useContext } from 'react'
+import { Routes, Route } from 'react-router-dom'
 import SeekerMode from './pages/SeekerMode'
 import RecruiterMode from './pages/RecruiterMode'
 import AdminDashboard from './pages/AdminDashboard'
 import LandingPage from './pages/LandingPage'
+import PrivacyPolicy from './pages/PrivacyPolicy'
+import TermsAndConditions from './pages/TermsAndConditions'
+import RefundPolicy from './pages/RefundPolicy'
+import Contact from './pages/Contact'
 import AuthModal from './components/AuthModal'
 import PaymentModal from './components/PaymentModal'
 import { supabase, signOut } from './lib/supabase'
@@ -21,8 +26,9 @@ export default function App() {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [creditBalance, setCreditBalance] = useState(null)
 
-  // Check if current path is /admin
-  const isAdminRoute = window.location.pathname === '/admin'
+  const path = window.location.pathname
+  const isAdminRoute = path === '/admin'
+  const isLegalRoute = ['/privacy', '/terms', '/refund', '/contact'].includes(path)
 
   useEffect(() => {
     if (darkMode) {
@@ -78,6 +84,18 @@ export default function App() {
   }
 
   const isAdmin = user?.id === ADMIN_USER_ID
+
+  // Legal pages — always accessible, no auth needed
+  if (isLegalRoute) {
+    return (
+      <Routes>
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsAndConditions />} />
+        <Route path="/refund" element={<RefundPolicy />} />
+        <Route path="/contact" element={<Contact />} />
+      </Routes>
+    )
+  }
 
   // Show landing page for non-authenticated users (not admin route)
   if (!authLoading && !user && !isAdminRoute) {
