@@ -141,7 +141,7 @@ Domain: {profile.get('domain', 'Not provided')}
 Current skills: {', '.join(profile.get('skills', [])[:25])}
 
 FULL CV TEXT:
-{payload.cv_raw_text[:6000]}
+{payload.cv_raw_text[:12000]}
 
 JOB DESCRIPTION:
 {payload.jd_text[:3000]}
