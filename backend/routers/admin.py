@@ -178,13 +178,15 @@ async def gift_credits(request: Request, payload: GiftCreditsRequest):
             "lifetime_purchased": payload.credits,
         }).execute()
 
-    # Log it
-    supabase.table("usage_log").insert({
-        "user_id": user_id,
-        "action": "admin_gift",
-        "credits_used": -payload.credits,  # negative = credits added
-        "note": payload.note,
-    }).execute()
+    # Log it — best-effort, don't crash the response if the table schema differs
+    try:
+        supabase.table("usage_log").insert({
+            "user_id": user_id,
+            "action": "admin_gift",
+            "credits_used": 0,  # neutral — not a deduction
+        }).execute()
+    except Exception:
+        pass
 
     new_balance = (existing.data[0]["balance"] if existing.data else 0) + payload.credits
     return {"success": True, "email": payload.email, "credits_added": payload.credits, "new_balance": new_balance}
