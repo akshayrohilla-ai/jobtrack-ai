@@ -210,7 +210,7 @@ function BriefingCard({ briefing }) {
       <button className="flex items-center justify-between w-full" onClick={() => setOpen(o => !o)}>
         <div className="flex items-center gap-2">
           <Eye size={14} style={{ color: 'var(--blue-accent)' }} />
-          <span className="text-sm font-semibold" style={{ color: 'var(--navy-900)' }}>Application briefing</span>
+          <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Application briefing</span>
           <span className="badge-blue">Screen only — not in CV</span>
         </div>
         {open ? <ChevronUp size={14} style={{ color: 'var(--text-ghost)' }} /> : <ChevronDown size={14} style={{ color: 'var(--text-ghost)' }} />}
@@ -219,7 +219,7 @@ function BriefingCard({ briefing }) {
         <div className="mt-4 space-y-3" style={{ paddingTop: '12px', borderTop: '1px solid #BFDBFE' }}>
           <div>
             <div className="text-xs font-semibold mb-1" style={{ color: 'var(--blue-accent)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Lead with</div>
-            <p className="text-sm" style={{ color: 'var(--navy-900)' }}>{briefing.lead_with}</p>
+            <p className="text-sm" style={{ color: 'var(--text-primary)' }}>{briefing.lead_with}</p>
           </div>
           {briefing.mirror_language?.length > 0 && (
             <div>
@@ -438,7 +438,9 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
                 className="btn-primary text-xs py-2">
                 <Download size={13} />Download CV (.docx)
               </button>
-              <button onClick={() => setResult(null)} className="btn-ghost text-xs py-2">
+              <button onClick={() => {
+                if (window.confirm('Tailoring again will use 1 credit. Continue?')) setResult(null)
+              }} className="btn-ghost text-xs py-2">
                 Tailor again
               </button>
             </div>

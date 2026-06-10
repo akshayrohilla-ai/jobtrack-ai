@@ -165,6 +165,7 @@ Return the full evaluation as JSON."""
         message = client.messages.create(
             model="claude-sonnet-4-6",  # Switched from Opus — 40% cheaper, same quality for structured output
             max_tokens=1500,
+            temperature=0,  # Deterministic grading — prevents A/B flip on same CV+JD
             system=[
                 {
                     "type": "text",
