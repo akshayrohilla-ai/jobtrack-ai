@@ -23,6 +23,13 @@ const FEATURES = [
     tagColor: '#1B6FEB',
   },
   {
+    icon: '🔍',
+    title: 'AI Job Search',
+    desc: 'Search jobs by role, location, and seniority. AI matches openings to your CV profile automatically.',
+    tag: 'Free',
+    tagColor: '#10b981',
+  },
+  {
     icon: '📊',
     title: 'Application Tracker',
     desc: 'Kanban board to track every application — Applied, Interview, Offer, Rejected. Never lose track.',
@@ -152,7 +159,7 @@ export default function LandingPage({ onGetStarted }) {
 
         {/* Social proof */}
         <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>
-          No credit card required · CV parsing always free · Credits never expire
+          No credit card required · CV parsing always free · Top up credits anytime from ₹199
         </p>
       </section>
 
@@ -332,7 +339,7 @@ export default function LandingPage({ onGetStarted }) {
             ))}
           </div>
           <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: 12, margin: 0 }}>
-            © 2025 JobTrack AI. Owned by Bharti Rohilla. All rights reserved.
+            © 2026 JobTrack AI. All rights reserved.
           </p>
         </div>
       </footer>
