@@ -40,8 +40,9 @@ const FEATURES = [
     icon: '👥',
     title: 'Recruiter Mode',
     desc: 'Score and shortlist candidates against a JD. Export your shortlist as CSV in one click.',
-    tag: 'For recruiters',
-    tagColor: '#7C3AED',
+    tag: 'Coming Soon',
+    tagColor: '#f59e0b',
+    comingSoon: true,
   },
   {
     icon: '🔒',
@@ -205,13 +206,15 @@ export default function LandingPage({ onGetStarted }) {
               <div key={i} style={{
                 background: 'rgba(255,255,255,0.03)',
                 backdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,255,255,0.07)',
+                border: `1px solid ${f.comingSoon ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.07)'}`,
                 borderRadius: 20,
                 padding: '28px',
                 transition: 'border-color 0.2s, transform 0.2s',
+                opacity: f.comingSoon ? 0.6 : 1,
+                position: 'relative',
               }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(27,111,235,0.4)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.transform = 'translateY(0)' }}
+                onMouseEnter={e => { if (!f.comingSoon) { e.currentTarget.style.borderColor = 'rgba(27,111,235,0.4)'; e.currentTarget.style.transform = 'translateY(-2px)' } }}
+                onMouseLeave={e => { if (!f.comingSoon) { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)'; e.currentTarget.style.transform = 'translateY(0)' } }}
               >
                 <div style={{ fontSize: 32, marginBottom: 16 }}>{f.icon}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>

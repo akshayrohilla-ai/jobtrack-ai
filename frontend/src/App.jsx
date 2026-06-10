@@ -115,16 +115,42 @@ export default function App() {
               {/* Mode toggle — hidden on admin route */}
               {!isAdminRoute && (
                 <div className="flex items-center gap-1 p-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  {['seeker', 'recruiter'].map(m => (
-                    <button key={m} onClick={() => setMode(m)}
+                  {/* Job seeker — always available */}
+                  <button onClick={() => setMode('seeker')}
+                    className="mode-toggle-btn px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-150"
+                    style={mode === 'seeker'
+                      ? { background: 'var(--blue-accent)', color: 'white', boxShadow: '0 1px 4px rgba(27,111,235,0.4)' }
+                      : { color: 'rgba(255,255,255,0.6)' }
+                    }>
+                    Job seeker
+                  </button>
+                  {/* Recruiter — admin only, coming soon for others */}
+                  {isAdmin ? (
+                    <button onClick={() => setMode('recruiter')}
                       className="mode-toggle-btn px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-150"
-                      style={mode === m
+                      style={mode === 'recruiter'
                         ? { background: 'var(--blue-accent)', color: 'white', boxShadow: '0 1px 4px rgba(27,111,235,0.4)' }
                         : { color: 'rgba(255,255,255,0.6)' }
                       }>
-                      {m === 'seeker' ? 'Job seeker' : 'Recruiter'}
+                      Recruiter
                     </button>
-                  ))}
+                  ) : (
+                    <div className="relative group">
+                      <button disabled
+                        className="px-4 py-1.5 rounded-md text-xs font-medium cursor-not-allowed"
+                        style={{ color: 'rgba(255,255,255,0.3)' }}>
+                        Recruiter
+                        <span className="ml-1.5 text-xs px-1.5 py-0.5 rounded-full"
+                          style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontSize: 10 }}>
+                          Soon
+                        </span>
+                      </button>
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity"
+                        style={{ background: 'rgba(15,23,42,0.95)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', zIndex: 100 }}>
+                        Coming soon — we're working on it!
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
