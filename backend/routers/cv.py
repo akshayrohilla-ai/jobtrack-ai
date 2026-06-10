@@ -54,10 +54,10 @@ async def parse_cv(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI parsing failed: {str(e)}")
 
-    # Save to Supabase scoped to user_id (best-effort, non-blocking)
+    # Save to Supabase scoped to user_id
     try:
         supabase = get_supabase()
-        supabase.table("cv_profiles").insert({
+        result = supabase.table("cv_profiles").insert({
             "user_id": user_id,
             "name": profile.get("name"),
             "title": profile.get("title"),
@@ -66,10 +66,11 @@ async def parse_cv(
             "seniority": profile.get("seniority"),
             "domain": profile.get("domain"),
             "skills": profile.get("skills", []),
-            "raw_text": cv_text[:8000]  # Store more text for tailoring quality
+            "raw_text": cv_text[:8000]
         }).execute()
-    except Exception:
-        pass
+        print(f"CV profile saved: user_id={user_id}, rows={len(result.data) if result.data else 0}")
+    except Exception as e:
+        print(f"CV profile save FAILED: {type(e).__name__}: {e}")
 
     # Return profile + raw_text so frontend can store in sessionStorage
     # raw_text is used for CV tailoring without requiring re-upload
@@ -88,6 +89,7 @@ async def get_profile(request: Request):
         .limit(1)\
         .execute()
 
+    print(f"Profile fetch: user_id={user_id}, rows={len(result.data) if result.data else 0}")
     if not result.data:
         raise HTTPException(status_code=404, detail="No profile found")
 
