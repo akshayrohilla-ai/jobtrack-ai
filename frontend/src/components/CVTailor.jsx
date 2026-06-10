@@ -1,16 +1,14 @@
 import { useState } from 'react'
+import {
+  Document, Packer, Paragraph, TextRun,
+  AlignmentType, LevelFormat, BorderStyle
+} from 'docx'
 import { Sparkles, Lock, Download, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, Zap, FileText, Eye, EyeOff } from 'lucide-react'
 import { tailorCV } from '../lib/api'
 import { useAuth } from '../App'
 
-// --- DOCX export using docx-js (browser build) ---
-// Loaded from CDN in index.html — window.docx is available globally
+// --- DOCX export using docx npm package ---
 async function downloadTailoredCV(tailored, profile, role, company) {
-  const {
-    Document, Packer, Paragraph, TextRun, HeadingLevel,
-    AlignmentType, LevelFormat, BorderStyle
-  } = window.docx
-
   const name = profile?.name || 'Candidate'
   const sections_children = []
 
