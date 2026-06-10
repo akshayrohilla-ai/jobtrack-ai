@@ -8,6 +8,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy'
 import TermsAndConditions from './pages/TermsAndConditions'
 import RefundPolicy from './pages/RefundPolicy'
 import Contact from './pages/Contact'
+import ResetPassword from './pages/ResetPassword'
 import AuthModal from './components/AuthModal'
 import PaymentModal from './components/PaymentModal'
 import { supabase, signOut } from './lib/supabase'
@@ -28,7 +29,7 @@ export default function App() {
 
   const path = window.location.pathname
   const isAdminRoute = path === '/admin'
-  const isLegalRoute = ['/privacy', '/terms', '/refund', '/contact'].includes(path)
+  const isLegalRoute = ['/privacy', '/terms', '/refund', '/contact', '/reset-password'].includes(path)
 
   useEffect(() => {
     if (darkMode) {
@@ -93,6 +94,7 @@ export default function App() {
         <Route path="/terms" element={<TermsAndConditions />} />
         <Route path="/refund" element={<RefundPolicy />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
     )
   }

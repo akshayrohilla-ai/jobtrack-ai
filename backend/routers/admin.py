@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, HTTPException
+from pydantic import BaseModel
 from middleware.admin import require_admin
 from services.supabase_client import get_supabase
 from datetime import datetime, timedelta, timezone
@@ -68,14 +69,32 @@ async def get_admin_stats(request: Request):
     haiku_cost = cv_parses * ((1200 * HAIKU_INPUT_COST_PER_1K / 1000) + (400 * HAIKU_OUTPUT_COST_PER_1K / 1000))
     total_estimated_cost_usd = round(opus_cost + haiku_cost, 4)
 
+    # --- Fetch emails from auth.users ---
+    email_map = {}
+    signup_map = {}
+    try:
+        auth_users = supabase.auth.admin.list_users()
+        for au in auth_users:
+            email_map[au.id] = au.email or ""
+            signup_map[au.id] = au.created_at.isoformat() if au.created_at else None
+    except Exception:
+        pass
+
     # --- Per-user table (for user list view) ---
+    # A user is stale only if: no usage_log in 30 days AND signed up more than 7 days ago
+    seven_days_ago_str = (now - timedelta(days=7)).isoformat()
     user_details = []
     for u in sorted(users, key=lambda x: x.get("lifetime_used", 0), reverse=True):
+        uid = u["user_id"]
+        signed_up = signup_map.get(uid)
+        is_new = signed_up and signed_up >= seven_days_ago_str
+        is_active = uid in active_user_ids or is_new
         user_details.append({
-            "user_id":       u["user_id"],
+            "user_id":       uid,
+            "email":         email_map.get(uid, ""),
             "balance":       u.get("balance", 0),
             "lifetime_used": u.get("lifetime_used", 0),
-            "is_active":     u["user_id"] in active_user_ids,
+            "is_active":     is_active,
             "last_seen":     u.get("updated_at", "—"),
         })
 
@@ -99,6 +118,63 @@ async def get_admin_stats(request: Request):
         "cost_note": "Estimated from usage logs. Check console.anthropic.com for exact balance.",
         "user_details": user_details,
     }
+
+
+class GiftCreditsRequest(BaseModel):
+    email: str
+    credits: int
+    note: str = "admin gift"
+
+
+@router.post("/gift-credits")
+async def gift_credits(request: Request, payload: GiftCreditsRequest):
+    """Gift credits to a user by email. Admin only."""
+    await require_admin(request)
+
+    if payload.credits < 1 or payload.credits > 100:
+        raise HTTPException(status_code=400, detail="Credits must be between 1 and 100")
+
+    supabase = get_supabase()
+
+    # Look up user_id by email via auth.users (admin API)
+    try:
+        users_resp = supabase.auth.admin.list_users()
+        matched = next((u for u in users_resp if u.email == payload.email), None)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Could not query users")
+
+    if not matched:
+        raise HTTPException(status_code=404, detail=f"No user found with email {payload.email}")
+
+    user_id = matched.id
+
+    # Upsert credits row
+    existing = supabase.table("credits").select("balance, lifetime_purchased").eq("user_id", user_id).execute()
+    if existing.data:
+        current = existing.data[0]
+        supabase.table("credits").update({
+            "balance": current["balance"] + payload.credits,
+            "lifetime_purchased": (current.get("lifetime_purchased") or 0) + payload.credits,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }).eq("user_id", user_id).execute()
+    else:
+        supabase.table("credits").insert({
+            "user_id": user_id,
+            "balance": payload.credits,
+            "lifetime_used": 0,
+            "lifetime_purchased": payload.credits,
+        }).execute()
+
+    # Log it
+    supabase.table("usage_log").insert({
+        "user_id": user_id,
+        "action": "admin_gift",
+        "credits_used": -payload.credits,  # negative = credits added
+        "note": payload.note,
+    }).execute()
+
+    new_balance = (existing.data[0]["balance"] if existing.data else 0) + payload.credits
+    return {"success": True, "email": payload.email, "credits_added": payload.credits, "new_balance": new_balance}
 
 
 @router.get("/usage-log")

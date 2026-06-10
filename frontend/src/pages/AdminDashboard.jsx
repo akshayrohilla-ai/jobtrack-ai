@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../App'
 import { getAuthHeader } from '../lib/supabase'
-import { Users, Zap, TrendingUp, DollarSign, RefreshCw, AlertTriangle, Activity, Clock } from 'lucide-react'
+import { Users, Zap, TrendingUp, DollarSign, RefreshCw, AlertTriangle, Activity, Clock, Gift } from 'lucide-react'
 
 const ADMIN_USER_ID = '56adc198-81e7-4036-aacd-d0ee22de16cc'
 const API_URL = import.meta.env.VITE_API_URL
@@ -26,16 +26,43 @@ function StatCard({ icon: Icon, iconColor, label, value, sub }) {
 
 export default function AdminDashboard() {
   const { user } = useAuth()
-  const [stats, setStats]     = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState(null)
+  const [stats, setStats]         = useState(null)
+  const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState(null)
   const [lastRefresh, setLastRefresh] = useState(null)
+
+  // Gift credits form
+  const [giftEmail, setGiftEmail]     = useState('')
+  const [giftAmount, setGiftAmount]   = useState(5)
+  const [giftNote, setGiftNote]       = useState('beta tester gift')
+  const [giftLoading, setGiftLoading] = useState(false)
+  const [giftMsg, setGiftMsg]         = useState(null)  // { type: 'success'|'error', text }
 
   const isAdmin = user?.id === ADMIN_USER_ID
 
   useEffect(() => {
     if (isAdmin) fetchStats()
   }, [isAdmin])
+
+  async function giftCredits(e) {
+    e.preventDefault()
+    setGiftLoading(true); setGiftMsg(null)
+    try {
+      const headers = await getAuthHeader()
+      const res = await fetch(`${API_URL}/api/admin/gift-credits`, {
+        method: 'POST',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: giftEmail.trim(), credits: giftAmount, note: giftNote })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || 'Failed')
+      setGiftMsg({ type: 'success', text: `✓ ${data.credits_added} credits added to ${data.email}. New balance: ${data.new_balance}` })
+      setGiftEmail('')
+      fetchStats()
+    } catch (err) {
+      setGiftMsg({ type: 'error', text: err.message })
+    } finally { setGiftLoading(false) }
+  }
 
   async function fetchStats() {
     setLoading(true); setError(null)
@@ -88,7 +115,7 @@ export default function AdminDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.75rem', color: 'var(--navy-900)' }}>
+          <h1 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.75rem', color: 'var(--text-primary)' }}>
             Admin dashboard
           </h1>
           {lastRefresh && (
@@ -178,6 +205,68 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Gift credits */}
+      <div>
+        <p className="section-label mb-3">Gift credits</p>
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <Gift size={15} style={{ color: 'var(--blue-accent)' }} />
+            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Add free credits to any user</span>
+          </div>
+          <form onSubmit={giftCredits} className="flex flex-col gap-3">
+            <div className="flex gap-3">
+              <input
+                type="email"
+                placeholder="User email address"
+                value={giftEmail}
+                onChange={e => setGiftEmail(e.target.value)}
+                required
+                className="flex-1 px-3 py-2 rounded-lg text-sm outline-none"
+                style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              />
+              <select
+                value={giftAmount}
+                onChange={e => setGiftAmount(Number(e.target.value))}
+                className="px-3 py-2 rounded-lg text-sm outline-none"
+                style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', color: 'var(--text-primary)', minWidth: '90px' }}
+              >
+                {[2, 5, 10, 15, 20, 30].map(n => (
+                  <option key={n} value={n}>{n} credits</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-3 items-center">
+              <input
+                type="text"
+                placeholder="Note (optional)"
+                value={giftNote}
+                onChange={e => setGiftNote(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-lg text-sm outline-none"
+                style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              />
+              <button
+                type="submit"
+                disabled={giftLoading || !giftEmail}
+                className="px-5 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 whitespace-nowrap"
+                style={{ background: giftLoading ? 'rgba(27,111,235,0.4)' : 'var(--blue-accent)', color: 'white', cursor: giftLoading ? 'not-allowed' : 'pointer' }}
+              >
+                <Gift size={13} />
+                {giftLoading ? 'Sending…' : 'Gift credits'}
+              </button>
+            </div>
+            {giftMsg && (
+              <p className="text-xs px-3 py-2 rounded-lg"
+                style={{
+                  background: giftMsg.type === 'success' ? 'var(--success-bg, #d1fae5)' : 'rgba(220,53,69,0.1)',
+                  color: giftMsg.type === 'success' ? 'var(--success, #065f46)' : 'var(--danger)'
+                }}>
+                {giftMsg.text}
+              </p>
+            )}
+          </form>
+        </div>
+      </div>
+
       {/* Per-user table */}
       <div>
         <p className="section-label mb-3">All users</p>
@@ -185,7 +274,7 @@ export default function AdminDashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-raised)' }}>
-                {['User ID', 'Balance', 'Used', 'Status', 'Last seen'].map(h => (
+                {['Email', 'Balance', 'Used', 'Status', 'Last seen'].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium"
                     style={{ color: 'var(--text-muted)' }}>{h}</th>
                 ))}
@@ -195,11 +284,14 @@ export default function AdminDashboard() {
               {user_details.map((u, i) => (
                 <tr key={u.user_id}
                   style={{ borderBottom: i < user_details.length - 1 ? '1px solid var(--border-light)' : 'none' }}>
-                  <td className="px-4 py-3 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>
-                    {u.user_id.slice(0, 8)}…
-                    {u.user_id === ADMIN_USER_ID && (
-                      <span className="ml-2 badge-blue">you</span>
-                    )}
+                  <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-secondary)' }}>
+                    <div>{u.email || <span style={{ color: 'var(--text-ghost)' }}>unknown</span>}</div>
+                    <div className="font-mono mt-0.5" style={{ color: 'var(--text-ghost)', fontSize: '10px' }}>
+                      {u.user_id.slice(0, 8)}…
+                      {u.user_id === ADMIN_USER_ID && (
+                        <span className="ml-2 badge-blue">you</span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-3 font-semibold" style={{ color: u.balance <= 1 ? 'var(--danger)' : 'var(--success)' }}>
                     {u.balance}

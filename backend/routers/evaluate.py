@@ -4,8 +4,12 @@ from typing import Optional
 import anthropic
 import os
 import json
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from services.supabase_client import get_supabase
 from middleware.auth import get_current_user, require_credits, get_credit_balance
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
 
@@ -129,6 +133,7 @@ async def get_balance(request: Request):
 
 
 @router.post("/evaluate-jd")
+@limiter.limit("10/minute")
 async def evaluate_jd(request: Request, payload: EvaluationRequest):
     # 1. Verify JWT — raises 401 if missing/invalid
     user_id = await get_current_user(request)
@@ -217,10 +222,10 @@ Return the full evaluation as JSON."""
         evaluation["_credits"] = {"balance": new_balance}
         return evaluation
 
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=500, detail=f"Failed to parse AI response: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Evaluation failed: {str(e)}")
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="AI returned an unexpected response. Please try again.")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Evaluation failed. Please try again.")
 
 
 @router.get("/history")
@@ -236,5 +241,5 @@ async def get_evaluation_history(request: Request):
             .limit(20) \
             .execute()
         return result.data or []
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to load evaluation history.")

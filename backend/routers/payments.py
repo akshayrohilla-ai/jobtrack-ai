@@ -82,7 +82,9 @@ async def verify_payment(request: Request, payload: VerifyPaymentRequest):
         raise HTTPException(status_code=400, detail="Invalid pack_id")
 
     # Verify Razorpay signature
-    key_secret = os.getenv("RAZORPAY_KEY_SECRET", "")
+    key_secret = os.getenv("RAZORPAY_KEY_SECRET")
+    if not key_secret:
+        raise HTTPException(status_code=503, detail="Payment service unavailable")
     body = f"{payload.razorpay_order_id}|{payload.razorpay_payment_id}"
     expected_sig = hmac.new(
         key_secret.encode(), body.encode(), hashlib.sha256

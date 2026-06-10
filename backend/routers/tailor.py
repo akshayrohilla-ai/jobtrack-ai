@@ -4,8 +4,12 @@ from typing import Optional
 import anthropic
 import os
 import json
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from services.supabase_client import get_supabase
 from middleware.auth import get_current_user, require_credits
+
+limiter = Limiter(key_func=get_remote_address)
 
 router = APIRouter()
 
@@ -114,6 +118,7 @@ class TailorRequest(BaseModel):
 
 
 @router.post("/tailor-cv")
+@limiter.limit("10/minute")
 async def tailor_cv(request: Request, payload: TailorRequest):
     # 1. Verify JWT
     user_id = await get_current_user(request)
@@ -186,7 +191,7 @@ Rewrite the CV to maximise fit for this specific role. Return JSON only."""
         tailored["_credits"] = {"balance": new_balance}
         return tailored
 
-    except json.JSONDecodeError as e:
-        raise HTTPException(status_code=500, detail=f"Failed to parse AI response: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"CV tailoring failed: {str(e)}")
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=500, detail="AI returned an unexpected response. Please try again.")
+    except Exception:
+        raise HTTPException(status_code=500, detail="CV tailoring failed. Please try again.")
