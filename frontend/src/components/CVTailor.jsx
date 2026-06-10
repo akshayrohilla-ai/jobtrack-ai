@@ -29,13 +29,22 @@ async function downloadTailoredCV(tailored, profile, role, company) {
     })]
   }))
 
-  // CONTACT PLACEHOLDER
+  // CONTACT — use actual details from profile, fallback to placeholder for missing fields
+  const contactParts = []
+  if (profile?.email) contactParts.push(profile.email)
+  if (profile?.phone) contactParts.push(profile.phone)
+  if (profile?.linkedin) contactParts.push(profile.linkedin)
+  const contactText = contactParts.length > 0
+    ? contactParts.join('  |  ')
+    : '[Add: Email  |  Phone  |  LinkedIn]'
+
   sections_children.push(new Paragraph({
     alignment: AlignmentType.CENTER,
     spacing: { after: 120 },
     children: [new TextRun({
-      text: '[Add: Email  |  Phone  |  LinkedIn  |  GitHub]',
-      size: 20, color: '999999', italics: true, font: 'Arial'
+      text: contactText,
+      size: 20, color: contactParts.length > 0 ? '333333' : '999999',
+      italics: contactParts.length === 0, font: 'Arial'
     })]
   }))
 

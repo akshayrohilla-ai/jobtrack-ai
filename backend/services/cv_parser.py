@@ -57,6 +57,9 @@ Return ONLY valid JSON with no markdown, no backticks, no explanation.
 Required format:
 {
   "name": "Full Name",
+  "email": "email@example.com or null",
+  "phone": "+91 XXXXXXXXXX or null",
+  "linkedin": "linkedin.com/in/username or null",
   "title": "Current or most recent job title",
   "location": "City, Country",
   "years_exp": "X years",
@@ -68,6 +71,9 @@ Required format:
 }
 
 Rules:
+- email: extract the email address if present, else null
+- phone: extract the phone number if present, else null
+- linkedin: extract the LinkedIn URL or username if present, else null
 - skills: extract up to 25 skills covering BOTH tools AND competencies
   * Tools/platforms: Power BI, SQL, PostgreSQL, Python, Jira, Confluence, VMware, etc.
   * Competencies: Root cause analysis, Stakeholder management, Dashboard monitoring, Reporting, Documentation, SOP development, Process improvement, Requirements elicitation, Data analysis, Change management, KPI development, etc.
