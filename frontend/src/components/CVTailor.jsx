@@ -250,10 +250,8 @@ function BriefingCard({ briefing }) {
   )
 }
 
-export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, evalCompany }) {
+export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, evalCompany, loading, setLoading, result, setResult }) {
   const { user, creditBalance, setCreditBalance, setShowAuthModal } = useAuth()
-  const [loading, setLoading]   = useState(false)
-  const [result, setResult]     = useState(null)
   const [error, setError]       = useState(null)
   const [showFullSummary, setShowFullSummary] = useState(true)
 
@@ -265,7 +263,7 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
 
   async function handleTailor() {
     if (!user) { setShowAuthModal(true); return }
-    if (outOfCredits) return
+    if (outOfCredits || loading) return  // guard against double-click or in-flight request
     setLoading(true); setError(null); setResult(null)
 
     try {

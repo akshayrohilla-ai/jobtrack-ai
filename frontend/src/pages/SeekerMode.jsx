@@ -33,6 +33,10 @@ export default function SeekerMode() {
   const [evalRole, setEvalRole]         = useState('')
   const [evalCompany, setEvalCompany]   = useState('')
 
+  // Tailor state lifted here so it survives tab switches — prevents double credit charge
+  const [tailorLoading, setTailorLoading] = useState(false)
+  const [tailorResult, setTailorResult]   = useState(null)
+
   // Raw CV text — stored in sessionStorage so it survives page refresh
   const [rawCvText, setRawCvText] = useState(() => {
     try { return sessionStorage.getItem(SESSION_CV_KEY) || '' } catch { return '' }
@@ -184,6 +188,10 @@ export default function SeekerMode() {
             evalJdText={evalJdText}
             evalRole={evalRole}
             evalCompany={evalCompany}
+            loading={tailorLoading}
+            setLoading={setTailorLoading}
+            result={tailorResult}
+            setResult={setTailorResult}
           />
         )}
         {tab === 'tracker'   && <Tracker applications={applications} loading={loadingApps} onUpdate={setApplications} onRefresh={loadApps} />}
