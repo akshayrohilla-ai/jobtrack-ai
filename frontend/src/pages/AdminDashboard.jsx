@@ -215,15 +215,23 @@ export default function AdminDashboard() {
           </div>
           <form onSubmit={giftCredits} className="flex flex-col gap-3">
             <div className="flex gap-3">
-              <input
-                type="email"
-                placeholder="User email address"
+              <select
                 value={giftEmail}
                 onChange={e => setGiftEmail(e.target.value)}
                 required
                 className="flex-1 px-3 py-2 rounded-lg text-sm outline-none"
-                style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-              />
+                style={{ background: 'var(--surface-raised)', border: '1px solid var(--border)', color: giftEmail ? 'var(--text-primary)' : 'var(--text-muted)' }}
+              >
+                <option value="">Select a user…</option>
+                {user_details
+                  .filter(u => u.email)
+                  .map(u => (
+                    <option key={u.user_id} value={u.email}>
+                      {u.email}{u.user_id === ADMIN_USER_ID ? ' (you)' : ''}
+                    </option>
+                  ))
+                }
+              </select>
               <select
                 value={giftAmount}
                 onChange={e => setGiftAmount(Number(e.target.value))}
