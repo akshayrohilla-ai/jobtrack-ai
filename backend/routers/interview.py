@@ -4,9 +4,10 @@ from typing import Optional
 import anthropic
 import os
 import json
+import re
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from middleware.auth import get_current_user, require_credits
+from middleware.auth import get_current_user, require_credits, refund_credits
 
 limiter = Limiter(key_func=get_remote_address)
 router = APIRouter()
@@ -104,12 +105,23 @@ Return the full interview prep pack as JSON."""
             messages=[{"role": "user", "content": user_prompt}]
         )
 
-        raw = message.content[0].text.strip().replace("```json", "").replace("```", "").strip()
+        raw = message.content[0].text.strip()
+        # Strip markdown code fences
+        raw = re.sub(r"```json\s*", "", raw)
+        raw = re.sub(r"```\s*", "", raw)
+        raw = raw.strip()
+        # If model added preamble, extract the JSON object
+        if not raw.startswith("{"):
+            match = re.search(r"\{.*\}", raw, re.DOTALL)
+            if match:
+                raw = match.group()
+
         result = json.loads(raw)
         result["_credits"] = {"balance": new_balance}
         return result
 
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="AI returned an unexpected response. Please try again.")
-    except Exception:
-        raise HTTPException(status_code=500, detail="Interview prep failed. Please try again.")
+    except (json.JSONDecodeError, Exception) as e:
+        # Refund the credit — the AI failed, not the user
+        await refund_credits(user_id, cost=1)
+        print(f"Interview prep error (refunded): {e}")
+        raise HTTPException(status_code=500, detail="Interview prep failed — your credit has been refunded. Please try again.")

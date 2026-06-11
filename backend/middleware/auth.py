@@ -74,6 +74,21 @@ async def require_credits(user_id: str, action: str = "jd_evaluate", cost: int =
     return new_balance
 
 
+async def refund_credits(user_id: str, cost: int = 1):
+    """Refunds credits on AI failure — reverses the deduction from require_credits."""
+    try:
+        supabase = get_supabase()
+        result = supabase.table("credits").select("balance, lifetime_used").eq("user_id", user_id).single().execute()
+        if not result.data:
+            return
+        supabase.table("credits").update({
+            "balance": result.data["balance"] + cost,
+            "lifetime_used": max(0, result.data.get("lifetime_used", 0) - cost),
+        }).eq("user_id", user_id).execute()
+    except Exception:
+        pass  # best-effort refund
+
+
 async def get_credit_balance(user_id: str) -> int:
     """
     Returns current credit balance for a user. Returns 0 if no record found.
