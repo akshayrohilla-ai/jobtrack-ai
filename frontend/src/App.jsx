@@ -186,7 +186,7 @@ export default function App() {
                 <span className="font-bold text-white text-sm tracking-tight">
                   JobTrack<span style={{ color: '#60AFFF' }}>AI</span>
                 </span>
-                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '9px', letterSpacing: '0.05em' }}>YOUR AI CAREER COPILOT</span>
+                <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '10px', letterSpacing: '0.12em', fontWeight: 500 }}>YOUR AI CAREER COPILOT</span>
               </div>
             </div>
 
