@@ -23,6 +23,21 @@ const FEATURES = [
     tagColor: '#1B6FEB',
   },
   {
+    icon: '🎤',
+    title: 'Interview Prep',
+    desc: 'Get 6 tailored behavioural questions with full STAR answers from your CV, red-flag coaching, and 5 smart questions to ask.',
+    tag: '1 credit',
+    tagColor: '#1B6FEB',
+  },
+  {
+    icon: '🧠',
+    title: 'Mock Interview',
+    desc: 'Answer questions in text, get AI feedback on your STAR structure, pacing, and delivery. Practice beats reading every time.',
+    tag: 'Coming Soon',
+    tagColor: '#f59e0b',
+    comingSoon: true,
+  },
+  {
     icon: '🔍',
     title: 'AI Job Search',
     desc: 'Search jobs by role, location, and seniority. AI matches openings to your CV profile automatically.',
@@ -150,7 +165,7 @@ export default function LandingPage({ onGetStarted }) {
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center', marginBottom: 60 }}>
           <button onClick={onGetStarted}
             style={{ background: 'linear-gradient(135deg, #1B6FEB, #2563eb)', color: 'white', border: 'none', borderRadius: 12, padding: '14px 32px', fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 0 40px rgba(27,111,235,0.4)' }}>
-            Start Free — 2 credits on signup
+            Start Free — 3 credits on signup
           </button>
           <a href="#how-it-works"
             style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '14px 32px', fontSize: 15, fontWeight: 600, cursor: 'pointer', textDecoration: 'none', display: 'inline-block' }}>
@@ -272,7 +287,7 @@ export default function LandingPage({ onGetStarted }) {
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20, marginBottom: 40 }}>
             {[
-              { label: 'Free on signup', value: '2 credits', desc: 'No card needed. Try the full product.', highlight: false },
+              { label: 'Free on signup', value: '3 credits', desc: 'No card needed. Try the full workflow end to end.', highlight: false },
               { label: '₹199', value: '10 credits', desc: 'Perfect for an active job search.', highlight: false },
               { label: '₹499', value: '30 credits', desc: 'Best value. Stock up and apply confidently.', highlight: true },
             ].map((pack, i) => (
@@ -294,13 +309,13 @@ export default function LandingPage({ onGetStarted }) {
           </div>
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '20px 24px', display: 'inline-block', marginBottom: 48 }}>
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, margin: 0 }}>
-              📄 CV parsing is always <strong style={{ color: 'white' }}>free</strong> · 🎯 JD evaluation = 1 credit · ✨ CV tailoring = 1 credit · 📊 Tracker is always <strong style={{ color: 'white' }}>free</strong>
+              📄 CV parsing is always <strong style={{ color: 'white' }}>free</strong> · 🎯 JD evaluation = 1 credit · ✨ CV tailoring = 1 credit · 🎤 Interview prep = 1 credit · 📊 Tracker is always <strong style={{ color: 'white' }}>free</strong>
             </p>
           </div>
           <div>
             <button onClick={onGetStarted}
               style={{ background: 'linear-gradient(135deg, #1B6FEB, #2563eb)', color: 'white', border: 'none', borderRadius: 12, padding: '16px 40px', fontSize: 16, fontWeight: 700, cursor: 'pointer', boxShadow: '0 0 40px rgba(27,111,235,0.35)' }}>
-              Start Free — 2 credits on signup
+              Start Free — 3 credits on signup
             </button>
           </div>
         </div>

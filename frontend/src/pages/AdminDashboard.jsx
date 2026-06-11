@@ -141,7 +141,7 @@ export default function AdminDashboard() {
       <div>
         <p className="section-label mb-3">Credits</p>
         <div className="grid grid-cols-3 gap-3">
-          <StatCard icon={Zap} iconColor="var(--blue-accent)" label="Total issued" value={credits.total_issued} sub="2 per signup" />
+          <StatCard icon={Zap} iconColor="var(--blue-accent)" label="Total issued" value={credits.total_issued} sub="3 per signup" />
           <StatCard icon={TrendingUp} iconColor="var(--danger)" label="Total used" value={credits.total_used} />
           <StatCard icon={Zap} iconColor="var(--success)" label="Remaining across all users" value={credits.total_remaining} />
         </div>

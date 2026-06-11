@@ -73,6 +73,15 @@ export const tailorCV = (jdText, cvRawText, cvProfile) =>
     cv_profile: cvProfile,
   })
 
+// Interview Prep — costs 1 credit
+export const prepareInterview = (rawCv, jdText, role, company) =>
+  api.post('/api/interview/prep', {
+    raw_cv: rawCv,
+    jd_text: jdText,
+    role: role || '',
+    company: company || '',
+  })
+
 // Recruiter
 export const analyzeJD = (jdText) =>
   api.post('/api/recruiter/analyze-jd', { jd_text: jdText })

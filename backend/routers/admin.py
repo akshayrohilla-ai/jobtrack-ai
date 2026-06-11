@@ -38,7 +38,7 @@ async def get_admin_stats(request: Request):
     active_users   = len(active_user_ids)
     stale_users    = total_users - active_users
 
-    total_credits_issued  = total_users * 2  # 2 free credits per signup
+    total_credits_issued  = total_users * 3  # 3 free credits per signup
     total_credits_used    = sum(u.get("lifetime_used", 0) for u in users)
     total_credits_remaining = sum(u.get("balance", 0) for u in users)
 

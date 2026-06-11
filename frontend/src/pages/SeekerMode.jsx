@@ -1,23 +1,26 @@
 import { useState, useEffect } from 'react'
-import { FileText, Search, LayoutDashboard, Kanban, ClipboardCheck, AlertCircle, Wand2 } from 'lucide-react'
+import { FileText, Search, LayoutDashboard, Kanban, ClipboardCheck, AlertCircle, Wand2, BriefcaseBusiness } from 'lucide-react'
 import CVProfile from '../components/CVProfile'
 import JobSearch from '../components/JobSearch'
 import Tracker from '../components/Tracker'
 import Dashboard from '../components/Dashboard'
 import JDEvaluator from '../components/JDEvaluator'
 import CVTailor from '../components/CVTailor'
+import InterviewPrep from '../components/InterviewPrep'
 import { getApplications, getProfile } from '../lib/api'
 import { useAuth } from '../App'
 
 const SESSION_CV_KEY = 'jobtrack_raw_cv'
+const LS_EVAL_KEY    = 'jobtrack_eval'
 
 const TABS = [
-  { id: 'cv',        label: 'My profile',  icon: FileText },
-  { id: 'jobs',      label: 'Find jobs',   icon: Search },
-  { id: 'evaluate',  label: 'Evaluate JD', icon: ClipboardCheck },
-  { id: 'tailor',    label: 'Tailor CV',   icon: Wand2 },
-  { id: 'tracker',   label: 'Tracker',     icon: Kanban },
-  { id: 'dashboard', label: 'Dashboard',   icon: LayoutDashboard },
+  { id: 'cv',        label: 'My profile',    icon: FileText },
+  { id: 'jobs',      label: 'Find jobs',     icon: Search },
+  { id: 'evaluate',  label: 'Evaluate JD',   icon: ClipboardCheck },
+  { id: 'tailor',    label: 'Tailor CV',     icon: Wand2 },
+  { id: 'interview', label: 'Interview Prep', icon: BriefcaseBusiness },
+  { id: 'tracker',   label: 'Tracker',       icon: Kanban },
+  { id: 'dashboard', label: 'Dashboard',     icon: LayoutDashboard },
 ]
 
 export default function SeekerMode() {
@@ -28,14 +31,34 @@ export default function SeekerMode() {
   const [applications, setApplications] = useState([])
   const [loadingApps, setLoadingApps]   = useState(false)
   const [loadError, setLoadError]       = useState(null)
-  const [evalResult, setEvalResult]     = useState(null)
-  const [evalJdText, setEvalJdText]     = useState('')
-  const [evalRole, setEvalRole]         = useState('')
-  const [evalCompany, setEvalCompany]   = useState('')
 
-  // Tailor state lifted here so it survives tab switches — prevents double credit charge
-  const [tailorLoading, setTailorLoading] = useState(false)
-  const [tailorResult, setTailorResult]   = useState(null)
+  // Eval state — restored from localStorage so it survives refresh
+  const [evalResult, setEvalResultRaw]   = useState(() => {
+    try { const s = localStorage.getItem(LS_EVAL_KEY); return s ? JSON.parse(s).result : null } catch { return null }
+  })
+  const [evalJdText, setEvalJdTextRaw]   = useState(() => {
+    try { const s = localStorage.getItem(LS_EVAL_KEY); return s ? JSON.parse(s).jdText : '' } catch { return '' }
+  })
+  const [evalRole, setEvalRoleRaw]       = useState(() => {
+    try { const s = localStorage.getItem(LS_EVAL_KEY); return s ? JSON.parse(s).role : '' } catch { return '' }
+  })
+  const [evalCompany, setEvalCompanyRaw] = useState(() => {
+    try { const s = localStorage.getItem(LS_EVAL_KEY); return s ? JSON.parse(s).company : '' } catch { return '' }
+  })
+
+  function persistEval(result, jdText, role, company) {
+    try { localStorage.setItem(LS_EVAL_KEY, JSON.stringify({ result, jdText, role, company })) } catch {}
+  }
+  function setEvalResult(v)  { setEvalResultRaw(v);  persistEval(v, evalJdText, evalRole, evalCompany) }
+  function setEvalJdText(v)  { setEvalJdTextRaw(v);  persistEval(evalResult, v, evalRole, evalCompany) }
+  function setEvalRole(v)    { setEvalRoleRaw(v);    persistEval(evalResult, evalJdText, v, evalCompany) }
+  function setEvalCompany(v) { setEvalCompanyRaw(v); persistEval(evalResult, evalJdText, evalRole, v) }
+
+  // Tailor + Interview Prep state lifted here — prevents double credit charge on tab switch
+  const [tailorLoading, setTailorLoading]     = useState(false)
+  const [tailorResult, setTailorResult]       = useState(null)
+  const [interviewLoading, setInterviewLoading] = useState(false)
+  const [interviewResult, setInterviewResult]   = useState(null)
 
   // Raw CV text — stored in sessionStorage so it survives page refresh
   const [rawCvText, setRawCvText] = useState(() => {
@@ -192,6 +215,19 @@ export default function SeekerMode() {
             setLoading={setTailorLoading}
             result={tailorResult}
             setResult={setTailorResult}
+          />
+        )}
+        {tab === 'interview' && (
+          <InterviewPrep
+            profile={profile}
+            rawCvText={rawCvText}
+            evalJdText={evalJdText}
+            evalRole={evalRole}
+            evalCompany={evalCompany}
+            loading={interviewLoading}
+            setLoading={setInterviewLoading}
+            result={interviewResult}
+            setResult={setInterviewResult}
           />
         )}
         {tab === 'tracker'   && <Tracker applications={applications} loading={loadingApps} onUpdate={setApplications} onRefresh={loadApps} />}
