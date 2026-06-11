@@ -25,7 +25,7 @@ const FEATURES = [
   {
     icon: '🎤',
     title: 'Interview Prep',
-    desc: 'Get 6 tailored behavioural questions with full STAR answers from your CV, red-flag coaching, and 5 smart questions to ask.',
+    desc: 'Get 5 tailored behavioural questions with full STAR answers from your CV, red-flag coaching, and 5 smart questions to ask.',
     tag: '1 credit',
     tagColor: '#1B6FEB',
   },

@@ -292,7 +292,7 @@ export default function InterviewPrep({ profile, rawCvText, evalJdText, evalRole
             <div className="text-xs font-semibold mb-3" style={{ color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>What you get for 1 credit</div>
             <div className="space-y-2">
               {[
-                ['6 behavioural questions', 'Tailored to this specific JD, not generic questions'],
+                ['5 behavioural questions', 'Tailored to this specific JD, not generic questions'],
                 ['Full STAR answers', 'Written from your actual CV — ready to practise, not memorise from scratch'],
                 ['Red flag coaching', '2-3 weak spots an interviewer will probe + how to frame them honestly'],
                 ['5 smart questions to ask', 'Role-specific — makes you stand out from every other candidate'],
