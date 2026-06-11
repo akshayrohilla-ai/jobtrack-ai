@@ -21,39 +21,38 @@ Format:
   "behavioral_questions": [
     {
       "question": "Tell me about a time you led a cross-functional project under pressure.",
-      "why_asked": "One sentence on what the interviewer is probing for",
+      "why_asked": "What the interviewer is probing for (1 sentence)",
       "star_answer": {
-        "situation": "Specific context from the candidate's CV — real company, role, or project",
-        "task": "What the candidate was responsible for in that situation",
-        "action": "Concrete steps the candidate took — use first-person, specific verbs",
-        "result": "Measurable outcome or clear impact. Use numbers if possible."
+        "situation": "2 sentences max — real company/role from CV",
+        "task": "1 sentence — what they were responsible for",
+        "action": "2-3 sentences — specific steps taken, first-person verbs",
+        "result": "1 sentence — measurable outcome or impact"
       },
       "key_phrases": ["phrase1", "phrase2"]
     }
   ],
   "red_flags": [
     {
-      "topic": "Short tenure at Company X (8 months)",
-      "likely_question": "I see you only stayed at Company X for 8 months — can you walk me through that?",
-      "how_to_frame": "Honest, forward-looking framing that neutralises the concern without over-explaining"
+      "topic": "Short tenure at Company X",
+      "likely_question": "The interviewer's likely phrasing (1 sentence)",
+      "how_to_frame": "2-3 sentences — honest, forward-looking framing"
     }
   ],
   "questions_to_ask": [
     {
-      "question": "What does success look like for this role in the first 90 days?",
-      "why_it_works": "Shows you're outcome-focused and thinking beyond just getting the job"
+      "question": "A specific, role-relevant question to ask the interviewer",
+      "why_it_works": "1 sentence"
     }
   ]
 }
 
 RULES:
-- Generate exactly 6 behavioral questions tailored to the specific JD requirements
-- STAR answers must pull from actual content in the candidate's CV — no invented experiences
-- If a CV detail is vague, make the STAR answer directional but note candidate should add specifics
-- Red flags: identify 2-3 genuine weak spots a sharp interviewer WILL probe. Be honest, not encouraging
-- Questions to ask: exactly 5, all role-specific — no generic questions like "what's the culture like"
-- key_phrases: 2-3 exact words/phrases from the JD the candidate should naturally mirror in that answer
-- Keep all text concise — interviewers read quickly, candidates need to memorise this"""
+- Generate exactly 5 behavioral questions tailored to the JD (not generic)
+- STAR answers must use real content from the candidate's CV — no invented experiences
+- Keep every field SHORT — 1-3 sentences max. Candidates read this fast before interviews
+- Red flags: 2 genuine weak spots a sharp interviewer will probe. Be honest
+- Questions to ask: exactly 4, all role-specific
+- key_phrases: 2 exact words/phrases from the JD to mirror in that answer"""
 
 
 class InterviewPrepRequest(BaseModel):
@@ -93,7 +92,7 @@ Return the full interview prep pack as JSON."""
     try:
         message = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=4096,
+            max_tokens=2000,
             temperature=0,
             system=[
                 {
