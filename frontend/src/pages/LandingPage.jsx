@@ -116,9 +116,13 @@ export default function LandingPage({ onGetStarted }) {
       }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: '#1B6FEB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="16" height="16" viewBox="0 0 14 14" fill="none">
-                <path d="M2 4h10M2 7h7M2 10h5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'linear-gradient(135deg, #1B6FEB, #0EA5E9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
+                <rect x="3" y="8" width="14" height="10" rx="2" stroke="white" strokeWidth="1.6" strokeLinejoin="round"/>
+                <path d="M7 8V6a3 3 0 0 1 6 0v2" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                <line x1="3" y1="13" x2="17" y2="13" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>
+                <circle cx="14.5" cy="16.5" r="2.2" stroke="white" strokeWidth="1.3"/>
+                <path d="M16.2 18.2l1.3 1.3" stroke="white" strokeWidth="1.3" strokeLinecap="round"/>
               </svg>
             </div>
             <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: '-0.3px' }}>
@@ -341,9 +345,13 @@ export default function LandingPage({ onGetStarted }) {
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '40px 24px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#1B6FEB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-                <path d="M2 4h10M2 7h7M2 10h5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+            <div style={{ width: 28, height: 28, borderRadius: 6, background: 'linear-gradient(135deg, #1B6FEB, #0EA5E9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
+                <rect x="3" y="8" width="14" height="10" rx="2" stroke="white" strokeWidth="1.6" strokeLinejoin="round"/>
+                <path d="M7 8V6a3 3 0 0 1 6 0v2" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                <line x1="3" y1="13" x2="17" y2="13" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>
+                <circle cx="14.5" cy="16.5" r="2.2" stroke="white" strokeWidth="1.3"/>
+                <path d="M16.2 18.2l1.3 1.3" stroke="white" strokeWidth="1.3" strokeLinecap="round"/>
               </svg>
             </div>
             <span style={{ fontWeight: 700, fontSize: 14 }}>JobTrack <span style={{ color: '#60a5fa' }}>AI</span></span>

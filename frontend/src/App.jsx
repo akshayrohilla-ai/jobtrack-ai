@@ -174,10 +174,12 @@ export default function App() {
             <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => window.location.pathname !== '/' && (window.location.href = '/')}>
               <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{ background: 'linear-gradient(135deg, #1B6FEB 0%, #0EA5E9 100%)', boxShadow: '0 2px 8px rgba(27,111,235,0.4)' }}>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M3 4.5h10M3 8h7M3 11.5h4.5" stroke="white" strokeWidth="1.6" strokeLinecap="round"/>
-                  <circle cx="12.5" cy="11.5" r="2" stroke="white" strokeWidth="1.4"/>
-                  <path d="M14 13l1.5 1.5" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>
+                <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
+                  <rect x="3" y="8" width="14" height="10" rx="2" stroke="white" strokeWidth="1.6" strokeLinejoin="round"/>
+                  <path d="M7 8V6a3 3 0 0 1 6 0v2" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="3" y1="13" x2="17" y2="13" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>
+                  <circle cx="14.5" cy="16.5" r="2.2" stroke="white" strokeWidth="1.3"/>
+                  <path d="M16.2 18.2l1.3 1.3" stroke="white" strokeWidth="1.3" strokeLinecap="round"/>
                 </svg>
               </div>
               <div className="flex flex-col leading-none">

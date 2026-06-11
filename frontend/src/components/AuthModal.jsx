@@ -65,9 +65,13 @@ export default function AuthModal({ onClose }) {
         {/* Logo mark */}
         <div className="flex justify-center mb-5">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background: 'var(--blue-accent)' }}>
-            <svg width="18" height="18" viewBox="0 0 14 14" fill="none">
-              <path d="M2 4h10M2 7h7M2 10h5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+            style={{ background: 'linear-gradient(135deg, #1B6FEB, #0EA5E9)' }}>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <rect x="3" y="8" width="14" height="10" rx="2" stroke="white" strokeWidth="1.6" strokeLinejoin="round"/>
+              <path d="M7 8V6a3 3 0 0 1 6 0v2" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="3" y1="13" x2="17" y2="13" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>
+              <circle cx="14.5" cy="16.5" r="2.2" stroke="white" strokeWidth="1.3"/>
+              <path d="M16.2 18.2l1.3 1.3" stroke="white" strokeWidth="1.3" strokeLinecap="round"/>
             </svg>
           </div>
         </div>
