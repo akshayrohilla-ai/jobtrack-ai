@@ -358,7 +358,7 @@ export default function App() {
                 <div>
                   <label className="text-xs mb-1.5 block" style={{ color: 'rgba(255,255,255,0.5)' }}>Mobile number <span style={{ color: 'rgba(255,255,255,0.25)' }}>(optional)</span></label>
                   <input type="tel" value={settingsMobile} onChange={e => setSettingsMobile(e.target.value)}
-                    placeholder="+91 98765 43210"
+                    placeholder="e.g. +91 98765 43210"
                     className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none"
                     style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', caretColor: 'white' }} />
                 </div>
