@@ -1,0 +1,44 @@
+name: Daily DB Backup
+
+on:
+  schedule:
+    - cron: "0 2 * * *" # runs every day at 2:00 AM UTC
+  workflow_dispatch: # allow manual trigger from GitHub Actions tab
+
+jobs:
+  backup:
+    name: pg_dump to artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+
+      - name: Run pg_dump
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          mkdir -p backups
+          FILENAME="backups/jobtrack-$(date +%Y-%m-%d).sql"
+          pg_dump \
+            --host=${{ secrets.SUPABASE_DB_HOST }} \
+            --port=5432 \
+            --username=postgres \
+            --dbname=postgres \
+            --no-password \
+            --format=plain \
+            --no-owner \
+            --no-acl \
+            > "$FILENAME"
+          echo "Backup saved: $FILENAME ($(du -sh $FILENAME | cut -f1))"
+
+      - name: Upload backup as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_number }}-${{ github.run_id }}
+          path: backups/
+          retention-days: 30
