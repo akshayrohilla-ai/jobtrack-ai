@@ -26,6 +26,12 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [creditBalance, setCreditBalance] = useState(null)
+  const [showAccountSettings, setShowAccountSettings] = useState(false)
+  const [showHelp, setShowHelp]     = useState(false)
+  const [settingsName, setSettingsName] = useState('')
+  const [settingsMobile, setSettingsMobile] = useState('')
+  const [settingsSaving, setSettingsSaving] = useState(false)
+  const [settingsMsg, setSettingsMsg] = useState(null)
 
   const path = window.location.pathname
   const isAdminRoute = path === '/admin'
@@ -82,6 +88,29 @@ export default function App() {
     await signOut()
     setUser(null)
     setCreditBalance(null)
+    localStorage.removeItem('jobtrack_display_name')
+  }
+
+  function openAccountSettings() {
+    setSettingsName(user?.user_metadata?.full_name || localStorage.getItem('jobtrack_display_name') || '')
+    setSettingsMobile(user?.user_metadata?.mobile || '')
+    setSettingsMsg(null)
+    setShowAccountSettings(true)
+  }
+
+  async function saveAccountSettings(e) {
+    e.preventDefault()
+    setSettingsSaving(true); setSettingsMsg(null)
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { full_name: settingsName.trim(), mobile: settingsMobile.trim() }
+      })
+      if (error) throw error
+      if (settingsName.trim()) localStorage.setItem('jobtrack_display_name', settingsName.trim())
+      setSettingsMsg({ type: 'success', text: 'Saved successfully!' })
+    } catch (err) {
+      setSettingsMsg({ type: 'error', text: err.message })
+    } finally { setSettingsSaving(false) }
   }
 
   const isAdmin = user?.id === ADMIN_USER_ID
@@ -212,12 +241,42 @@ export default function App() {
                 </div>
               )}
 
+              {/* Help */}
+              {user && (
+                <div className="relative">
+                  <button onClick={() => setShowHelp(v => !v)}
+                    className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all"
+                    style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    ?
+                  </button>
+                  {showHelp && (
+                    <div className="absolute right-0 top-full mt-2 w-64 rounded-xl p-4 z-50"
+                      style={{ background: '#0F1E35', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+                      <p className="text-xs font-semibold text-white mb-1">Need help?</p>
+                      <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
+                        Having trouble or have a question? We're here to help.
+                      </p>
+                      <a href="mailto:support@jobtrackai.co.in"
+                        className="text-xs font-medium"
+                        style={{ color: '#60AFFF' }}
+                        onClick={() => setShowHelp(false)}>
+                        support@jobtrackai.co.in →
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Auth */}
               {authLoading ? null : user ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs hidden sm:block" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                  <button onClick={openAccountSettings}
+                    className="text-xs hidden sm:block transition-all px-2 py-1 rounded-lg"
+                    style={{ color: 'rgba(255,255,255,0.75)', background: 'rgba(255,255,255,0.05)' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}>
                     {user.user_metadata?.full_name || localStorage.getItem('jobtrack_display_name') || user.email?.split('@')[0]}
-                  </span>
+                  </button>
                   <button onClick={handleSignOut}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                     style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}
@@ -273,6 +332,64 @@ export default function App() {
             onClose={() => setShowPaymentModal(false)}
             onSuccess={() => setShowPaymentModal(false)}
           />
+        )}
+
+        {/* Account Settings Modal */}
+        {showAccountSettings && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
+            onClick={e => { if (e.target === e.currentTarget) setShowAccountSettings(false) }}>
+            <div className="w-full max-w-sm mx-4 rounded-2xl p-6"
+              style={{ background: '#0F1E35', border: '1px solid rgba(255,255,255,0.1)' }}>
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-white font-semibold text-base">Account Settings</h2>
+                <button onClick={() => setShowAccountSettings(false)}
+                  className="text-xs px-2 py-1 rounded-lg"
+                  style={{ color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.06)' }}>✕</button>
+              </div>
+              <form onSubmit={saveAccountSettings} className="flex flex-col gap-3">
+                <div>
+                  <label className="text-xs mb-1.5 block" style={{ color: 'rgba(255,255,255,0.5)' }}>Full name</label>
+                  <input type="text" value={settingsName} onChange={e => setSettingsName(e.target.value)}
+                    placeholder="Your full name" required
+                    className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none"
+                    style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', caretColor: 'white' }} />
+                </div>
+                <div>
+                  <label className="text-xs mb-1.5 block" style={{ color: 'rgba(255,255,255,0.5)' }}>Mobile number <span style={{ color: 'rgba(255,255,255,0.25)' }}>(optional)</span></label>
+                  <input type="tel" value={settingsMobile} onChange={e => setSettingsMobile(e.target.value)}
+                    placeholder="+91 98765 43210"
+                    className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none"
+                    style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', caretColor: 'white' }} />
+                </div>
+                <div>
+                  <label className="text-xs mb-1.5 block" style={{ color: 'rgba(255,255,255,0.5)' }}>Email address</label>
+                  <div className="w-full px-3.5 py-2.5 rounded-lg text-sm"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.35)' }}>
+                    {user?.email}
+                  </div>
+                  <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.25)' }}>To change email, contact support@jobtrackai.co.in</p>
+                </div>
+                {settingsMsg && (
+                  <p className="text-xs px-3 py-2 rounded-lg"
+                    style={{ background: settingsMsg.type === 'success' ? 'rgba(25,185,84,0.12)' : 'rgba(220,53,69,0.12)',
+                             color: settingsMsg.type === 'success' ? '#4ade80' : '#ff6b7a' }}>
+                    {settingsMsg.text}
+                  </p>
+                )}
+                <button type="submit" disabled={settingsSaving}
+                  className="w-full py-2.5 rounded-lg text-sm font-semibold mt-1"
+                  style={{ background: settingsSaving ? 'rgba(27,111,235,0.5)' : 'var(--blue-accent)', color: 'white' }}>
+                  {settingsSaving ? 'Saving…' : 'Save changes'}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Close help tooltip on outside click */}
+        {showHelp && (
+          <div className="fixed inset-0 z-40" onClick={() => setShowHelp(false)} />
         )}
       </div>
     </AuthContext.Provider>

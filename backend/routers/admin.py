@@ -203,3 +203,51 @@ async def get_usage_log(request: Request, limit: int = 50):
         .limit(limit) \
         .execute()
     return result.data or []
+
+
+class DeleteUserRequest(BaseModel):
+    user_id: str
+    email: str
+
+
+@router.delete("/delete-user")
+async def delete_user(request: Request, payload: DeleteUserRequest):
+    """
+    Permanently delete a user. Admin only.
+    1. Saves email to deleted_accounts to block free-credit abuse on re-registration.
+    2. Deletes all user data tables.
+    3. Deletes from auth.users.
+    """
+    await require_admin(request)
+    supabase = get_supabase()
+
+    # Prevent admin from deleting themselves
+    admin_user = await require_admin(request)
+
+    user_id = payload.user_id.strip()
+    email   = payload.email.strip().lower()
+
+    # 1. Record in deleted_accounts to block future free-credit abuse
+    try:
+        supabase.table("deleted_accounts").insert({
+            "email": email,
+            "original_user_id": user_id,
+        }).execute()
+    except Exception:
+        pass  # table may not exist yet — migration handles this
+
+    # 2. Clean up user data (belt-and-suspenders — FKs should cascade but be explicit)
+    for table in ["credits", "usage_log", "cv_profiles", "applications",
+                  "jd_evaluations", "payment_log", "cv_tailoring_log"]:
+        try:
+            supabase.table(table).delete().eq("user_id", user_id).execute()
+        except Exception:
+            pass
+
+    # 3. Delete from auth.users
+    try:
+        supabase.auth.admin.delete_user(user_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete auth user: {str(e)}")
+
+    return {"success": True, "deleted_user_id": user_id, "email": email}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../App'
 import { getAuthHeader } from '../lib/supabase'
-import { Users, Zap, TrendingUp, DollarSign, RefreshCw, AlertTriangle, Activity, Clock, Gift } from 'lucide-react'
+import { Users, Zap, TrendingUp, DollarSign, RefreshCw, AlertTriangle, Activity, Clock, Gift, Trash2 } from 'lucide-react'
 
 const ADMIN_USER_ID = '56adc198-81e7-4036-aacd-d0ee22de16cc'
 const API_URL = import.meta.env.VITE_API_URL
@@ -36,7 +36,12 @@ export default function AdminDashboard() {
   const [giftAmount, setGiftAmount]   = useState(5)
   const [giftNote, setGiftNote]       = useState('beta tester gift')
   const [giftLoading, setGiftLoading] = useState(false)
-  const [giftMsg, setGiftMsg]         = useState(null)  // { type: 'success'|'error', text }
+  const [giftMsg, setGiftMsg]         = useState(null)
+
+  // Delete user
+  const [deleteTarget, setDeleteTarget] = useState(null) // { user_id, email }
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteMsg, setDeleteMsg]       = useState(null)
 
   const isAdmin = user?.id === ADMIN_USER_ID
 
@@ -62,6 +67,26 @@ export default function AdminDashboard() {
     } catch (err) {
       setGiftMsg({ type: 'error', text: err.message })
     } finally { setGiftLoading(false) }
+  }
+
+  async function deleteUser() {
+    if (!deleteTarget) return
+    setDeleteLoading(true); setDeleteMsg(null)
+    try {
+      const headers = await getAuthHeader()
+      const res = await fetch(`${API_URL}/api/admin/delete-user`, {
+        method: 'DELETE',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: deleteTarget.user_id, email: deleteTarget.email })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail || 'Failed')
+      setDeleteMsg({ type: 'success', text: `✓ ${deleteTarget.email} deleted successfully.` })
+      setDeleteTarget(null)
+      fetchStats()
+    } catch (err) {
+      setDeleteMsg({ type: 'error', text: err.message })
+    } finally { setDeleteLoading(false) }
   }
 
   async function fetchStats() {
@@ -282,7 +307,7 @@ export default function AdminDashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-raised)' }}>
-                {['Email', 'Balance', 'Used', 'Status', 'Last seen'].map(h => (
+                {['Email', 'Balance', 'Used', 'Status', 'Last seen', ''].map(h => (
                   <th key={h} className="text-left px-4 py-3 text-xs font-medium"
                     style={{ color: 'var(--text-muted)' }}>{h}</th>
                 ))}
@@ -313,6 +338,20 @@ export default function AdminDashboard() {
                   <td className="px-4 py-3 text-xs" style={{ color: 'var(--text-ghost)' }}>
                     {u.last_seen !== '—' ? new Date(u.last_seen).toLocaleDateString() : '—'}
                   </td>
+                  <td className="px-4 py-3">
+                    {u.user_id !== ADMIN_USER_ID && (
+                      <button
+                        onClick={() => { setDeleteTarget(u); setDeleteMsg(null) }}
+                        className="p-1.5 rounded-lg transition-all"
+                        style={{ color: 'var(--danger)', background: 'rgba(220,53,69,0.1)' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(220,53,69,0.2)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'rgba(220,53,69,0.1)'}
+                        title="Delete user"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -321,7 +360,52 @@ export default function AdminDashboard() {
             <p className="text-xs text-center py-6" style={{ color: 'var(--text-ghost)' }}>No users yet</p>
           )}
         </div>
+
+        {/* Delete feedback message */}
+        {deleteMsg && (
+          <p className="text-xs mt-3 px-3 py-2 rounded-lg"
+            style={{ background: deleteMsg.type === 'success' ? 'rgba(25,185,84,0.12)' : 'rgba(220,53,69,0.12)',
+                     color: deleteMsg.type === 'success' ? '#4ade80' : '#ff6b7a' }}>
+            {deleteMsg.text}
+          </p>
+        )}
       </div>
+
+      {/* Delete user confirmation modal */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-sm mx-4 rounded-2xl p-6"
+            style={{ background: 'var(--navy-800)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+              style={{ background: 'rgba(220,53,69,0.15)', border: '1px solid rgba(220,53,69,0.3)' }}>
+              <Trash2 size={18} style={{ color: 'var(--danger)' }} />
+            </div>
+            <h3 className="text-white font-semibold text-base mb-1">Delete user?</h3>
+            <p className="text-sm mb-1" style={{ color: 'rgba(255,255,255,0.55)' }}>
+              This will permanently delete:
+            </p>
+            <p className="text-sm font-medium mb-3" style={{ color: '#60AFFF' }}>{deleteTarget.email}</p>
+            <ul className="text-xs mb-5 space-y-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <li>• All credits, usage history, and CV data</li>
+              <li>• All applications and evaluations</li>
+              <li>• Their email will be blocked from free credits if they re-register</li>
+            </ul>
+            <div className="flex gap-2">
+              <button onClick={() => setDeleteTarget(null)}
+                className="flex-1 py-2 rounded-lg text-sm font-medium"
+                style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}>
+                Cancel
+              </button>
+              <button onClick={deleteUser} disabled={deleteLoading}
+                className="flex-1 py-2 rounded-lg text-sm font-semibold"
+                style={{ background: deleteLoading ? 'rgba(220,53,69,0.4)' : 'rgba(220,53,69,0.85)', color: 'white' }}>
+                {deleteLoading ? 'Deleting…' : 'Delete permanently'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
