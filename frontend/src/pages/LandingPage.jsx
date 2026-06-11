@@ -258,10 +258,13 @@ export default function LandingPage({ onGetStarted }) {
       <footer style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '40px 24px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 20 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <div style={{ width: 28, height: 28, borderRadius: 7, background: 'linear-gradient(135deg,#1B6FEB,#0EA5E9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 28, height: 28, borderRadius: 7, background: 'linear-gradient(135deg,#1B6FEB,#0EA5E9)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <LogoIcon size={15} />
             </div>
-            <span style={{ fontWeight: 700, fontSize: 14 }}>JobTrack<span style={{ color: '#60a5fa' }}>AI</span></span>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#fff', lineHeight: 1 }}>JobTrack<span style={{ color: '#60a5fa' }}>AI</span></div>
+              <div style={{ fontSize: 9, color: '#ffffff', letterSpacing: '0.15em', fontWeight: 600, marginTop: 3, lineHeight: 1, opacity: 0.7 }}>YOUR AI CAREER COPILOT</div>
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
             {[

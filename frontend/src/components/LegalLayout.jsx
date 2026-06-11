@@ -15,9 +15,10 @@ export default function LegalLayout({ title, lastUpdated, children }) {
                 <path d="M16.2 18.2l1.3 1.3" stroke="white" strokeWidth="1.3" strokeLinecap="round"/>
               </svg>
             </div>
-            <span style={{ fontWeight: 700, fontSize: 14, color: 'white' }}>
-              JobTrack <span style={{ color: '#60a5fa' }}>AI</span>
-            </span>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#fff', lineHeight: 1 }}>JobTrack <span style={{ color: '#60a5fa' }}>AI</span></div>
+              <div style={{ fontSize: 9, color: '#ffffff', letterSpacing: '0.15em', fontWeight: 600, marginTop: 3, lineHeight: 1, opacity: 0.7 }}>YOUR AI CAREER COPILOT</div>
+            </div>
           </a>
           <a href="/" style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', textDecoration: 'none' }}>← Back to home</a>
         </div>
