@@ -26,8 +26,8 @@ jobs:
           FILENAME="backups/jobtrack-$(date +%Y-%m-%d).sql"
           pg_dump \
             --host=${{ secrets.SUPABASE_DB_HOST }} \
-            --port=5432 \
-            --username=postgres \
+            --port=6543 \
+            --username=postgres.ffgnwvwwsgwcbxxzjswi \
             --dbname=postgres \
             --no-password \
             --format=plain \
