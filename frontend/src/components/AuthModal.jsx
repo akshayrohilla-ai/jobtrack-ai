@@ -5,6 +5,7 @@ export default function AuthModal({ onClose }) {
   const [tab, setTab]           = useState('signin')   // 'signin' | 'signup' | 'reset'
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState('')
   const [success, setSuccess]   = useState('')
@@ -17,7 +18,8 @@ export default function AuthModal({ onClose }) {
 
     try {
       if (tab === 'signup') {
-        await signUp(email, password)
+        await signUp(email, password, fullName.trim())
+        if (fullName.trim()) try { localStorage.setItem('jobtrack_display_name', fullName.trim()) } catch {}
         setSuccess('Check your email to confirm your account, then sign in.')
       } else if (tab === 'reset') {
         const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
@@ -70,7 +72,7 @@ export default function AuthModal({ onClose }) {
           {tab === 'signin' ? 'Welcome back' : tab === 'signup' ? 'Create account' : 'Reset password'}
         </h2>
         <p className="text-center text-sm mb-6" style={{ color: 'rgba(255,255,255,0.45)' }}>
-          {tab === 'signin' ? 'Sign in to JobTrack AI' : tab === 'signup' ? 'Get 2 free evaluations to start' : 'Enter your email to receive a reset link'}
+          {tab === 'signin' ? 'Sign in to JobTrack AI' : tab === 'signup' ? 'Get 3 free credits to start' : 'Enter your email to receive a reset link'}
         </p>
 
         {/* Tab toggle — hidden on reset view */}
@@ -130,6 +132,22 @@ export default function AuthModal({ onClose }) {
 
         {/* Email/password form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          {tab === 'signup' && (
+            <input
+              type="text"
+              placeholder="Your full name"
+              value={fullName}
+              onChange={e => setFullName(e.target.value)}
+              required
+              className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none"
+              style={{
+                background: 'rgba(255,255,255,0.07)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: 'white',
+                caretColor: 'white'
+              }}
+            />
+          )}
           <input
             type="email"
             placeholder="Email"

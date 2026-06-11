@@ -132,7 +132,7 @@ export default function App() {
                 <span className="font-bold text-white text-sm tracking-tight">
                   JobTrack<span style={{ color: '#60AFFF' }}>AI</span>
                 </span>
-                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '9px', letterSpacing: '0.05em' }}>SMART JOB SEARCH</span>
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '9px', letterSpacing: '0.05em' }}>YOUR AI CAREER COPILOT</span>
               </div>
             </div>
 
@@ -215,8 +215,8 @@ export default function App() {
               {/* Auth */}
               {authLoading ? null : user ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs hidden sm:block" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    {localStorage.getItem('jobtrack_display_name') || user.email?.split('@')[0]}
+                  <span className="text-xs hidden sm:block" style={{ color: 'rgba(255,255,255,0.75)' }}>
+                    {user.user_metadata?.full_name || localStorage.getItem('jobtrack_display_name') || user.email?.split('@')[0]}
                   </span>
                   <button onClick={handleSignOut}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"

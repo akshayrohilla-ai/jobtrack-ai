@@ -18,8 +18,12 @@ export async function getAuthHeader() {
 /**
  * Sign up with email + password.
  */
-export async function signUp(email, password) {
-  const { data, error } = await supabase.auth.signUp({ email, password })
+export async function signUp(email, password, fullName = '') {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { full_name: fullName } }
+  })
   if (error) throw error
   return data
 }
