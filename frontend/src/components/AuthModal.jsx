@@ -18,7 +18,11 @@ export default function AuthModal({ onClose }) {
 
     try {
       if (tab === 'signup') {
-        await signUp(email, password, fullName.trim())
+        const data = await signUp(email, password, fullName.trim())
+        if (data?.user?.identities?.length === 0) {
+          setError('An account with this email already exists. Please sign in instead.')
+          return
+        }
         if (fullName.trim()) try { localStorage.setItem('jobtrack_display_name', fullName.trim()) } catch {}
         setSuccess('Check your email to confirm your account, then sign in.')
       } else if (tab === 'reset') {
