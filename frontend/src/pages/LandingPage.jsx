@@ -144,7 +144,7 @@ export default function LandingPage({ onGetStarted }) {
         {/* Badge */}
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(27,111,235,0.1)', border: '1px solid rgba(27,111,235,0.3)', borderRadius: 100, padding: '6px 16px', marginBottom: 32, fontSize: 13, color: '#60a5fa' }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-          AI-powered job search for Indian professionals
+          AI-powered career platform for Indian professionals
         </div>
 
         {/* Headline */}

@@ -1,3 +1,4 @@
+import { useState, useRef } from 'react'
 import { updateApplication, deleteApplication } from '../lib/api'
 import { Download, Trash2, RefreshCw, Kanban } from 'lucide-react'
 
@@ -23,7 +24,11 @@ function exportToCSV(applications) {
 }
 
 export default function Tracker({ applications, loading, onUpdate, onRefresh }) {
+  const dragApp = useRef(null)
+  const [dragOverCol, setDragOverCol] = useState(null)
+
   async function moveCard(app, newStatus) {
+    if (app.status === newStatus) return
     onUpdate(applications.map(a => a.id === app.id ? { ...a, status: newStatus } : a))
     try { await updateApplication(app.id, { status: newStatus }) } catch { }
   }
@@ -31,6 +36,28 @@ export default function Tracker({ applications, loading, onUpdate, onRefresh }) 
   async function removeCard(app) {
     onUpdate(applications.filter(a => a.id !== app.id))
     try { await deleteApplication(app.id) } catch { }
+  }
+
+  function onDragStart(e, app) {
+    dragApp.current = app
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  function onDragOver(e, colId) {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverCol(colId)
+  }
+
+  function onDragLeave() {
+    setDragOverCol(null)
+  }
+
+  function onDrop(e, colId) {
+    e.preventDefault()
+    setDragOverCol(null)
+    if (dragApp.current) moveCard(dragApp.current, colId)
+    dragApp.current = null
   }
 
   if (loading) return (
@@ -69,7 +96,13 @@ export default function Tracker({ applications, loading, onUpdate, onRefresh }) 
         {COLS.map(col => {
           const colApps = applications.filter(a => a.status === col.id)
           return (
-            <div key={col.id} className="kanban-col">
+            <div key={col.id} className="kanban-col"
+              onDragOver={e => onDragOver(e, col.id)}
+              onDragLeave={onDragLeave}
+              onDrop={e => onDrop(e, col.id)}
+              style={{ transition: 'background 0.15s', borderRadius: 12,
+                background: dragOverCol === col.id ? 'rgba(27,111,235,0.06)' : 'transparent',
+                outline: dragOverCol === col.id ? '2px dashed rgba(27,111,235,0.35)' : '2px dashed transparent' }}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: col.dot }} />
@@ -81,7 +114,10 @@ export default function Tracker({ applications, loading, onUpdate, onRefresh }) 
 
               <div className="space-y-2">
                 {colApps.map(app => (
-                  <div key={app.id} className="kcard">
+                  <div key={app.id} className="kcard"
+                    draggable
+                    onDragStart={e => onDragStart(e, app)}
+                    style={{ cursor: 'grab' }}>
                     <div className="flex items-start justify-between gap-1 mb-1.5">
                       <div className="flex-1 min-w-0">
                         <div className="text-xs font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{app.job_title}</div>
