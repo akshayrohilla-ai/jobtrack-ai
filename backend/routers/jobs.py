@@ -1,6 +1,9 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 LOCATION_MAP = {
     "pune": "Pune%2C+Maharashtra%2C+India",
@@ -29,7 +32,9 @@ SENIORITY_MAP = {
 
 
 @router.get("/search")
+@limiter.limit("30/minute")
 async def search_jobs(
+    request: Request,
     query: str = Query(...),
     location: str = Query("pune"),
     seniority: str = Query("senior"),

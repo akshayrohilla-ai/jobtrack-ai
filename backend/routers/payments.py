@@ -4,10 +4,13 @@ import razorpay
 import os
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from services.supabase_client import get_supabase
 from middleware.auth import get_current_user, get_credit_balance
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 CREDIT_PACKS = {
     "pack_10": {"credits": 10, "amount_paise": 19900, "label": "10 Credits — ₹199"},
@@ -35,7 +38,8 @@ class VerifyPaymentRequest(BaseModel):
 
 
 @router.get("/packs")
-async def get_packs():
+@limiter.limit("20/minute")
+async def get_packs(request: Request):
     """Return available credit packs — public, no auth needed."""
     return [
         {"id": k, **{kk: vv for kk, vv in v.items() if kk != "amount_paise"},
@@ -45,6 +49,7 @@ async def get_packs():
 
 
 @router.post("/create-order")
+@limiter.limit("5/minute")
 async def create_order(request: Request, payload: CreateOrderRequest):
     user_id = await get_current_user(request)
 
@@ -74,6 +79,7 @@ async def create_order(request: Request, payload: CreateOrderRequest):
 
 
 @router.post("/verify-payment")
+@limiter.limit("5/minute")
 async def verify_payment(request: Request, payload: VerifyPaymentRequest):
     user_id = await get_current_user(request)
 

@@ -1,10 +1,13 @@
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from services.supabase_client import get_supabase
 from middleware.auth import get_current_user
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 class ApplicationCreate(BaseModel):
@@ -25,6 +28,7 @@ VALID_STATUSES = {"applied", "interview", "offer", "rejected"}
 
 
 @router.get("/")
+@limiter.limit("30/minute")
 async def get_applications(request: Request):
     """Get all applications for the authenticated user."""
     user_id = await get_current_user(request)
@@ -41,6 +45,7 @@ async def get_applications(request: Request):
 
 
 @router.get("/stats")
+@limiter.limit("30/minute")
 async def get_stats(request: Request):
     """Get dashboard statistics for the authenticated user."""
     user_id = await get_current_user(request)
@@ -77,6 +82,7 @@ async def get_stats(request: Request):
 
 
 @router.post("/")
+@limiter.limit("20/minute")
 async def create_application(request: Request, app: ApplicationCreate):
     """Add a new job application for the authenticated user."""
     user_id = await get_current_user(request)
@@ -104,6 +110,7 @@ async def create_application(request: Request, app: ApplicationCreate):
 
 
 @router.patch("/{application_id}")
+@limiter.limit("20/minute")
 async def update_application(request: Request, application_id: str, update: ApplicationUpdate):
     """Update application status or notes — only if it belongs to the authenticated user."""
     user_id = await get_current_user(request)
@@ -138,6 +145,7 @@ async def update_application(request: Request, application_id: str, update: Appl
 
 
 @router.delete("/{application_id}")
+@limiter.limit("20/minute")
 async def delete_application(request: Request, application_id: str):
     """Delete an application — only if it belongs to the authenticated user."""
     user_id = await get_current_user(request)

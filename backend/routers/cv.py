@@ -1,11 +1,14 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from services.cv_parser import extract_text_from_file, parse_cv_with_ai
 from services.supabase_client import get_supabase
 from middleware.auth import get_current_user
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 
 class CVProfile(BaseModel):
@@ -25,6 +28,7 @@ class CVProfile(BaseModel):
 
 
 @router.post("/parse", response_model=CVProfile)
+@limiter.limit("5/minute")
 async def parse_cv(
     request: Request,
     file: UploadFile = File(...),
@@ -83,6 +87,7 @@ async def parse_cv(
 
 
 @router.get("/profile")
+@limiter.limit("30/minute")
 async def get_profile(request: Request):
     """Get the most recently parsed CV profile for the authenticated user."""
     user_id = await get_current_user(request)

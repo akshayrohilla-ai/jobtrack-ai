@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from middleware.admin import require_admin
 from services.supabase_client import get_supabase
 from datetime import datetime, timedelta, timezone
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 # Cost per 1000 tokens (approximate, adjust if you change models)
 OPUS_INPUT_COST_PER_1K  = 0.015
@@ -14,6 +17,7 @@ HAIKU_OUTPUT_COST_PER_1K = 0.00125
 
 
 @router.get("/stats")
+@limiter.limit("20/minute")
 async def get_admin_stats(request: Request):
     """
     Master dashboard stats — users, credits, usage.
@@ -132,6 +136,7 @@ class GiftCreditsRequest(BaseModel):
 
 
 @router.post("/gift-credits")
+@limiter.limit("10/minute")
 async def gift_credits(request: Request, payload: GiftCreditsRequest):
     """Gift credits to a user by email. Admin only."""
     await require_admin(request)
@@ -193,6 +198,7 @@ async def gift_credits(request: Request, payload: GiftCreditsRequest):
 
 
 @router.get("/usage-log")
+@limiter.limit("20/minute")
 async def get_usage_log(request: Request, limit: int = 50):
     """Recent usage log entries — last N actions across all users."""
     await require_admin(request)
@@ -211,6 +217,7 @@ class DeleteUserRequest(BaseModel):
 
 
 @router.delete("/delete-user")
+@limiter.limit("5/minute")
 async def delete_user(request: Request, payload: DeleteUserRequest):
     """
     Permanently delete a user. Admin only.
