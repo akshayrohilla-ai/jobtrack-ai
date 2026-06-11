@@ -182,11 +182,11 @@ export default function App() {
                   <path d="M16.2 18.2l1.3 1.3" stroke="white" strokeWidth="1.3" strokeLinecap="round"/>
                 </svg>
               </div>
-              <div className="flex flex-col leading-none">
-                <span className="font-bold text-white text-sm tracking-tight">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                <span className="font-bold text-white text-sm tracking-tight" style={{ lineHeight: 1 }}>
                   JobTrack<span style={{ color: '#60AFFF' }}>AI</span>
                 </span>
-                <span style={{ color: '#60AFFF', fontSize: '9.5px', letterSpacing: '0.15em', fontWeight: 600, opacity: 0.85, marginTop: '2px' }}>YOUR AI CAREER COPILOT</span>
+                <span style={{ color: '#ffffff', fontSize: '10px', letterSpacing: '0.14em', fontWeight: 600, lineHeight: 1 }}>YOUR AI CAREER COPILOT</span>
               </div>
             </div>
 
