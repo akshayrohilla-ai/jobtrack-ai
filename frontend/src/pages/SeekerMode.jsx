@@ -100,6 +100,9 @@ export default function SeekerMode() {
         skills: data.skills || [], summary: data.summary, initials: data.initials,
       })
 
+      // Store name for header display
+      if (data.name) try { localStorage.setItem('jobtrack_display_name', data.name) } catch {}
+
       // Restore raw CV text if available
       if (data.raw_text) {
         try { sessionStorage.setItem(SESSION_CV_KEY, data.raw_text) } catch {}
@@ -114,6 +117,9 @@ export default function SeekerMode() {
   function handleProfileParsed(p) {
     // p includes raw_text from the backend response
     setProfile(p)
+
+    // Store name for header display
+    if (p.name) try { localStorage.setItem('jobtrack_display_name', p.name) } catch {}
 
     // Store raw CV text in sessionStorage — survives refresh, clears on tab close
     if (p.raw_text) {

@@ -120,15 +120,20 @@ export default function App() {
 
             {/* Logo */}
             <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => window.location.pathname !== '/' && (window.location.href = '/')}>
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: 'var(--blue-accent)' }}>
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                  <path d="M2 4h10M2 7h7M2 10h5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{ background: 'linear-gradient(135deg, #1B6FEB 0%, #0EA5E9 100%)', boxShadow: '0 2px 8px rgba(27,111,235,0.4)' }}>
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M3 4.5h10M3 8h7M3 11.5h4.5" stroke="white" strokeWidth="1.6" strokeLinecap="round"/>
+                  <circle cx="12.5" cy="11.5" r="2" stroke="white" strokeWidth="1.4"/>
+                  <path d="M14 13l1.5 1.5" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>
                 </svg>
               </div>
-              <span className="font-semibold text-white text-sm tracking-tight">
-                JobTrack <span style={{ color: 'var(--blue-light)' }}>AI</span>
-              </span>
+              <div className="flex flex-col leading-none">
+                <span className="font-bold text-white text-sm tracking-tight">
+                  JobTrack<span style={{ color: '#60AFFF' }}>AI</span>
+                </span>
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', fontSize: '9px', letterSpacing: '0.05em' }}>SMART JOB SEARCH</span>
+              </div>
             </div>
 
             <div className="flex items-center gap-3">
@@ -211,7 +216,7 @@ export default function App() {
               {authLoading ? null : user ? (
                 <div className="flex items-center gap-2">
                   <span className="text-xs hidden sm:block" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                    {user.email?.split('@')[0]}
+                    {localStorage.getItem('jobtrack_display_name') || user.email?.split('@')[0]}
                   </span>
                   <button onClick={handleSignOut}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
