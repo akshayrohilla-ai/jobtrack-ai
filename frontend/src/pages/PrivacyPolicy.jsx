@@ -40,7 +40,7 @@ export default function PrivacyPolicy() {
       </ul>
 
       <h2>5. Data Retention</h2>
-      <p>We retain your account data for as long as your account is active. You may request deletion of your account and associated data at any time by emailing <a href="mailto:support@jobtrackai.co.in">support@jobtrackai.co.in</a>. We will process deletion requests within 7 business days.</p>
+      <p>We retain your account data for as long as your account is active. You may delete your account directly from the Account Settings section within the app, or by emailing <a href="mailto:support@jobtrackai.co.in">support@jobtrackai.co.in</a>. Account deletion is immediate and permanent — all your CV data, applications, and credit balance are removed and cannot be recovered.</p>
 
       <h2>6. Cookies</h2>
       <p>We use minimal cookies necessary for authentication (session tokens via Supabase). We do not use advertising or tracking cookies.</p>

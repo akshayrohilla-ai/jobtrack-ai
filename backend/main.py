@@ -9,7 +9,7 @@ import os
 
 load_dotenv()
 
-from routers import cv, jobs, applications, recruiter, evaluate, admin, tailor, payments, interview
+from routers import cv, jobs, applications, recruiter, evaluate, admin, tailor, payments, interview, user
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -41,6 +41,7 @@ app.include_router(admin.router,        prefix="/api/admin",        tags=["Admin
 app.include_router(tailor.router,       prefix="/api/tailor",       tags=["Tailor"])
 app.include_router(payments.router,     prefix="/api/payments",     tags=["Payments"])
 app.include_router(interview.router,    prefix="/api/interview",    tags=["Interview"])
+app.include_router(user.router,         prefix="/api/user",          tags=["User"])
 
 @app.get("/")
 def root():

@@ -32,6 +32,8 @@ export default function App() {
   const [settingsMobile, setSettingsMobile] = useState('')
   const [settingsSaving, setSettingsSaving] = useState(false)
   const [settingsMsg, setSettingsMsg] = useState(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   const path = window.location.pathname
   const isAdminRoute = path === '/admin'
@@ -95,6 +97,7 @@ export default function App() {
     setSettingsName(user?.user_metadata?.full_name || localStorage.getItem('jobtrack_display_name') || '')
     setSettingsMobile(user?.user_metadata?.mobile || '')
     setSettingsMsg(null)
+    setShowDeleteConfirm(false)
     setShowAccountSettings(true)
   }
 
@@ -111,6 +114,26 @@ export default function App() {
     } catch (err) {
       setSettingsMsg({ type: 'error', text: err.message })
     } finally { setSettingsSaving(false) }
+  }
+
+  async function deleteOwnAccount() {
+    setDeleteLoading(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/user/delete-account`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      })
+      if (!res.ok) throw new Error('Failed to delete account')
+      localStorage.removeItem('jobtrack_display_name')
+      await supabase.auth.signOut()
+      setShowAccountSettings(false)
+      setShowDeleteConfirm(false)
+      window.location.href = '/'
+    } catch (err) {
+      setSettingsMsg({ type: 'error', text: err.message || 'Failed to delete account. Please try again.' })
+      setShowDeleteConfirm(false)
+    } finally { setDeleteLoading(false) }
   }
 
   const isAdmin = user?.id === ADMIN_USER_ID
@@ -383,6 +406,37 @@ export default function App() {
                   {settingsSaving ? 'Saving…' : 'Save changes'}
                 </button>
               </form>
+
+              {/* Delete account */}
+              <div className="mt-5 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+                {!showDeleteConfirm ? (
+                  <button onClick={() => setShowDeleteConfirm(true)}
+                    className="w-full text-xs py-2 rounded-lg transition-colors"
+                    style={{ color: 'rgba(255,100,100,0.6)', background: 'transparent', border: '1px solid rgba(255,100,100,0.15)' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(220,53,69,0.08)'; e.currentTarget.style.color = '#ff6b7a' }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,100,100,0.6)' }}>
+                    Delete my account
+                  </button>
+                ) : (
+                  <div className="rounded-lg p-3" style={{ background: 'rgba(220,53,69,0.08)', border: '1px solid rgba(220,53,69,0.2)' }}>
+                    <p className="text-xs mb-3 text-center" style={{ color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
+                      This will <strong style={{ color: '#ff6b7a' }}>permanently delete</strong> your account and all data — CV, applications, and remaining credits. This cannot be undone.
+                    </p>
+                    <div className="flex gap-2">
+                      <button onClick={() => setShowDeleteConfirm(false)}
+                        className="flex-1 py-2 rounded-lg text-xs font-medium"
+                        style={{ background: 'rgba(255,255,255,0.07)', color: 'rgba(255,255,255,0.6)' }}>
+                        Cancel
+                      </button>
+                      <button onClick={deleteOwnAccount} disabled={deleteLoading}
+                        className="flex-1 py-2 rounded-lg text-xs font-semibold"
+                        style={{ background: deleteLoading ? 'rgba(220,53,69,0.4)' : 'rgba(220,53,69,0.8)', color: 'white' }}>
+                        {deleteLoading ? 'Deleting…' : 'Yes, delete everything'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

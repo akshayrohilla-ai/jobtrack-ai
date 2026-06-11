@@ -40,7 +40,7 @@ export default function RefundPolicy() {
       <p>We will respond within <strong>2 business days</strong> and process eligible refunds within <strong>5–7 business days</strong>. Refunds will be credited to the original payment method.</p>
 
       <h2>5. Cancellation</h2>
-      <p>JobTrack AI does not operate on a subscription model. There is nothing to cancel — you purchase credits as needed and use them at your own pace. To close your account, email <a href="mailto:support@jobtrackai.co.in">support@jobtrackai.co.in</a>.</p>
+      <p>JobTrack AI does not operate on a subscription model. There is nothing to cancel — you purchase credits as needed and use them at your own pace. To delete your account, use the Account Settings section in the app. Note that account deletion is immediate and any remaining unused credits will be forfeited without refund unless a refund was requested beforehand.</p>
 
       <h2>6. Contact</h2>
       <p>For refund queries, reach us at <a href="mailto:support@jobtrackai.co.in">support@jobtrackai.co.in</a>. We aim to respond within 2 business days.</p>

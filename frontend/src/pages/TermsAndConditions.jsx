@@ -52,6 +52,7 @@ export default function TermsAndConditions() {
 
       <h2>9. Termination</h2>
       <p>We reserve the right to suspend or terminate accounts that violate these Terms, at our sole discretion. Unused credits are non-refundable upon termination for breach of Terms.</p>
+      <p>You may delete your own account at any time from Account Settings. Deletion is immediate and permanent — all data and remaining credits are removed and cannot be recovered. Deleted account emails are blocked from receiving free credits on re-registration to prevent abuse.</p>
 
       <h2>10. Governing Law</h2>
       <p>These Terms are governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of courts in India.</p>
