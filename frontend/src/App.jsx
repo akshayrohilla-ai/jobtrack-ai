@@ -167,8 +167,7 @@ export default function App() {
 
         {/* Header */}
         <header style={{ background: 'var(--navy-900)', borderBottom: '1px solid rgba(255,255,255,0.06)' }} className="sticky top-0 z-20">
-          <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px' }}
-            className="h-14 flex items-center justify-between">
+          <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
 
             {/* Logo */}
             <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => window.location.pathname !== '/' && (window.location.href = '/')}>
