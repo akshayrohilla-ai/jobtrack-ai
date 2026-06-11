@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>BRD — JobTrack AI</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',Arial,sans-serif; color:#1a1a2e; background:white; padding:48px; max-width:900px; margin:0 auto; }
+    .cover { border-bottom:3px solid #1B6FEB; padding-bottom:32px; margin-bottom:40px; }
+    .brand { font-size:12px; color:#1B6FEB; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:12px; }
+    h1 { font-size:36px; font-weight:800; color:#0A1628; letter-spacing:-1px; margin-bottom:8px; }
+    .doc-type { font-size:18px; color:#6B7280; margin-bottom:16px; }
+    .meta-row { display:flex; gap:32px; font-size:13px; color:#9CA3AF; }
+    h2 { font-size:20px; font-weight:700; color:#0A1628; margin:36px 0 12px; padding-bottom:8px; border-bottom:1px solid #E5E7EB; }
+    h3 { font-size:15px; font-weight:700; color:#1B6FEB; margin:20px 0 8px; }
+    p { font-size:14px; color:#374151; line-height:1.7; margin-bottom:10px; }
+    ul, ol { padding-left:20px; margin-bottom:12px; }
+    li { font-size:14px; color:#374151; line-height:1.7; margin-bottom:4px; }
+    table { width:100%; border-collapse:collapse; margin:16px 0; font-size:13px; }
+    th { background:#F3F4F6; text-align:left; padding:10px 12px; font-weight:700; color:#374151; border:1px solid #E5E7EB; }
+    td { padding:10px 12px; border:1px solid #E5E7EB; color:#374151; vertical-align:top; }
+    .badge { display:inline-block; padding:2px 10px; border-radius:100px; font-size:11px; font-weight:700; }
+    .badge-blue { background:#EBF2FF; color:#1B6FEB; }
+    .badge-green { background:#D1FAE5; color:#065F46; }
+    .badge-amber { background:#FEF3C7; color:#92400E; }
+    .badge-red { background:#FEE2E2; color:#991B1B; }
+    .callout { background:#F0F7FF; border-left:4px solid #1B6FEB; padding:14px 16px; border-radius:0 8px 8px 0; margin:16px 0; }
+    .footer { margin-top:48px; padding-top:16px; border-top:1px solid #E5E7EB; font-size:11px; color:#9CA3AF; text-align:center; }
+    @media print { body { padding:24px; } }
+  </style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="brand">JobTrack AI · Internal Documentation</div>
+  <h1>Business Requirements Document</h1>
+  <div class="doc-type">BRD — v1.0</div>
+  <div class="meta-row">
+    <span>Date: June 2026</span>
+    <span>Owner: Akshay Rohilla</span>
+    <span>Status: Live</span>
+  </div>
+</div>
+
+<h2>1. Executive Summary</h2>
+<p>JobTrack AI is an AI-powered job search and application platform built specifically for Indian professionals. It solves the core problem of wasted job applications by helping candidates know whether a job is worth applying to <em>before</em> they apply, and then helping them apply better when the answer is yes.</p>
+<p>The platform is live at <strong>jobtrackai.co.in</strong> and operates on a credit-based freemium model where core features (CV parsing, job search, tracker) are free and AI-powered features consume credits.</p>
+
+<h2>2. Problem Statement</h2>
+<h3>The Job Seeker Problem</h3>
+<ul>
+  <li>Indian professionals apply to dozens of jobs with the same generic CV and get ghosted</li>
+  <li>No way to quickly assess if a job is a genuine fit before spending 30 minutes applying</li>
+  <li>Generic CVs get filtered by ATS before a human ever reads them</li>
+  <li>No structured interview preparation tailored to the specific role</li>
+  <li>Application tracking is done in Excel or not at all — people lose track of what they applied to</li>
+</ul>
+
+<h3>Market Gap</h3>
+<p>Existing tools (Naukri, LinkedIn, Shine) are job boards, not career intelligence tools. They show you jobs but give you no help deciding which to pursue or how to compete. Western tools (Resume.io, Kickresume, Rezi) exist but are not localised for Indian market rates, salary expectations, or career contexts.</p>
+
+<h2>3. Business Objectives</h2>
+<table>
+  <tr><th>Objective</th><th>Metric</th><th>Target</th></tr>
+  <tr><td>Acquire initial user base</td><td>Registered users</td><td>200 in first 90 days</td></tr>
+  <tr><td>Prove willingness to pay</td><td>Credit pack purchases</td><td>20 paying users</td></tr>
+  <tr><td>Achieve break-even</td><td>Monthly revenue vs. API cost</td><td>~30 paying users</td></tr>
+  <tr><td>Build word-of-mouth loop</td><td>Referrals from existing users</td><td>40% of new signups from referral</td></tr>
+  <tr><td>Validate interview prep feature</td><td>% of users who use it after tailoring</td><td>>30% adoption</td></tr>
+</table>
+
+<h2>4. Target Users</h2>
+<h3>Primary Persona — Active Job Seeker</h3>
+<ul>
+  <li>Experience: 2–10 years, mid to senior level</li>
+  <li>Location: Tier 1 Indian cities (Mumbai, Pune, Bangalore, Hyderabad, Delhi)</li>
+  <li>Actively applying to 5–20 jobs per month</li>
+  <li>Pain: Spending hours tailoring CVs manually, no feedback on fit</li>
+  <li>Willingness to pay: ₹200–500 for tools that give a clear edge</li>
+</ul>
+
+<h3>Secondary Persona — Passive Job Seeker</h3>
+<ul>
+  <li>Employed but open to better opportunities</li>
+  <li>Wants to quickly assess inbound JDs without committing hours</li>
+  <li>Will use JD evaluation heavily, tailoring occasionally</li>
+</ul>
+
+<h3>Tertiary Persona — Recruiter (Future)</h3>
+<ul>
+  <li>Talent acquisition professional at a company or staffing firm</li>
+  <li>Needs to quickly screen and shortlist candidates against a JD</li>
+  <li>Currently admin-only; roadmap feature for general availability</li>
+</ul>
+
+<h2>5. Revenue Model</h2>
+<table>
+  <tr><th>Stream</th><th>Description</th><th>Current Status</th></tr>
+  <tr><td>Free signup credits</td><td>3 credits on registration — drives trial and conversion</td><td>Live</td></tr>
+  <tr><td>Credit pack — Starter</td><td>₹199 for 10 credits</td><td>Live (Razorpay)</td></tr>
+  <tr><td>Credit pack — Value</td><td>₹499 for 30 credits</td><td>Coming soon</td></tr>
+  <tr><td>Recruiter Mode</td><td>Separate pricing for bulk candidate screening</td><td>Roadmap</td></tr>
+</table>
+
+<div class="callout">
+  <strong>Unit Economics:</strong> API cost per credit used ≈ ₹2.50 blended. Revenue per paid credit ≈ ₹13–20. Gross margin ≈ 77%. Break-even at ~30 paying users with ₹0 infra cost (free tiers).
+</div>
+
+<h2>6. Competitive Positioning</h2>
+<table>
+  <tr><th>Competitor</th><th>What they do</th><th>Our edge</th></tr>
+  <tr><td>Naukri / LinkedIn</td><td>Job boards only</td><td>We evaluate and tailor, not just list</td></tr>
+  <tr><td>Resume.io / Rezi</td><td>CV builders</td><td>We rewrite for a specific JD, not generic templates</td></tr>
+  <tr><td>ChatGPT (manual)</td><td>Users prompt engineer their own solution</td><td>We have a purpose-built workflow with credit guardrails</td></tr>
+  <tr><td>Interviewing.io</td><td>Mock interviews, Western market</td><td>We cover the full pre-application to interview cycle, India-focused</td></tr>
+</table>
+
+<h2>7. Constraints and Assumptions</h2>
+<h3>Constraints</h3>
+<ul>
+  <li>Infrastructure on free tiers — Render (backend), Vercel (frontend), Supabase (DB)</li>
+  <li>Single developer/founder — no dedicated engineering team</li>
+  <li>Razorpay account pending activation — payment collection not yet live</li>
+  <li>Anthropic API Tier 1 — 50 RPM limit on Sonnet 4.6</li>
+</ul>
+
+<h3>Assumptions</h3>
+<ul>
+  <li>Indian professionals are willing to pay small amounts for clear career ROI</li>
+  <li>Word-of-mouth from a strong product will be the primary acquisition channel initially</li>
+  <li>Credit model is more acceptable than subscriptions at early stage</li>
+  <li>Render free tier is sufficient until 200+ active users</li>
+</ul>
+
+<h2>8. Success Criteria</h2>
+<ul>
+  <li>User completes full cycle (CV upload → JD eval → Tailor → Interview prep) in under 5 minutes</li>
+  <li>JD evaluation grade is consistent and trusted by users</li>
+  <li>Tailored CV passes ATS screening at higher rates than generic CV</li>
+  <li>Interview prep answers are grounded in the user's actual CV, not generic advice</li>
+  <li>Zero data leaks — each user only sees their own data</li>
+</ul>
+
+<div class="footer">JobTrack AI · BRD v1.0 · June 2026 · Confidential</div>
+</body>
+</html>

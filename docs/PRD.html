@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>PRD — JobTrack AI</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',Arial,sans-serif; color:#1a1a2e; background:white; padding:48px; max-width:900px; margin:0 auto; }
+    .cover { border-bottom:3px solid #1B6FEB; padding-bottom:32px; margin-bottom:40px; }
+    .brand { font-size:12px; color:#1B6FEB; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:12px; }
+    h1 { font-size:36px; font-weight:800; color:#0A1628; letter-spacing:-1px; margin-bottom:8px; }
+    .doc-type { font-size:18px; color:#6B7280; margin-bottom:16px; }
+    .meta-row { display:flex; gap:32px; font-size:13px; color:#9CA3AF; }
+    h2 { font-size:20px; font-weight:700; color:#0A1628; margin:36px 0 12px; padding-bottom:8px; border-bottom:1px solid #E5E7EB; }
+    h3 { font-size:15px; font-weight:700; color:#1B6FEB; margin:20px 0 8px; }
+    p { font-size:14px; color:#374151; line-height:1.7; margin-bottom:10px; }
+    ul, ol { padding-left:20px; margin-bottom:12px; }
+    li { font-size:14px; color:#374151; line-height:1.7; margin-bottom:4px; }
+    table { width:100%; border-collapse:collapse; margin:16px 0; font-size:13px; }
+    th { background:#F3F4F6; text-align:left; padding:10px 12px; font-weight:700; color:#374151; border:1px solid #E5E7EB; }
+    td { padding:10px 12px; border:1px solid #E5E7EB; color:#374151; vertical-align:top; }
+    .badge { display:inline-block; padding:2px 10px; border-radius:100px; font-size:11px; font-weight:700; }
+    .badge-blue { background:#EBF2FF; color:#1D4ED8; }
+    .badge-green { background:#D1FAE5; color:#065F46; }
+    .badge-amber { background:#FEF3C7; color:#92400E; }
+    .badge-red { background:#FEE2E2; color:#991B1B; }
+    .badge-purple { background:#EDE9FE; color:#6D28D9; }
+    .callout { background:#F0F7FF; border-left:4px solid #1B6FEB; padding:14px 16px; border-radius:0 8px 8px 0; margin:16px 0; }
+    .callout-amber { background:#FFFBEB; border-left:4px solid #F59E0B; padding:14px 16px; border-radius:0 8px 8px 0; margin:16px 0; }
+    .feature-block { border:1px solid #E5E7EB; border-radius:10px; padding:18px; margin-bottom:14px; }
+    .feature-title { font-size:15px; font-weight:700; color:#0A1628; margin-bottom:6px; display:flex; align-items:center; gap:10px; }
+    .footer { margin-top:48px; padding-top:16px; border-top:1px solid #E5E7EB; font-size:11px; color:#9CA3AF; text-align:center; }
+    @media print { body { padding:24px; } }
+  </style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="brand">JobTrack AI · Internal Documentation</div>
+  <h1>Product Requirements Document</h1>
+  <div class="doc-type">PRD — v1.0</div>
+  <div class="meta-row">
+    <span>Date: June 2026</span>
+    <span>Owner: Akshay Rohilla</span>
+    <span>Status: Live</span>
+  </div>
+</div>
+
+<h2>1. Product Vision</h2>
+<p><strong>"Stop applying blindly — know if a job is worth your time before you apply."</strong></p>
+<p>JobTrack AI is the intelligence layer missing from every job search. It reads your CV, grades every job you consider, rewrites your application for that specific role, and prepares you for the interview — all in under 5 minutes, all personalised to you specifically.</p>
+
+<h2>2. User Personas</h2>
+<table>
+  <tr><th>Persona</th><th>Profile</th><th>Primary Use Case</th><th>Credit Usage</th></tr>
+  <tr><td><strong>Active Seeker</strong></td><td>2–10 yrs exp, actively applying</td><td>Full cycle: eval → tailor → prep</td><td>High (3–6 credits/week)</td></tr>
+  <tr><td><strong>Passive Seeker</strong></td><td>Employed, open to opportunities</td><td>Quick JD evaluation only</td><td>Low (1–2 credits/month)</td></tr>
+  <tr><td><strong>Admin</strong></td><td>Founder</td><td>Platform monitoring, gifting credits</td><td>N/A</td></tr>
+  <tr><td><strong>Recruiter</strong></td><td>TA professional (future)</td><td>Candidate scoring and shortlisting</td><td>Separate model</td></tr>
+</table>
+
+<h2>3. Feature Inventory</h2>
+
+<div class="feature-block">
+  <div class="feature-title">📄 CV Parsing <span class="badge badge-green">Free · Always</span></div>
+  <p>Upload PDF or DOCX. AI (Haiku 4.5) extracts name, email, phone, LinkedIn, title, location, years of experience, seniority level, domain, up to 25 skills, and a 2–3 sentence summary. Profile saved to database and restored on every login. Raw CV text stored for use in tailoring and interview prep.</p>
+</div>
+
+<div class="feature-block">
+  <div class="feature-title">🎯 JD Evaluation <span class="badge badge-blue">1 Credit</span></div>
+  <p>Paste any job description. AI (Sonnet 4.6, prompt-cached) returns: A–F grade with reasoning, role summary, company culture signals, matched skills, gaps with mitigation, salary range estimate (INR), red flags, green flags, and a go/no-go recommended action. Result downloadable as formatted HTML report. Evaluation saved to history. JD text and result persisted in localStorage — survives browser refresh.</p>
+</div>
+
+<div class="feature-block">
+  <div class="feature-title">✨ CV Tailoring <span class="badge badge-blue">1 Credit</span></div>
+  <p>AI (Sonnet 4.6) rewrites the full CV against the evaluated JD. Output includes: rewritten professional summary, reordered/optimised skills, rewritten experience bullets with JD language and quantified impact, application briefing (lead with, mirror these phrases, downplay), education, certifications. Downloadable as formatted DOCX with real contact details. Requires both CV parsed and JD evaluated.</p>
+</div>
+
+<div class="feature-block">
+  <div class="feature-title">🎤 Interview Prep <span class="badge badge-blue">1 Credit</span></div>
+  <p>AI (Sonnet 4.6) generates a personalised interview pack: 5 behavioural questions tailored to the JD, full STAR answers written from the actual CV, key JD phrases to mirror in each answer, 2 red-flag weak spots with framing advice, 4 smart role-specific questions to ask the interviewer. Downloadable as HTML report. Requires both CV and JD eval. Result persists across tab switches.</p>
+</div>
+
+<div class="feature-block">
+  <div class="feature-title">🔍 AI Job Search <span class="badge badge-green">Free</span></div>
+  <p>Search jobs by role, location, seniority, and recency. Results from external job API. One-click apply saves job to tracker with pre-filled details.</p>
+</div>
+
+<div class="feature-block">
+  <div class="feature-title">📊 Application Tracker <span class="badge badge-green">Free</span></div>
+  <p>Kanban board with columns: Applied, Interview, Offer, Rejected. Applications persist in database. Count shown in tab nav badge. Editable — update status, add notes.</p>
+</div>
+
+<div class="feature-block">
+  <div class="feature-title">📈 Dashboard <span class="badge badge-green">Free</span></div>
+  <p>Visual summary of application pipeline — count by status, recent activity. For the user to understand their job search at a glance.</p>
+</div>
+
+<div class="feature-block">
+  <div class="feature-title">👥 Recruiter Mode <span class="badge badge-amber">Admin Only (Coming Soon for others)</span></div>
+  <p>Analyse a JD to extract required skills. Upload candidate CVs one by one — AI scores each against the JD, shows matched/missing skills and a fit percentage. Build a shortlist. Export shortlist as CSV. Currently restricted to admin user only.</p>
+</div>
+
+<div class="feature-block">
+  <div class="feature-title">🧠 Mock Interview <span class="badge badge-purple">Coming Soon</span></div>
+  <p>User answers behavioural questions in text. AI evaluates the answer for STAR completeness, pacing, and delivery. Gives structured feedback. Building on Interview Prep foundation.</p>
+</div>
+
+<h2>4. Credit System</h2>
+<table>
+  <tr><th>Action</th><th>Credits</th><th>Notes</th></tr>
+  <tr><td>CV Parsing</td><td>0</td><td>Always free</td></tr>
+  <tr><td>JD Evaluation</td><td>1</td><td>Deducted on success</td></tr>
+  <tr><td>CV Tailoring</td><td>1</td><td>Deducted on success</td></tr>
+  <tr><td>Interview Prep</td><td>1</td><td>Deducted on success; refunded on AI failure</td></tr>
+  <tr><td>Job Search</td><td>0</td><td>Always free</td></tr>
+  <tr><td>Tracker / Dashboard</td><td>0</td><td>Always free</td></tr>
+  <tr><td>Signup bonus</td><td>+3</td><td>Granted via Supabase DB trigger on auth.users insert</td></tr>
+</table>
+
+<h3>Credit Packs</h3>
+<table>
+  <tr><th>Pack</th><th>Price</th><th>Credits</th><th>Status</th></tr>
+  <tr><td>Starter</td><td>₹199</td><td>10</td><td>Live (Razorpay)</td></tr>
+  <tr><td>Value</td><td>₹499</td><td>30</td><td>Coming soon</td></tr>
+</table>
+
+<h2>5. Navigation Structure</h2>
+<p><strong>Job Seeker Mode tabs (in order):</strong> My Profile → Find Jobs → Evaluate JD → Tailor CV → Interview Prep → Tracker → Dashboard</p>
+<p><strong>Recruiter Mode tabs:</strong> Analyse JD → Score Candidates → Shortlist</p>
+<p><strong>Special routes:</strong> /admin (admin dashboard), /reset-password (password recovery), /privacy, /terms, /refund, /contact</p>
+<p><strong>Mode toggle:</strong> Job Seeker always available. Recruiter shows "Coming Soon" tooltip for non-admin users.</p>
+
+<h2>6. Authentication</h2>
+<ul>
+  <li>Supabase Auth — email/password</li>
+  <li>Sign up, sign in, forgot password (reset email), password reset page (/reset-password)</li>
+  <li>JWT passed in Authorization header on all API calls</li>
+  <li>Session persists via Supabase client — restored on page load</li>
+  <li>Unauthenticated users see Landing Page only</li>
+</ul>
+
+<h2>7. Payments</h2>
+<ul>
+  <li>Razorpay integration — create order → frontend Razorpay modal → verify payment</li>
+  <li>HMAC-SHA256 signature verification on backend before crediting</li>
+  <li>Payment logged to payment_log table</li>
+  <li>Credits added to credits table atomically with payment verification</li>
+  <li>503 returned if Razorpay keys not configured</li>
+</ul>
+
+<h2>8. Roadmap</h2>
+<table>
+  <tr><th>Feature</th><th>Priority</th><th>Notes</th></tr>
+  <tr><td>Razorpay account activation (payments live)</td><td>🔴 High</td><td>Pending Razorpay KYC</td></tr>
+  <tr><td>₹499 / 30 credit pack</td><td>🔴 High</td><td>Add to PaymentModal once Razorpay active</td></tr>
+  <tr><td>Mock Interview mode</td><td>🟡 Medium</td><td>Text-based answer + AI feedback</td></tr>
+  <tr><td>Recruiter Mode for all users</td><td>🟡 Medium</td><td>Needs pricing decision</td></tr>
+  <tr><td>Email notifications (interview reminders)</td><td>🟢 Low</td><td>Via Supabase edge functions</td></tr>
+  <tr><td>Mobile responsive improvements</td><td>🟢 Low</td><td>Currently desktop-first</td></tr>
+</table>
+
+<div class="footer">JobTrack AI · PRD v1.0 · June 2026 · Confidential</div>
+</body>
+</html>

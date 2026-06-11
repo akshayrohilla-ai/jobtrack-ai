@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Architecture — JobTrack AI</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',Arial,sans-serif; color:#1a1a2e; background:white; padding:48px; max-width:960px; margin:0 auto; }
+    .cover { border-bottom:3px solid #1B6FEB; padding-bottom:32px; margin-bottom:40px; }
+    .brand { font-size:12px; color:#1B6FEB; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:12px; }
+    h1 { font-size:36px; font-weight:800; color:#0A1628; letter-spacing:-1px; margin-bottom:8px; }
+    .doc-type { font-size:18px; color:#6B7280; margin-bottom:16px; }
+    .meta-row { display:flex; gap:32px; font-size:13px; color:#9CA3AF; }
+    h2 { font-size:20px; font-weight:700; color:#0A1628; margin:36px 0 12px; padding-bottom:8px; border-bottom:1px solid #E5E7EB; }
+    h3 { font-size:15px; font-weight:700; color:#1B6FEB; margin:20px 0 8px; }
+    p { font-size:14px; color:#374151; line-height:1.7; margin-bottom:10px; }
+    ul, ol { padding-left:20px; margin-bottom:12px; }
+    li { font-size:14px; color:#374151; line-height:1.7; margin-bottom:4px; }
+    table { width:100%; border-collapse:collapse; margin:16px 0; font-size:13px; }
+    th { background:#F3F4F6; text-align:left; padding:10px 12px; font-weight:700; color:#374151; border:1px solid #E5E7EB; }
+    td { padding:10px 12px; border:1px solid #E5E7EB; color:#374151; vertical-align:top; }
+    code { background:#F3F4F6; padding:2px 6px; border-radius:4px; font-family:monospace; font-size:12px; color:#1B6FEB; }
+    pre { background:#0A1628; color:#E2E8F0; padding:20px; border-radius:10px; font-size:12px; line-height:1.8; margin:16px 0; overflow-x:auto; font-family:monospace; }
+    .arch-box { border:1px solid #E5E7EB; border-radius:10px; padding:16px 20px; margin-bottom:12px; background:#F9FAFB; }
+    .arch-title { font-size:13px; font-weight:700; color:#0A1628; margin-bottom:6px; display:flex; align-items:center; gap:8px; }
+    .arch-detail { font-size:13px; color:#6B7280; }
+    .callout { background:#F0F7FF; border-left:4px solid #1B6FEB; padding:14px 16px; border-radius:0 8px 8px 0; margin:16px 0; font-size:14px; color:#374151; line-height:1.7; }
+    .callout-amber { background:#FFFBEB; border-left:4px solid #F59E0B; padding:14px 16px; border-radius:0 8px 8px 0; margin:16px 0; font-size:14px; color:#374151; }
+    .flow { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:12px 0; }
+    .flow-step { background:#EBF2FF; color:#1D4ED8; border-radius:6px; padding:6px 12px; font-size:13px; font-weight:600; }
+    .flow-arrow { color:#9CA3AF; font-size:18px; }
+    .footer { margin-top:48px; padding-top:16px; border-top:1px solid #E5E7EB; font-size:11px; color:#9CA3AF; text-align:center; }
+    @media print { body { padding:24px; } }
+  </style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="brand">JobTrack AI · Internal Documentation</div>
+  <h1>Technical Architecture</h1>
+  <div class="doc-type">Architecture + Infrastructure + Security — v1.0</div>
+  <div class="meta-row">
+    <span>Date: June 2026</span>
+    <span>Owner: Akshay Rohilla</span>
+    <span>Status: Live</span>
+  </div>
+</div>
+
+<h2>1. System Overview</h2>
+<pre>
+┌─────────────────────────────────────────────────────────────┐
+│                        USER BROWSER                          │
+│  React + Vite + Tailwind · Hosted on Vercel                 │
+│  jobtrackai.co.in                                           │
+└───────────────────────────┬─────────────────────────────────┘
+                            │ HTTPS (JWT in Authorization header)
+                            ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      BACKEND API                            │
+│  FastAPI (Python 3.11) · Hosted on Render (free tier)       │
+│  jobtrack-ai-backend.onrender.com                           │
+│                                                             │
+│  Routers: cv / evaluate / tailor / interview /              │
+│           jobs / applications / payments / admin / recruiter│
+│  Middleware: JWT auth · Admin check · slowapi rate limit     │
+└──────┬──────────────────┬──────────────────────────────────┘
+       │                  │
+       ▼                  ▼
+┌──────────────┐  ┌───────────────────────────────────────────┐
+│  SUPABASE    │  │           EXTERNAL SERVICES               │
+│  PostgreSQL  │  │                                           │
+│  + Auth      │  │  Anthropic API                           │
+│  + RLS       │  │  · Haiku 4.5  → CV parsing               │
+│              │  │  · Sonnet 4.6 → JD eval, tailor, prep    │
+│  9 tables    │  │                                           │
+│  JWT-based   │  │  Razorpay                                │
+│  auth flow   │  │  · Payment orders + verification         │
+│              │  │                                           │
+│              │  │  Job Search API                          │
+│              │  │  · External job listings                 │
+└──────────────┘  └───────────────────────────────────────────┘
+</pre>
+
+<h2>2. Frontend Stack</h2>
+<table>
+  <tr><th>Technology</th><th>Version / Detail</th><th>Purpose</th></tr>
+  <tr><td>React</td><td>18.x</td><td>UI framework</td></tr>
+  <tr><td>Vite</td><td>5.x</td><td>Build tool and dev server</td></tr>
+  <tr><td>Tailwind CSS</td><td>3.x</td><td>Utility-first styling</td></tr>
+  <tr><td>React Router</td><td>v6</td><td>Client-side routing</td></tr>
+  <tr><td>Axios</td><td>Latest</td><td>HTTP client with JWT interceptor</td></tr>
+  <tr><td>@supabase/supabase-js</td><td>2.x</td><td>Auth + direct DB for anon queries</td></tr>
+  <tr><td>docx</td><td>npm</td><td>DOCX generation in-browser for CV download</td></tr>
+  <tr><td>lucide-react</td><td>Latest</td><td>Icons</td></tr>
+  <tr><td>Hosting</td><td>Vercel (Hobby)</td><td>Auto-deploy from main branch</td></tr>
+</table>
+
+<h3>Key Frontend Files</h3>
+<table>
+  <tr><th>File</th><th>Role</th></tr>
+  <tr><td><code>src/App.jsx</code></td><td>Root — auth context, routing, header, dark mode</td></tr>
+  <tr><td><code>src/pages/SeekerMode.jsx</code></td><td>All job seeker tabs — owns lifted state for eval/tailor/interview</td></tr>
+  <tr><td><code>src/components/JDEvaluator.jsx</code></td><td>JD evaluation UI + HTML export</td></tr>
+  <tr><td><code>src/components/CVTailor.jsx</code></td><td>CV tailoring UI + DOCX generation</td></tr>
+  <tr><td><code>src/components/InterviewPrep.jsx</code></td><td>Interview prep UI + HTML export</td></tr>
+  <tr><td><code>src/pages/AdminDashboard.jsx</code></td><td>Admin stats + gift credits</td></tr>
+  <tr><td><code>src/pages/LandingPage.jsx</code></td><td>Marketing landing page for unauthenticated users</td></tr>
+  <tr><td><code>src/lib/api.js</code></td><td>All API calls — axios instance with JWT interceptor</td></tr>
+  <tr><td><code>src/lib/supabase.js</code></td><td>Supabase client initialisation</td></tr>
+</table>
+
+<h2>3. Backend Stack</h2>
+<table>
+  <tr><th>Technology</th><th>Version</th><th>Purpose</th></tr>
+  <tr><td>FastAPI</td><td>Latest</td><td>API framework</td></tr>
+  <tr><td>Python</td><td>3.11</td><td>Runtime</td></tr>
+  <tr><td>Uvicorn</td><td>Latest</td><td>ASGI server</td></tr>
+  <tr><td>anthropic SDK</td><td>Latest</td><td>Anthropic API client</td></tr>
+  <tr><td>supabase-py</td><td>2.4.6</td><td>Supabase client (service role)</td></tr>
+  <tr><td>slowapi</td><td>0.1.9</td><td>Rate limiting (10 req/min on AI endpoints)</td></tr>
+  <tr><td>PyPDF2</td><td>Latest</td><td>PDF text extraction</td></tr>
+  <tr><td>python-docx</td><td>Latest</td><td>DOCX text extraction</td></tr>
+  <tr><td>razorpay</td><td>Latest</td><td>Payment order creation + HMAC verification</td></tr>
+  <tr><td>Hosting</td><td>Render (free tier)</td><td>Auto-deploy from main branch</td></tr>
+</table>
+
+<h3>Backend Router Map</h3>
+<table>
+  <tr><th>Router</th><th>Prefix</th><th>Key Endpoints</th></tr>
+  <tr><td>cv.py</td><td>/api/cv</td><td>POST /parse · GET /profile</td></tr>
+  <tr><td>evaluate.py</td><td>/api/evaluate</td><td>POST /evaluate-jd · GET /balance · GET /history</td></tr>
+  <tr><td>tailor.py</td><td>/api/tailor</td><td>POST /tailor-cv</td></tr>
+  <tr><td>interview.py</td><td>/api/interview</td><td>POST /prep</td></tr>
+  <tr><td>jobs.py</td><td>/api/jobs</td><td>GET /search</td></tr>
+  <tr><td>applications.py</td><td>/api/applications</td><td>CRUD + GET /stats</td></tr>
+  <tr><td>payments.py</td><td>/api/payments</td><td>POST /create-order · POST /verify-payment</td></tr>
+  <tr><td>admin.py</td><td>/api/admin</td><td>GET /stats · POST /gift-credits · GET /usage-log</td></tr>
+  <tr><td>recruiter.py</td><td>/api/recruiter</td><td>POST /analyze-jd · POST /score-candidate · GET/POST /shortlist</td></tr>
+</table>
+
+<h2>4. Anthropic API Usage</h2>
+<table>
+  <tr><th>Feature</th><th>Model</th><th>Max Tokens</th><th>Caching</th><th>Cost/call</th></tr>
+  <tr><td>CV Parsing</td><td>claude-haiku-4-5-20251001</td><td>1,024</td><td>No</td><td>~$0.003</td></tr>
+  <tr><td>JD Evaluation</td><td>claude-sonnet-4-6</td><td>1,500</td><td>Yes (system prompt &gt;1024 tokens)</td><td>~$0.030</td></tr>
+  <tr><td>CV Tailoring</td><td>claude-sonnet-4-6</td><td>3,000</td><td>Yes</td><td>~$0.042</td></tr>
+  <tr><td>Interview Prep</td><td>claude-sonnet-4-6</td><td>2,000</td><td>Yes</td><td>~$0.044</td></tr>
+</table>
+
+<div class="callout">
+  <strong>Prompt Caching:</strong> JD evaluation, CV tailoring, and interview prep all use <code>cache_control: ephemeral</code> on their system prompts. First call pays 1.25x write cost. Subsequent calls pay 0.1x (90% discount). Cache TTL is 5 minutes. This significantly reduces cost in production.
+</div>
+
+<h2>5. Infrastructure</h2>
+<table>
+  <tr><th>Service</th><th>Tier</th><th>Limit / Notes</th></tr>
+  <tr><td>Render (backend)</td><td>Free</td><td>Sleeps after 15min idle. Ping every 10min via cron-job.org to prevent sleep. 512MB RAM. 60s request timeout.</td></tr>
+  <tr><td>Vercel (frontend)</td><td>Hobby (free)</td><td>Unlimited static deploys. No issue.</td></tr>
+  <tr><td>Supabase (DB)</td><td>Free</td><td>500MB DB, 2GB bandwidth/month, 50K active users. Pauses after 7 days inactivity.</td></tr>
+  <tr><td>Anthropic API</td><td>Tier 1</td><td>50 RPM on Sonnet 4.6. Auto-upgrades as spend grows.</td></tr>
+  <tr><td>Razorpay</td><td>Standard</td><td>2% commission + 18% GST on commission. No fixed fee on domestic cards.</td></tr>
+  <tr><td>cron-job.org</td><td>Free</td><td>Pings /health every 10 minutes to keep Render awake.</td></tr>
+</table>
+
+<h2>6. Security Architecture</h2>
+<h3>Authentication Flow</h3>
+<div class="flow">
+  <div class="flow-step">User signs in</div><div class="flow-arrow">→</div>
+  <div class="flow-step">Supabase returns JWT</div><div class="flow-arrow">→</div>
+  <div class="flow-step">Frontend stores in session</div><div class="flow-arrow">→</div>
+  <div class="flow-step">Every API request sends Bearer token</div><div class="flow-arrow">→</div>
+  <div class="flow-step">Backend verifies via supabase.auth.get_user(token)</div>
+</div>
+
+<h3>Layers of Security</h3>
+<table>
+  <tr><th>Layer</th><th>Mechanism</th><th>Protects Against</th></tr>
+  <tr><td>JWT verification</td><td>Every backend endpoint calls <code>get_current_user(request)</code></td><td>Unauthenticated access</td></tr>
+  <tr><td>Admin check</td><td>Hardcoded admin user_id checked on /api/admin/*</td><td>Non-admin accessing admin panel</td></tr>
+  <tr><td>Credit check</td><td><code>require_credits()</code> before any AI call</td><td>Free-riding, balance manipulation</td></tr>
+  <tr><td>Rate limiting</td><td>slowapi 10/min per IP on AI endpoints</td><td>Abuse, brute force</td></tr>
+  <tr><td>Payment verification</td><td>HMAC-SHA256 signature check before crediting</td><td>Fake payment callbacks</td></tr>
+  <tr><td>RLS (Supabase)</td><td>Per-user policies on all 9 tables</td><td>JWT holder reading other users' data directly</td></tr>
+  <tr><td>Service role key</td><td>Backend uses service role — bypasses RLS by design</td><td>Backend always has full access; policies protect direct DB access</td></tr>
+  <tr><td>CORS</td><td>ALLOWED_ORIGINS env var — only jobtrackai.co.in permitted in production</td><td>Cross-origin request forgery</td></tr>
+  <tr><td>Error sanitisation</td><td>Generic messages returned to frontend; details logged server-side only</td><td>Information leakage</td></tr>
+</table>
+
+<h2>7. Environment Variables</h2>
+<table>
+  <tr><th>Variable</th><th>Where</th><th>Purpose</th></tr>
+  <tr><td>SUPABASE_URL</td><td>Render</td><td>Supabase project URL</td></tr>
+  <tr><td>SUPABASE_SERVICE_KEY</td><td>Render</td><td>Service role key — bypasses RLS, never expose to frontend</td></tr>
+  <tr><td>ANTHROPIC_API_KEY</td><td>Render</td><td>Anthropic API authentication</td></tr>
+  <tr><td>RAZORPAY_KEY_ID</td><td>Render</td><td>Razorpay public key</td></tr>
+  <tr><td>RAZORPAY_KEY_SECRET</td><td>Render</td><td>Razorpay secret — used for HMAC verification</td></tr>
+  <tr><td>ALLOWED_ORIGINS</td><td>Render</td><td>CORS whitelist (comma-separated)</td></tr>
+  <tr><td>VITE_API_URL</td><td>Vercel</td><td>Backend URL for frontend API calls</td></tr>
+  <tr><td>VITE_SUPABASE_URL</td><td>Vercel</td><td>Supabase URL for frontend auth client</td></tr>
+  <tr><td>VITE_SUPABASE_ANON_KEY</td><td>Vercel</td><td>Supabase anon key — safe to expose, RLS enforces access</td></tr>
+  <tr><td>VITE_RAZORPAY_KEY_ID</td><td>Vercel</td><td>Razorpay public key for frontend modal</td></tr>
+</table>
+
+<h2>8. Deploy Pipeline</h2>
+<ul>
+  <li><strong>GitHub repo:</strong> akshayrohilla-ai/jobtrack-ai (main branch)</li>
+  <li><strong>Frontend:</strong> Push to main → Vercel auto-builds and deploys in ~60 seconds</li>
+  <li><strong>Backend:</strong> Push to main → Render auto-builds and deploys in ~2 minutes</li>
+  <li><strong>Database:</strong> Manual migrations run in Supabase SQL Editor</li>
+  <li><strong>Rollback:</strong> Vercel — instant rollback to previous deployment. Render — redeploy from previous commit.</li>
+</ul>
+
+<div class="footer">JobTrack AI · Architecture v1.0 · June 2026 · Confidential</div>
+</body>
+</html>

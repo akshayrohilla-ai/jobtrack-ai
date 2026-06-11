@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>FRD — JobTrack AI</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',Arial,sans-serif; color:#1a1a2e; background:white; padding:48px; max-width:900px; margin:0 auto; }
+    .cover { border-bottom:3px solid #1B6FEB; padding-bottom:32px; margin-bottom:40px; }
+    .brand { font-size:12px; color:#1B6FEB; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:12px; }
+    h1 { font-size:36px; font-weight:800; color:#0A1628; letter-spacing:-1px; margin-bottom:8px; }
+    .doc-type { font-size:18px; color:#6B7280; margin-bottom:16px; }
+    .meta-row { display:flex; gap:32px; font-size:13px; color:#9CA3AF; }
+    h2 { font-size:20px; font-weight:700; color:#0A1628; margin:36px 0 12px; padding-bottom:8px; border-bottom:1px solid #E5E7EB; }
+    h3 { font-size:15px; font-weight:700; color:#1B6FEB; margin:20px 0 8px; }
+    h4 { font-size:13px; font-weight:700; color:#374151; margin:14px 0 6px; text-transform:uppercase; letter-spacing:.05em; }
+    p { font-size:14px; color:#374151; line-height:1.7; margin-bottom:10px; }
+    ul, ol { padding-left:20px; margin-bottom:12px; }
+    li { font-size:14px; color:#374151; line-height:1.7; margin-bottom:4px; }
+    table { width:100%; border-collapse:collapse; margin:16px 0; font-size:13px; }
+    th { background:#F3F4F6; text-align:left; padding:10px 12px; font-weight:700; color:#374151; border:1px solid #E5E7EB; }
+    td { padding:10px 12px; border:1px solid #E5E7EB; color:#374151; vertical-align:top; }
+    code { background:#F3F4F6; padding:2px 6px; border-radius:4px; font-family:monospace; font-size:12px; color:#1B6FEB; }
+    .req { background:#F9FAFB; border:1px solid #E5E7EB; border-radius:8px; padding:14px 16px; margin-bottom:10px; }
+    .req-id { font-size:11px; font-weight:700; color:#9CA3AF; margin-bottom:4px; font-family:monospace; }
+    .req-text { font-size:14px; color:#374151; }
+    .callout { background:#F0F7FF; border-left:4px solid #1B6FEB; padding:14px 16px; border-radius:0 8px 8px 0; margin:16px 0; }
+    .footer { margin-top:48px; padding-top:16px; border-top:1px solid #E5E7EB; font-size:11px; color:#9CA3AF; text-align:center; }
+    @media print { body { padding:24px; } }
+  </style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="brand">JobTrack AI · Internal Documentation</div>
+  <h1>Functional Requirements Document</h1>
+  <div class="doc-type">FRD — v1.0</div>
+  <div class="meta-row">
+    <span>Date: June 2026</span>
+    <span>Owner: Akshay Rohilla</span>
+    <span>Status: Live</span>
+  </div>
+</div>
+
+<h2>1. Authentication</h2>
+<h3>FR-AUTH-01: Sign Up</h3>
+<ul>
+  <li>User provides email and password (min 6 chars)</li>
+  <li>Supabase creates auth.users record</li>
+  <li>DB trigger fires: inserts row into <code>credits</code> with <code>balance = 3</code></li>
+  <li>User is auto signed-in after registration</li>
+  <li>Redirect to main app</li>
+</ul>
+
+<h3>FR-AUTH-02: Sign In</h3>
+<ul>
+  <li>Email + password validated by Supabase</li>
+  <li>JWT returned and stored in Supabase client session</li>
+  <li>App restores CV profile and credit balance from DB</li>
+</ul>
+
+<h3>FR-AUTH-03: Forgot Password</h3>
+<ul>
+  <li>User enters email on Forgot Password tab in AuthModal</li>
+  <li>Supabase sends reset email with magic link to /reset-password</li>
+  <li>Reset page listens for PASSWORD_RECOVERY auth event</li>
+  <li>User enters new password (min 6 chars, confirmed twice)</li>
+  <li>On success: redirect to app after 2.5 seconds</li>
+</ul>
+
+<h3>FR-AUTH-04: Session Persistence</h3>
+<ul>
+  <li>JWT stored in browser by Supabase client automatically</li>
+  <li>On page load: <code>supabase.auth.getSession()</code> restores session</li>
+  <li>If no session: Landing Page shown</li>
+  <li>On sign out: all local state cleared, Landing Page shown</li>
+</ul>
+
+<h2>2. CV Parsing</h2>
+<h3>FR-CV-01: File Upload</h3>
+<ul>
+  <li>Accepts: PDF, DOCX, TXT — max 10MB</li>
+  <li>Text extracted: PyPDF2 for PDF, python-docx for DOCX</li>
+  <li>Minimum 100 characters required to proceed</li>
+</ul>
+
+<h3>FR-CV-02: AI Parsing (Haiku 4.5)</h3>
+<ul>
+  <li>Fields extracted: name, email, phone, linkedin, title, location, years_exp, seniority, domain, skills (up to 25), summary (2–3 sentences), initials</li>
+  <li>Null returned for any field not found — no hallucination</li>
+  <li>Raw CV text stored (up to 12,000 chars) for downstream use</li>
+</ul>
+
+<h3>FR-CV-03: Profile Storage</h3>
+<ul>
+  <li>Saved to <code>cv_profiles</code> table scoped to <code>user_id</code></li>
+  <li>Raw text stored in <code>sessionStorage</code> — survives refresh, clears on tab close</li>
+  <li>Profile restored from DB on every login via <code>GET /api/cv/profile</code></li>
+  <li>Multiple uploads allowed — each creates a new row; latest used</li>
+</ul>
+
+<h2>3. JD Evaluation</h2>
+<h3>FR-EVAL-01: Input Validation</h3>
+<ul>
+  <li>JD text minimum 50 characters</li>
+  <li>Role name and company name optional — used for display only</li>
+</ul>
+
+<h3>FR-EVAL-02: Credit Check</h3>
+<ul>
+  <li>Balance checked before API call</li>
+  <li>If balance = 0: 402 returned, payment modal triggered on frontend</li>
+  <li>1 credit deducted atomically before API call</li>
+  <li>Usage logged to <code>usage_log</code> with <code>action = "jd_evaluate"</code></li>
+</ul>
+
+<h3>FR-EVAL-03: AI Evaluation (Sonnet 4.6, prompt-cached)</h3>
+<p>Returns JSON with: role_summary, company_signals, cv_match (matched_skills, match_summary), gaps (skill, importance, mitigation), grade (A–F), grade_reasoning, salary_range (min, max, currency, confidence, reasoning), red_flags, green_flags, recommended_action, recommended_action_reason</p>
+
+<h3>FR-EVAL-04: Grading Rules</h3>
+<table>
+  <tr><th>Grade</th><th>Criteria</th></tr>
+  <tr><td>A</td><td>80%+ skill match, domain aligned, right seniority, no critical red flags</td></tr>
+  <tr><td>B</td><td>60–79% match, 1–2 fillable gaps, minor domain shift</td></tr>
+  <tr><td>C</td><td>40–59% match, meaningful domain change, 2+ critical gaps</td></tr>
+  <tr><td>D</td><td>&lt;40% match, wrong domain, multiple critical gaps</td></tr>
+  <tr><td>F</td><td>Fundamentally different field, would be ATS-filtered out</td></tr>
+</table>
+
+<h3>FR-EVAL-05: Persistence</h3>
+<ul>
+  <li>Evaluation result, JD text, role, company stored in <code>localStorage</code></li>
+  <li>Survives browser refresh — user does not lose evaluation on reload</li>
+  <li>Evaluation also saved to <code>jd_evaluations</code> table in DB</li>
+  <li>Download as HTML report — open in browser → Print → Save as PDF</li>
+</ul>
+
+<h2>4. CV Tailoring</h2>
+<h3>FR-TAILOR-01: Prerequisites</h3>
+<ul>
+  <li>CV must be parsed (profile exists)</li>
+  <li>Raw CV text must be available (sessionStorage)</li>
+  <li>JD must be evaluated (evalJdText in state, min 50 chars)</li>
+  <li>All three shown as checklist — button disabled until all green</li>
+</ul>
+
+<h3>FR-TAILOR-02: AI Output (Sonnet 4.6)</h3>
+<p>Returns JSON with: professional_summary, skills (array), experience (array of company/title/duration/bullets), technical_projects, certifications, education, application_briefing (lead_with, mirror_language, downplay, add_if_possible)</p>
+
+<h3>FR-TAILOR-03: DOCX Generation</h3>
+<ul>
+  <li>Generated entirely in browser using <code>docx</code> npm package — no server round-trip</li>
+  <li>Sections: Name, Title + Location, Contact (email | phone | linkedin), Divider, Professional Summary, Key Skills, Professional Experience, Technical Projects (if any), Certifications, Education</li>
+  <li>Contact line uses real values from parsed profile — shows placeholder only if fields are null</li>
+  <li>Downloaded as: <code>{Name}-tailored-CV-{date}.docx</code></li>
+</ul>
+
+<h3>FR-TAILOR-04: State Management</h3>
+<ul>
+  <li>Result lifted to SeekerMode — survives tab switching</li>
+  <li>No "Tailor again" button — prevents accidental credit spend</li>
+  <li>To retailor: user must re-upload CV (intentional friction)</li>
+</ul>
+
+<h2>5. Interview Prep</h2>
+<h3>FR-INTERVIEW-01: Prerequisites</h3>
+<ul>
+  <li>Same as CV Tailoring — CV parsed + raw text available + JD evaluated</li>
+  <li>Checklist shown identical to Tailor CV tab</li>
+</ul>
+
+<h3>FR-INTERVIEW-02: AI Output (Sonnet 4.6)</h3>
+<p>Returns JSON with: behavioral_questions (5 items, each with question, why_asked, star_answer {situation/task/action/result}, key_phrases), red_flags (2 items, each with topic, likely_question, how_to_frame), questions_to_ask (4 items, each with question, why_it_works)</p>
+
+<h3>FR-INTERVIEW-03: Credit Refund on Failure</h3>
+<ul>
+  <li>If AI call fails or returns unparseable JSON: credit is automatically refunded</li>
+  <li>Error message shown: "your credit has been refunded"</li>
+  <li>Prevents users being charged for backend errors</li>
+</ul>
+
+<h3>FR-INTERVIEW-04: Export</h3>
+<ul>
+  <li>Download as HTML file — clean formatted report</li>
+  <li>Includes: all 5 STAR cards, red flags, questions to ask, Mock Interview coming soon banner</li>
+  <li>User opens in browser → Ctrl+P → Save as PDF</li>
+</ul>
+
+<h2>6. Payment Flow</h2>
+<h3>FR-PAY-01: Order Creation</h3>
+<ul>
+  <li><code>POST /api/payments/create-order</code> with pack_id</li>
+  <li>Returns Razorpay order_id, amount, currency</li>
+  <li>503 if RAZORPAY_KEY_SECRET env var not set</li>
+</ul>
+
+<h3>FR-PAY-02: Payment Verification</h3>
+<ul>
+  <li>Frontend sends: razorpay_order_id, razorpay_payment_id, razorpay_signature</li>
+  <li>Backend verifies HMAC-SHA256 signature before crediting</li>
+  <li>On success: credits added to <code>credits</code> table, logged to <code>payment_log</code></li>
+  <li>Frontend updates credit balance display immediately</li>
+</ul>
+
+<h2>7. Admin Dashboard</h2>
+<h3>FR-ADMIN-01: Access Control</h3>
+<ul>
+  <li>Admin user ID hardcoded in both frontend and backend middleware</li>
+  <li>Frontend: non-admin sees "Not found" at /admin</li>
+  <li>Backend: all /api/admin/* endpoints return 403 for non-admin JWT</li>
+</ul>
+
+<h3>FR-ADMIN-02: Stats</h3>
+<ul>
+  <li>Total users, active (30d), stale count</li>
+  <li>Credits: total issued, used, remaining</li>
+  <li>Usage: last 7d, last 30d, breakdown by action</li>
+  <li>Estimated Anthropic spend (from usage log, not live API balance)</li>
+  <li>Per-user table: email, balance, lifetime used, active/stale status, last seen</li>
+</ul>
+
+<h3>FR-ADMIN-03: Gift Credits</h3>
+<ul>
+  <li>Dropdown of all registered users (email + user_id)</li>
+  <li>Select amount: 2, 5, 10, 15, 20, 30 credits</li>
+  <li>Optional note field</li>
+  <li>Credits added instantly, usage_log entry created with action = "admin_gift"</li>
+</ul>
+
+<h2>8. Rate Limiting</h2>
+<ul>
+  <li>slowapi (10 requests/minute) applied to: <code>POST /api/evaluate/evaluate-jd</code>, <code>POST /api/tailor/tailor-cv</code>, <code>POST /api/interview/prep</code></li>
+  <li>Limit is per IP address</li>
+  <li>429 returned on exceeded limit</li>
+</ul>
+
+<h2>9. Error Handling Standards</h2>
+<table>
+  <tr><th>HTTP Code</th><th>Meaning</th><th>Frontend Behaviour</th></tr>
+  <tr><td>400</td><td>Bad request (short JD, invalid input)</td><td>Show error message</td></tr>
+  <tr><td>401</td><td>Missing/invalid JWT</td><td>Open AuthModal</td></tr>
+  <tr><td>402</td><td>Insufficient credits</td><td>Open PaymentModal</td></tr>
+  <tr><td>403</td><td>Not admin</td><td>Show "Not found"</td></tr>
+  <tr><td>429</td><td>Rate limited</td><td>Show "Too many requests" message</td></tr>
+  <tr><td>500</td><td>AI or server error</td><td>Show error, refund credit if applicable</td></tr>
+  <tr><td>503</td><td>Payment gateway not configured</td><td>Show "Payments temporarily unavailable"</td></tr>
+</table>
+
+<div class="footer">JobTrack AI · FRD v1.0 · June 2026 · Confidential</div>
+</body>
+</html>

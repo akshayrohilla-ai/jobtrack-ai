@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>DB Schema — JobTrack AI</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',Arial,sans-serif; color:#1a1a2e; background:white; padding:48px; max-width:960px; margin:0 auto; }
+    .cover { border-bottom:3px solid #1B6FEB; padding-bottom:32px; margin-bottom:40px; }
+    .brand { font-size:12px; color:#1B6FEB; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:12px; }
+    h1 { font-size:36px; font-weight:800; color:#0A1628; letter-spacing:-1px; margin-bottom:8px; }
+    .doc-type { font-size:18px; color:#6B7280; margin-bottom:16px; }
+    .meta-row { display:flex; gap:32px; font-size:13px; color:#9CA3AF; }
+    h2 { font-size:20px; font-weight:700; color:#0A1628; margin:36px 0 12px; padding-bottom:8px; border-bottom:1px solid #E5E7EB; }
+    h3 { font-size:15px; font-weight:700; color:#1B6FEB; margin:24px 0 8px; }
+    p { font-size:14px; color:#374151; line-height:1.7; margin-bottom:10px; }
+    ul { padding-left:20px; margin-bottom:12px; }
+    li { font-size:14px; color:#374151; line-height:1.7; margin-bottom:4px; }
+    table { width:100%; border-collapse:collapse; margin:12px 0 24px; font-size:13px; }
+    th { background:#0A1628; color:white; text-align:left; padding:10px 12px; font-weight:700; border:1px solid #1E293B; }
+    td { padding:9px 12px; border:1px solid #E5E7EB; color:#374151; vertical-align:top; }
+    tr:nth-child(even) td { background:#F9FAFB; }
+    code { background:#F3F4F6; padding:2px 6px; border-radius:4px; font-family:monospace; font-size:12px; color:#1B6FEB; }
+    .pk { color:#7C3AED; font-weight:700; }
+    .fk { color:#059669; font-weight:700; }
+    .policy-block { background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; padding:14px 16px; margin-bottom:10px; }
+    .policy-name { font-size:13px; font-weight:700; color:#065F46; margin-bottom:4px; }
+    .policy-detail { font-size:12px; color:#374151; font-family:monospace; }
+    .policy-warn { background:#FFFBEB; border:1px solid #FCD34D; border-radius:8px; padding:14px 16px; margin-bottom:10px; }
+    .policy-warn-name { font-size:13px; font-weight:700; color:#92400E; margin-bottom:4px; }
+    .callout { background:#F0F7FF; border-left:4px solid #1B6FEB; padding:14px 16px; border-radius:0 8px 8px 0; margin:16px 0; font-size:14px; color:#374151; line-height:1.7; }
+    .footer { margin-top:48px; padding-top:16px; border-top:1px solid #E5E7EB; font-size:11px; color:#9CA3AF; text-align:center; }
+    @media print { body { padding:24px; } }
+  </style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="brand">JobTrack AI · Internal Documentation</div>
+  <h1>Database Schema & RLS Policies</h1>
+  <div class="doc-type">DB Schema — v1.0 · Supabase PostgreSQL</div>
+  <div class="meta-row">
+    <span>Date: June 2026</span>
+    <span>Owner: Akshay Rohilla</span>
+    <span>Status: Live</span>
+  </div>
+</div>
+
+<div class="callout">
+  <strong>Access model:</strong> Backend uses the <strong>service role key</strong> — bypasses RLS entirely. RLS policies protect against anyone using a user JWT to query Supabase directly, bypassing the API. All writes from the backend are safe by design.
+</div>
+
+<h2>Table Overview</h2>
+<table>
+  <tr><th>Table</th><th>Purpose</th><th>RLS</th><th>User-scoped</th></tr>
+  <tr><td><code>credits</code></td><td>Credit balance per user</td><td>✅</td><td>Yes (user_id)</td></tr>
+  <tr><td><code>usage_log</code></td><td>Every credit deduction event</td><td>✅</td><td>Yes (user_id)</td></tr>
+  <tr><td><code>cv_profiles</code></td><td>Parsed CV data per user</td><td>✅</td><td>Yes (user_id)</td></tr>
+  <tr><td><code>applications</code></td><td>Job applications tracker</td><td>✅</td><td>Yes (user_id)</td></tr>
+  <tr><td><code>jd_evaluations</code></td><td>JD evaluation history</td><td>✅</td><td>Yes (user_id)</td></tr>
+  <tr><td><code>payment_log</code></td><td>Payment transactions</td><td>✅</td><td>Yes (user_id)</td></tr>
+  <tr><td><code>cv_tailoring_log</code></td><td>CV tailoring history</td><td>✅</td><td>Yes (user_id)</td></tr>
+  <tr><td><code>jd_analyses</code></td><td>Recruiter JD analysis (legacy)</td><td>✅</td><td>No (user_session text)</td></tr>
+  <tr><td><code>shortlist</code></td><td>Recruiter candidate shortlist (legacy)</td><td>✅</td><td>No (user_session text)</td></tr>
+</table>
+
+<h2>Table Schemas</h2>
+
+<h3>credits</h3>
+<p>One row per user. Tracks current balance and lifetime stats. Written by backend service role only.</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="pk">id</td><td>uuid</td><td>Primary key, auto-generated</td></tr>
+  <tr><td class="fk">user_id</td><td>uuid</td><td>FK → auth.users.id, unique</td></tr>
+  <tr><td>balance</td><td>integer</td><td>Current spendable credits. Default 3 (set by trigger).</td></tr>
+  <tr><td>lifetime_used</td><td>integer</td><td>Total credits ever consumed. Default 0.</td></tr>
+  <tr><td>lifetime_purchased</td><td>integer</td><td>Total credits ever bought. Default 0.</td></tr>
+  <tr><td>updated_at</td><td>timestamptz</td><td>Updated on every balance change</td></tr>
+</table>
+
+<h3>usage_log</h3>
+<p>Append-only. One row per credit-consuming action.</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="pk">id</td><td>uuid</td><td>Primary key</td></tr>
+  <tr><td class="fk">user_id</td><td>uuid</td><td>FK → auth.users.id</td></tr>
+  <tr><td>action</td><td>text</td><td>One of: jd_evaluate, cv_tailor, interview_prep, admin_gift</td></tr>
+  <tr><td>credits_used</td><td>integer</td><td>0 for admin_gift; 1 for all AI actions</td></tr>
+  <tr><td>created_at</td><td>timestamptz</td><td>Auto set on insert</td></tr>
+</table>
+
+<h3>cv_profiles</h3>
+<p>One row per CV upload. Latest row used for profile restoration.</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="pk">id</td><td>uuid</td><td>Primary key</td></tr>
+  <tr><td class="fk">user_id</td><td>uuid</td><td>FK → auth.users.id</td></tr>
+  <tr><td>name</td><td>text</td><td>Full name from CV</td></tr>
+  <tr><td>email</td><td>text</td><td>Email extracted from CV (nullable)</td></tr>
+  <tr><td>phone</td><td>text</td><td>Phone extracted from CV (nullable)</td></tr>
+  <tr><td>linkedin</td><td>text</td><td>LinkedIn URL extracted from CV (nullable)</td></tr>
+  <tr><td>title</td><td>text</td><td>Current/most recent job title</td></tr>
+  <tr><td>location</td><td>text</td><td>City, Country</td></tr>
+  <tr><td>years_exp</td><td>text</td><td>e.g. "6 years"</td></tr>
+  <tr><td>seniority</td><td>text</td><td>Junior / Mid / Senior / Lead / Executive</td></tr>
+  <tr><td>domain</td><td>text</td><td>Short domain label</td></tr>
+  <tr><td>skills</td><td>jsonb</td><td>Array of up to 25 skill strings</td></tr>
+  <tr><td>summary</td><td>text</td><td>2–3 sentence AI-generated summary</td></tr>
+  <tr><td>raw_text</td><td>text</td><td>First 12,000 chars of CV text — used for tailoring and interview prep</td></tr>
+  <tr><td>initials</td><td>text</td><td>2-char initials for avatar display</td></tr>
+  <tr><td>created_at</td><td>timestamptz</td><td>Auto set on insert</td></tr>
+</table>
+
+<h3>applications</h3>
+<p>Job applications tracked in the Kanban board.</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="pk">id</td><td>uuid</td><td>Primary key</td></tr>
+  <tr><td class="fk">user_id</td><td>uuid</td><td>FK → auth.users.id</td></tr>
+  <tr><td>company</td><td>text</td><td></td></tr>
+  <tr><td>role</td><td>text</td><td></td></tr>
+  <tr><td>status</td><td>text</td><td>applied / interview / offer / rejected</td></tr>
+  <tr><td>job_url</td><td>text</td><td>Source URL (nullable)</td></tr>
+  <tr><td>notes</td><td>text</td><td>User notes (nullable)</td></tr>
+  <tr><td>created_at</td><td>timestamptz</td><td></td></tr>
+  <tr><td>updated_at</td><td>timestamptz</td><td></td></tr>
+</table>
+
+<h3>jd_evaluations</h3>
+<p>History of JD evaluations per user.</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="pk">id</td><td>uuid</td><td>Primary key</td></tr>
+  <tr><td class="fk">user_id</td><td>uuid</td><td>FK → auth.users.id</td></tr>
+  <tr><td>jd_text</td><td>text</td><td>First 3,000 chars of JD</td></tr>
+  <tr><td>grade</td><td>text</td><td>A / B / C / D / F</td></tr>
+  <tr><td>role_summary</td><td>text</td><td></td></tr>
+  <tr><td>matched_skills</td><td>jsonb</td><td>Array of matched skill strings</td></tr>
+  <tr><td>gaps</td><td>jsonb</td><td>Array of gap skill strings</td></tr>
+  <tr><td>red_flags</td><td>jsonb</td><td>Array of red flag strings</td></tr>
+  <tr><td>recommended_action</td><td>text</td><td>apply_now / apply_with_tailoring / skip / needs_more_info</td></tr>
+  <tr><td>salary_min</td><td>integer</td><td>Estimated min salary (INR)</td></tr>
+  <tr><td>salary_max</td><td>integer</td><td>Estimated max salary (INR)</td></tr>
+  <tr><td>application_id</td><td>uuid</td><td>FK → applications.id (nullable)</td></tr>
+  <tr><td>created_at</td><td>timestamptz</td><td></td></tr>
+</table>
+
+<h3>payment_log</h3>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="pk">id</td><td>uuid</td><td>Primary key</td></tr>
+  <tr><td class="fk">user_id</td><td>uuid</td><td>FK → auth.users.id</td></tr>
+  <tr><td>razorpay_order_id</td><td>text</td><td></td></tr>
+  <tr><td>razorpay_payment_id</td><td>text</td><td></td></tr>
+  <tr><td>amount</td><td>integer</td><td>Amount in paise (₹199 = 19900)</td></tr>
+  <tr><td>credits_added</td><td>integer</td><td></td></tr>
+  <tr><td>pack_id</td><td>text</td><td>e.g. "starter"</td></tr>
+  <tr><td>created_at</td><td>timestamptz</td><td></td></tr>
+</table>
+
+<h3>jd_analyses (Recruiter — Legacy)</h3>
+<p>No user_id — uses user_session text. Recruiter mode only, currently admin-only.</p>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="pk">id</td><td>uuid</td><td>Primary key</td></tr>
+  <tr><td>user_session</td><td>text</td><td>Session identifier (not auth user_id)</td></tr>
+  <tr><td>jd_text</td><td>text</td><td></td></tr>
+  <tr><td>required_skills</td><td>jsonb</td><td></td></tr>
+  <tr><td>nice_to_have</td><td>jsonb</td><td></td></tr>
+  <tr><td>seniority / years_exp / domain / summary</td><td>text</td><td></td></tr>
+  <tr><td>created_at</td><td>timestamptz</td><td></td></tr>
+</table>
+
+<h3>shortlist (Recruiter — Legacy)</h3>
+<table>
+  <tr><th>Column</th><th>Type</th><th>Notes</th></tr>
+  <tr><td class="pk">id</td><td>uuid</td><td>Primary key</td></tr>
+  <tr><td>user_session</td><td>text</td><td></td></tr>
+  <tr><td class="fk">jd_id</td><td>uuid</td><td>FK → jd_analyses.id</td></tr>
+  <tr><td>candidate_name / candidate_title</td><td>text</td><td></td></tr>
+  <tr><td>match_score</td><td>integer</td><td>0–100</td></tr>
+  <tr><td>matched_skills</td><td>jsonb</td><td></td></tr>
+  <tr><td>created_at</td><td>timestamptz</td><td></td></tr>
+</table>
+
+<h2>RLS Policies</h2>
+
+<h3>Secure (per-user isolation)</h3>
+<div class="policy-block"><div class="policy-name">applications — 4 policies (SELECT, INSERT, UPDATE, DELETE)</div><div class="policy-detail">USING (auth.uid() = user_id)</div></div>
+<div class="policy-block"><div class="policy-name">credits — SELECT only</div><div class="policy-detail">USING (auth.uid() = user_id) · Writes only via service role</div></div>
+<div class="policy-block"><div class="policy-name">cv_profiles — ALL operations</div><div class="policy-detail">USING (auth.uid() = user_id)</div></div>
+<div class="policy-block"><div class="policy-name">cv_tailoring_log — ALL operations</div><div class="policy-detail">USING (auth.uid() = user_id)</div></div>
+<div class="policy-block"><div class="policy-name">jd_evaluations — ALL operations</div><div class="policy-detail">USING (auth.uid() = user_id)</div></div>
+<div class="policy-block"><div class="policy-name">payment_log — SELECT only</div><div class="policy-detail">USING (auth.uid() = user_id) · Writes only via service role</div></div>
+<div class="policy-block"><div class="policy-name">usage_log — SELECT only</div><div class="policy-detail">USING (auth.uid() = user_id) · Writes only via service role</div></div>
+
+<h3>Authenticated users only (Recruiter legacy tables)</h3>
+<div class="policy-warn"><div class="policy-warn-name">jd_analyses — authenticated users only</div><div class="policy-detail">TO authenticated USING (true) · No per-user isolation — admin only in practice</div></div>
+<div class="policy-warn"><div class="policy-warn-name">shortlist — authenticated users only</div><div class="policy-detail">TO authenticated USING (true) · No per-user isolation — admin only in practice</div></div>
+
+<h3>DB Trigger — Signup Credits</h3>
+<p>Function <code>handle_new_user()</code> fires on INSERT into <code>auth.users</code>. Inserts a row into <code>public.credits</code> with <code>balance = 3</code>. This is how every new user gets their 3 free credits automatically on signup.</p>
+
+<div class="footer">JobTrack AI · DB Schema v1.0 · June 2026 · Confidential</div>
+</body>
+</html>

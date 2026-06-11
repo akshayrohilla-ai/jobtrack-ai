@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Flow — JobTrack AI</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',Arial,sans-serif; color:#1a1a2e; background:white; padding:48px; max-width:960px; margin:0 auto; }
+    .cover { border-bottom:3px solid #1B6FEB; padding-bottom:32px; margin-bottom:40px; }
+    .brand { font-size:12px; color:#1B6FEB; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:12px; }
+    h1 { font-size:36px; font-weight:800; color:#0A1628; letter-spacing:-1px; margin-bottom:8px; }
+    .doc-type { font-size:18px; color:#6B7280; margin-bottom:16px; }
+    .meta-row { display:flex; gap:32px; font-size:13px; color:#9CA3AF; }
+    h2 { font-size:20px; font-weight:700; color:#0A1628; margin:36px 0 12px; padding-bottom:8px; border-bottom:1px solid #E5E7EB; }
+    h3 { font-size:15px; font-weight:700; color:#1B6FEB; margin:24px 0 10px; }
+    p { font-size:14px; color:#374151; line-height:1.7; margin-bottom:10px; }
+    ul { padding-left:20px; margin-bottom:12px; }
+    li { font-size:14px; color:#374151; line-height:1.7; margin-bottom:4px; }
+    code { background:#F3F4F6; padding:2px 6px; border-radius:4px; font-family:monospace; font-size:12px; color:#1B6FEB; }
+    pre { background:#0A1628; color:#E2E8F0; padding:20px; border-radius:10px; font-size:12px; line-height:2; margin:16px 0; overflow-x:auto; font-family:monospace; }
+    .flow-card { border:1px solid #E5E7EB; border-radius:10px; padding:20px; margin-bottom:16px; }
+    .flow-title { font-size:15px; font-weight:700; color:#0A1628; margin-bottom:14px; padding-bottom:10px; border-bottom:1px solid #F3F4F6; display:flex; align-items:center; gap:10px; }
+    .step { display:flex; gap:14px; align-items:flex-start; margin-bottom:10px; }
+    .step-num { width:24px; height:24px; min-width:24px; border-radius:50%; background:#1B6FEB; color:white; font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center; margin-top:1px; }
+    .step-content { flex:1; }
+    .step-action { font-size:13px; font-weight:600; color:#0A1628; }
+    .step-detail { font-size:12px; color:#6B7280; margin-top:2px; }
+    .step-fe { border-left:3px solid #1B6FEB; padding-left:10px; }
+    .step-be { border-left:3px solid #7C3AED; padding-left:10px; }
+    .step-db { border-left:3px solid #059669; padding-left:10px; }
+    .step-ai { border-left:3px solid #F59E0B; padding-left:10px; }
+    .legend { display:flex; gap:20px; margin-bottom:20px; flex-wrap:wrap; }
+    .legend-item { display:flex; align-items:center; gap:6px; font-size:12px; color:#6B7280; }
+    .legend-dot { width:12px; height:12px; border-radius:2px; }
+    .callout { background:#F0F7FF; border-left:4px solid #1B6FEB; padding:14px 16px; border-radius:0 8px 8px 0; margin:16px 0; font-size:14px; color:#374151; line-height:1.7; }
+    .footer { margin-top:48px; padding-top:16px; border-top:1px solid #E5E7EB; font-size:11px; color:#9CA3AF; text-align:center; }
+    @media print { body { padding:24px; } }
+  </style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="brand">JobTrack AI · Internal Documentation</div>
+  <h1>User & Data Flows</h1>
+  <div class="doc-type">Flow Document — v1.0</div>
+  <div class="meta-row">
+    <span>Date: June 2026</span>
+    <span>Owner: Akshay Rohilla</span>
+    <span>Status: Live</span>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#1B6FEB"></div>Frontend</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#7C3AED"></div>Backend</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#059669"></div>Database</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#F59E0B"></div>AI / External</div>
+</div>
+
+<h2>1. New User Signup & First Session</h2>
+<div class="flow-card">
+  <div class="step"><div class="step-num">1</div><div class="step-content step-fe"><div class="step-action">User visits jobtrackai.co.in</div><div class="step-detail">Not authenticated → Landing Page shown</div></div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content step-fe"><div class="step-action">Clicks "Get Started Free" → AuthModal opens</div><div class="step-detail">Sign Up tab shown by default</div></div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content step-fe"><div class="step-action">User enters email + password → submits</div><div class="step-detail">supabase.auth.signUp() called</div></div></div>
+  <div class="step"><div class="step-num">4</div><div class="step-content step-db"><div class="step-action">Supabase creates auth.users record</div><div class="step-detail">DB trigger fires automatically: inserts credits row with balance=3</div></div></div>
+  <div class="step"><div class="step-num">5</div><div class="step-content step-fe"><div class="step-action">User auto signed-in, JWT stored in session</div><div class="step-detail">App renders, credit balance fetched: shows "3 credits"</div></div></div>
+  <div class="step"><div class="step-num">6</div><div class="step-content step-fe"><div class="step-action">My Profile tab shown — user prompted to upload CV</div><div class="step-detail">restoreFromDB() runs silently — no profile found yet (404), silent ignore</div></div></div>
+</div>
+
+<h2>2. CV Upload & Parsing</h2>
+<div class="flow-card">
+  <div class="step"><div class="step-num">1</div><div class="step-content step-fe"><div class="step-action">User drops PDF/DOCX file on upload zone</div><div class="step-detail">File validated: type (pdf/docx/txt), size (&lt;10MB)</div></div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content step-be"><div class="step-action">POST /api/cv/parse — JWT verified, no credit check</div><div class="step-detail">Text extracted: PyPDF2 (PDF) or python-docx (DOCX)</div></div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content step-ai"><div class="step-action">Haiku 4.5 parses CV text → JSON</div><div class="step-detail">Extracts: name, email, phone, linkedin, title, location, years_exp, seniority, domain, skills (25), summary, initials</div></div></div>
+  <div class="step"><div class="step-num">4</div><div class="step-content step-db"><div class="step-action">Profile saved to cv_profiles table</div><div class="step-detail">Including email, phone, linkedin, raw_text (12K chars)</div></div></div>
+  <div class="step"><div class="step-num">5</div><div class="step-content step-fe"><div class="step-action">Profile displayed on My Profile card</div><div class="step-detail">raw_text stored in sessionStorage (key: jobtrack_raw_cv). Profile state set in SeekerMode.</div></div></div>
+</div>
+
+<h2>3. JD Evaluation</h2>
+<div class="flow-card">
+  <div class="step"><div class="step-num">1</div><div class="step-content step-fe"><div class="step-action">User pastes JD text, enters role/company (optional)</div><div class="step-detail">Minimum 50 chars required</div></div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content step-be"><div class="step-action">POST /api/evaluate/evaluate-jd — JWT verified</div><div class="step-detail">Rate check: 10/min per IP</div></div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content step-db"><div class="step-action">Credit check: balance ≥ 1?</div><div class="step-detail">If no: 402 → frontend opens PaymentModal. If yes: balance decremented by 1, usage_log row inserted.</div></div></div>
+  <div class="step"><div class="step-num">4</div><div class="step-content step-ai"><div class="step-action">Sonnet 4.6 evaluates JD against CV profile</div><div class="step-detail">System prompt cached (ephemeral). Returns: grade, role_summary, cv_match, gaps, salary_range, red_flags, green_flags, recommended_action</div></div></div>
+  <div class="step"><div class="step-num">5</div><div class="step-content step-db"><div class="step-action">Evaluation saved to jd_evaluations table</div></div></div>
+  <div class="step"><div class="step-num">6</div><div class="step-content step-fe"><div class="step-action">Result displayed. Saved to localStorage.</div><div class="step-detail">evalResult, evalJdText, evalRole, evalCompany all persisted. Survives browser refresh.</div></div></div>
+</div>
+
+<h2>4. CV Tailoring</h2>
+<div class="flow-card">
+  <div class="step"><div class="step-num">1</div><div class="step-content step-fe"><div class="step-action">User navigates to Tailor CV tab</div><div class="step-detail">Checklist shown: CV parsed ✓, CV text loaded ✓, JD evaluated ✓ — all must be green to enable button</div></div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content step-be"><div class="step-action">POST /api/tailor/tailor-cv — JWT, credit check, deduction</div><div class="step-detail">Sends: jd_text, cv_raw_text, cv_profile</div></div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content step-ai"><div class="step-action">Sonnet 4.6 rewrites CV for the specific JD</div><div class="step-detail">Returns: professional_summary, skills, experience, technical_projects, certifications, education, application_briefing</div></div></div>
+  <div class="step"><div class="step-num">4</div><div class="step-content step-fe"><div class="step-action">Result displayed in UI. State lifted to SeekerMode.</div><div class="step-detail">Result persists across tab switches. No "Tailor again" button — prevents accidental credit spend.</div></div></div>
+  <div class="step"><div class="step-num">5</div><div class="step-content step-fe"><div class="step-action">User clicks Download CV (.docx)</div><div class="step-detail">DOCX generated entirely in browser using docx npm package. contact details from profile inserted. Downloaded as {Name}-tailored-CV-{date}.docx</div></div></div>
+</div>
+
+<h2>5. Interview Prep</h2>
+<div class="flow-card">
+  <div class="step"><div class="step-num">1</div><div class="step-content step-fe"><div class="step-action">User navigates to Interview Prep tab</div><div class="step-detail">Same checklist as Tailor CV. All 3 must be green.</div></div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content step-be"><div class="step-action">POST /api/interview/prep — JWT, credit check, deduction</div></div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content step-ai"><div class="step-action">Sonnet 4.6 generates interview pack</div><div class="step-detail">Returns: 5 behavioral questions with STAR answers, 2 red flags with framing, 4 questions to ask interviewer</div></div></div>
+  <div class="step"><div class="step-num">4</div><div class="step-content step-be"><div class="step-action">If AI fails: credit automatically refunded</div><div class="step-detail">refund_credits() called. User sees "your credit has been refunded" message.</div></div></div>
+  <div class="step"><div class="step-num">5</div><div class="step-content step-fe"><div class="step-action">Result shown — expandable STAR cards, red flags, questions</div><div class="step-detail">State lifted to SeekerMode. Download prep button → HTML file → user prints to PDF.</div></div></div>
+</div>
+
+<h2>6. Payment Flow</h2>
+<div class="flow-card">
+  <div class="step"><div class="step-num">1</div><div class="step-content step-fe"><div class="step-action">User clicks + Buy or PaymentModal triggered by 402</div></div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content step-be"><div class="step-action">POST /api/payments/create-order with pack_id</div><div class="step-detail">Razorpay order created. Returns order_id, amount, currency. 503 if keys not configured.</div></div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content step-fe"><div class="step-action">Razorpay modal opens in browser</div><div class="step-detail">User completes payment via UPI / card / netbanking</div></div></div>
+  <div class="step"><div class="step-num">4</div><div class="step-content step-be"><div class="step-action">POST /api/payments/verify-payment</div><div class="step-detail">HMAC-SHA256 signature verified. If valid: credits added to credits table, payment_log row inserted.</div></div></div>
+  <div class="step"><div class="step-num">5</div><div class="step-content step-fe"><div class="step-action">Credit balance updated in header. Modal closes.</div></div></div>
+</div>
+
+<h2>7. Returning User Session Restore</h2>
+<div class="flow-card">
+  <div class="step"><div class="step-num">1</div><div class="step-content step-fe"><div class="step-action">User opens app (returning, session stored in browser)</div></div></div>
+  <div class="step"><div class="step-num">2</div><div class="step-content step-fe"><div class="step-action">supabase.auth.getSession() → JWT valid → user set</div></div></div>
+  <div class="step"><div class="step-num">3</div><div class="step-content step-be"><div class="step-action">GET /api/evaluate/balance → credit balance shown in header</div></div></div>
+  <div class="step"><div class="step-num">4</div><div class="step-content step-be"><div class="step-action">GET /api/cv/profile → profile restored</div><div class="step-detail">name, email, phone, linkedin, title, skills all restored into state</div></div></div>
+  <div class="step"><div class="step-num">5</div><div class="step-content step-fe"><div class="step-action">raw_text restored from sessionStorage if present</div><div class="step-detail">If not in sessionStorage but in DB: restored from raw_text column</div></div></div>
+  <div class="step"><div class="step-num">6</div><div class="step-content step-fe"><div class="step-action">JD eval state restored from localStorage</div><div class="step-detail">evalResult, evalJdText, evalRole, evalCompany — user can go straight to Tailor or Interview Prep without re-evaluating</div></div></div>
+</div>
+
+<h2>8. State Persistence Summary</h2>
+<table>
+  <tr><th>Data</th><th>Where stored</th><th>Survives refresh?</th><th>Survives tab close?</th></tr>
+  <tr><td>Auth session / JWT</td><td>Supabase client (localStorage)</td><td>✅</td><td>✅</td></tr>
+  <tr><td>CV profile (parsed fields)</td><td>Supabase DB + restored on login</td><td>✅</td><td>✅</td></tr>
+  <tr><td>Raw CV text</td><td>sessionStorage</td><td>✅</td><td>❌ (re-upload needed)</td></tr>
+  <tr><td>JD evaluation result</td><td>localStorage</td><td>✅</td><td>✅</td></tr>
+  <tr><td>CV tailor result</td><td>React state (SeekerMode)</td><td>❌</td><td>❌</td></tr>
+  <tr><td>Interview prep result</td><td>React state (SeekerMode)</td><td>❌</td><td>❌</td></tr>
+  <tr><td>Credit balance</td><td>Supabase DB + fetched on login</td><td>✅</td><td>✅</td></tr>
+  <tr><td>Applications / tracker</td><td>Supabase DB</td><td>✅</td><td>✅</td></tr>
+</table>
+
+<h2>9. Full Cycle — Ideal User Journey</h2>
+<pre>
+Landing Page
+    ↓ Sign up (3 free credits granted)
+My Profile → Upload CV (free)
+    ↓ Profile shown: name, skills, seniority
+Evaluate JD → Paste JD, click Evaluate (-1 credit)
+    ↓ Grade A shown, 12 skills matched, salary ₹9-15L
+Tailor CV → Click Tailor CV for this role (-1 credit)
+    ↓ Rewritten CV shown, Download .docx
+Interview Prep → Click Generate (-1 credit)
+    ↓ 5 STAR answers, 2 red flags, 4 questions to ask
+    ↓ Download prep pack as HTML → print to PDF
+
+Total: 3 credits used = free signup credits fully consumed
+User buys ₹199 pack (10 credits) to continue
+</pre>
+
+<div class="footer">JobTrack AI · Flow v1.0 · June 2026 · Confidential</div>
+</body>
+</html>
