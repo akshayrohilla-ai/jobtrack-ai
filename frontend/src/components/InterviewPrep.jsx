@@ -1,7 +1,123 @@
 import { useState } from 'react'
-import { Sparkles, Lock, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, Zap, MessageSquare, ShieldAlert, HelpCircle } from 'lucide-react'
+import { Sparkles, Lock, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, Zap, MessageSquare, ShieldAlert, HelpCircle, Download } from 'lucide-react'
 import { prepareInterview } from '../lib/api'
 import { useAuth } from '../App'
+
+function downloadInterviewPDF(result, profile, role, company) {
+  const name = profile?.name || 'Candidate'
+  const roleLabel = role || 'this role'
+  const companyLabel = company || ''
+  const date = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
+
+  const starColor = { situation: '#7C3AED', task: '#1B6FEB', action: '#059669', result: '#D97706' }
+  const starLabel = { situation: 'S — Situation', task: 'T — Task', action: 'A — Action', result: 'R — Result' }
+
+  const questionsHtml = (result.behavioral_questions || []).map((q, i) => `
+    <div class="question-card">
+      <div class="q-header">
+        <div class="q-num">${i + 1}</div>
+        <div>
+          <div class="q-text">${q.question}</div>
+          ${q.why_asked ? `<div class="q-probe">Probing for: ${q.why_asked}</div>` : ''}
+        </div>
+      </div>
+      <div class="star-grid">
+        ${['situation','task','action','result'].map(k => q.star_answer?.[k] ? `
+          <div class="star-block" style="border-left:3px solid ${starColor[k]}">
+            <div class="star-label" style="color:${starColor[k]}">${starLabel[k]}</div>
+            <div class="star-text">${q.star_answer[k]}</div>
+          </div>` : '').join('')}
+      </div>
+      ${q.key_phrases?.length ? `
+        <div class="phrases-label">Mirror these phrases</div>
+        <div class="phrases">${q.key_phrases.map(p => `<span class="phrase">"${p}"</span>`).join('')}</div>` : ''}
+    </div>`).join('')
+
+  const redFlagsHtml = (result.red_flags || []).map(rf => `
+    <div class="flag-card">
+      <div class="flag-topic">${rf.topic}</div>
+      <div class="flag-q">Likely question: "${rf.likely_question}"</div>
+      <div class="flag-frame">${rf.how_to_frame}</div>
+    </div>`).join('')
+
+  const questionsToAskHtml = (result.questions_to_ask || []).map(q => `
+    <div class="ask-card">
+      <div class="ask-q">"${q.question}"</div>
+      <div class="ask-why">${q.why_it_works}</div>
+    </div>`).join('')
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Interview Prep — ${roleLabel}${companyLabel ? ' at ' + companyLabel : ''}</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Segoe UI',Arial,sans-serif; color:#1a1a2e; background:white; padding:40px; max-width:820px; margin:0 auto; }
+    .header { border-bottom:2px solid #1B6FEB; padding-bottom:18px; margin-bottom:24px; }
+    .brand { font-size:12px; color:#1B6FEB; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+    .title { font-size:22px; font-weight:700; color:#0A1628; }
+    .meta { font-size:12px; color:#999; margin-top:4px; }
+    .section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#999; margin:28px 0 12px; }
+    .question-card { border:1px solid #e5e7eb; border-radius:10px; padding:18px; margin-bottom:14px; }
+    .q-header { display:flex; gap:12px; align-items:flex-start; margin-bottom:14px; }
+    .q-num { width:24px; height:24px; border-radius:50%; background:#1B6FEB; color:white; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+    .q-text { font-size:14px; font-weight:600; color:#0A1628; line-height:1.5; }
+    .q-probe { font-size:12px; color:#999; margin-top:4px; }
+    .star-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+    .star-block { padding:10px 12px; border-radius:6px; background:#f9fafb; }
+    .star-label { font-size:11px; font-weight:700; margin-bottom:4px; }
+    .star-text { font-size:12px; color:#444; line-height:1.6; }
+    .phrases-label { font-size:11px; font-weight:600; color:#999; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
+    .phrases { display:flex; flex-wrap:wrap; gap:6px; }
+    .phrase { background:#EBF2FF; color:#1D4ED8; border-radius:4px; padding:2px 8px; font-size:11px; border:1px solid #BFDBFE; }
+    .flag-card { border:1px solid #FCD34D; border-radius:8px; padding:14px; margin-bottom:10px; background:#FFFBEB; }
+    .flag-topic { font-size:13px; font-weight:700; color:#92400E; margin-bottom:4px; }
+    .flag-q { font-size:12px; color:#B45309; font-style:italic; margin-bottom:6px; }
+    .flag-frame { font-size:13px; color:#444; line-height:1.6; }
+    .ask-card { border:1px solid #D1FAE5; border-radius:8px; padding:12px; margin-bottom:8px; background:#F0FDF4; }
+    .ask-q { font-size:13px; font-weight:600; color:#065F46; margin-bottom:4px; }
+    .ask-why { font-size:12px; color:#6B7280; }
+    .coming-soon { margin-top:28px; padding:16px 20px; border:1px dashed #C4B5FD; border-radius:10px; background:#F5F3FF; text-align:center; }
+    .cs-title { font-size:13px; font-weight:700; color:#7C3AED; margin-bottom:4px; }
+    .cs-desc { font-size:12px; color:#8B5CF6; }
+    .footer { margin-top:32px; padding-top:14px; border-top:1px solid #e5e7eb; font-size:11px; color:#bbb; text-align:center; }
+    @media print { body { padding:20px; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">JobTrack AI — Interview Prep Pack</div>
+    <div class="title">${roleLabel}${companyLabel ? ' at ' + companyLabel : ''}</div>
+    <div class="meta">Prepared on ${date} · ${name}</div>
+  </div>
+
+  <div class="section-title">Behavioural Questions &amp; STAR Answers</div>
+  ${questionsHtml}
+
+  <div class="section-title">Weak Spots — Prepare for These</div>
+  ${redFlagsHtml}
+
+  <div class="section-title">Questions to Ask the Interviewer</div>
+  ${questionsToAskHtml}
+
+  <div class="coming-soon">
+    <div class="cs-title">🧠 Mock Interview Mode — Coming Soon</div>
+    <div class="cs-desc">Answer questions in text, get AI feedback on your STAR structure, pacing, and delivery.</div>
+  </div>
+
+  <div class="footer">Generated by JobTrack AI · jobtrackai.co.in</div>
+</body>
+</html>`
+
+  const blob = new Blob([html], { type: 'text/html' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${name.replace(/\s+/g, '-')}-interview-prep-${new Date().toISOString().split('T')[0]}.html`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 function STARCard({ q, index }) {
   const [open, setOpen] = useState(index === 0)
@@ -232,10 +348,10 @@ export default function InterviewPrep({ profile, rawCvText, evalJdText, evalRole
                 {evalCompany ? <span> at <strong style={{ color: 'var(--text-secondary)' }}>{evalCompany}</strong></span> : ''}
               </span>
             </div>
-            <button onClick={() => {
-              if (window.confirm('Generating again will use 1 credit. Continue?')) setResult(null)
-            }} className="btn-ghost text-xs py-2">
-              Regenerate
+            <button
+              onClick={() => downloadInterviewPDF(result, profile, evalRole, evalCompany)}
+              className="btn-primary text-xs py-2">
+              <Download size={13} />Download prep
             </button>
           </div>
 

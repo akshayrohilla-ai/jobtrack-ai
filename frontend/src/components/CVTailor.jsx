@@ -438,11 +438,6 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
                 className="btn-primary text-xs py-2">
                 <Download size={13} />Download CV (.docx)
               </button>
-              <button onClick={() => {
-                if (window.confirm('Tailoring again will use 1 credit. Continue?')) setResult(null)
-              }} className="btn-ghost text-xs py-2">
-                Tailor again
-              </button>
             </div>
           </div>
 

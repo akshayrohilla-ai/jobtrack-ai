@@ -94,7 +94,8 @@ export default function SeekerMode() {
 
       // Restore parsed profile into state
       setProfile({
-        name: data.name, title: data.title, location: data.location,
+        name: data.name, email: data.email, phone: data.phone, linkedin: data.linkedin,
+        title: data.title, location: data.location,
         years_exp: data.years_exp, seniority: data.seniority, domain: data.domain,
         skills: data.skills || [], summary: data.summary, initials: data.initials,
       })

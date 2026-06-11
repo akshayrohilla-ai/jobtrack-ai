@@ -10,6 +10,9 @@ router = APIRouter()
 
 class CVProfile(BaseModel):
     name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    linkedin: Optional[str] = None
     title: Optional[str] = None
     location: Optional[str] = None
     years_exp: Optional[str] = None
@@ -60,6 +63,9 @@ async def parse_cv(
         supabase.table("cv_profiles").insert({
             "user_id": user_id,
             "name": profile.get("name"),
+            "email": profile.get("email"),
+            "phone": profile.get("phone"),
+            "linkedin": profile.get("linkedin"),
             "title": profile.get("title"),
             "location": profile.get("location"),
             "years_exp": profile.get("years_exp"),
