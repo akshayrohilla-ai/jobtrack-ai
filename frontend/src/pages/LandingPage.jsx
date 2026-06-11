@@ -40,8 +40,8 @@ const FEATURES = [
   {
     icon: '🔍',
     title: 'AI Job Search',
-    desc: 'Search jobs by role, location, and seniority. AI matches openings to your CV profile automatically.',
-    tag: 'Free',
+    desc: 'Search jobs by role, location, and seniority. AI generates smart LinkedIn search links matched to your CV — free and unlimited, no credits needed.',
+    tag: 'Free & Unlimited',
     tagColor: '#10b981',
   },
   {
@@ -309,7 +309,7 @@ export default function LandingPage({ onGetStarted }) {
           </div>
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '20px 24px', display: 'inline-block', marginBottom: 48 }}>
             <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, margin: 0 }}>
-              📄 CV parsing is always <strong style={{ color: 'white' }}>free</strong> · 🎯 JD evaluation = 1 credit · ✨ CV tailoring = 1 credit · 🎤 Interview prep = 1 credit · 📊 Tracker is always <strong style={{ color: 'white' }}>free</strong>
+              📄 CV parsing is always <strong style={{ color: 'white' }}>free</strong> · 🔍 Job search is always <strong style={{ color: 'white' }}>free</strong> · 🎯 JD evaluation = 1 credit · ✨ CV tailoring = 1 credit · 🎤 Interview prep = 1 credit · 📊 Tracker is always <strong style={{ color: 'white' }}>free</strong>
             </p>
           </div>
           <div>
