@@ -6,7 +6,7 @@ export default function RefundPolicy() {
       <p>This Refund & Cancellation Policy applies to all credit purchases made on JobTrack AI, owned and operated by Bharti Rohilla, at <strong>jobtrackai.co.in</strong>.</p>
 
       <h2>1. Nature of the Product</h2>
-      <p>JobTrack AI sells digital credits that are used to access AI-powered features (JD evaluation and CV tailoring). Credits are consumed instantly when a feature is used. Because the service is delivered digitally and immediately upon use, special considerations apply to refunds.</p>
+      <p>JobTrack AI sells digital credits that are used to access AI-powered features (JD evaluation, CV tailoring, and interview preparation). Credits are consumed instantly when a feature is used. Because the service is delivered digitally and immediately upon use, special considerations apply to refunds.</p>
 
       <h2>2. Refund Eligibility</h2>
 
@@ -23,7 +23,7 @@ export default function RefundPolicy() {
         <li>Credits that have already been consumed (features used)</li>
         <li>Free credits issued on signup (these have no monetary value)</li>
         <li>Accounts terminated due to violation of our Terms & Conditions</li>
-        <li>Dissatisfaction with AI output quality (we recommend using your 2 free credits to evaluate the service before purchasing)</li>
+        <li>Dissatisfaction with AI output quality (we recommend using your 3 free credits to evaluate the service before purchasing)</li>
       </ul>
 
       <h2>3. Technical Failures</h2>

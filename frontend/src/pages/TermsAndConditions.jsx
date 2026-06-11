@@ -6,7 +6,7 @@ export default function TermsAndConditions() {
       <p>These Terms & Conditions ("Terms") govern your use of JobTrack AI, owned and operated by Bharti Rohilla ("we", "our", "us"), accessible at <strong>jobtrackai.co.in</strong>. By creating an account or using our service, you agree to these Terms.</p>
 
       <h2>1. Service Description</h2>
-      <p>JobTrack AI is an AI-powered job search assistant that provides CV parsing, job description evaluation, CV tailoring, job search, and application tracking services. The service is intended for individual job seekers and professionals in India.</p>
+      <p>JobTrack AI is an AI-powered career platform that provides CV parsing, job description evaluation, CV tailoring, interview preparation, job search, and application tracking services. The service is intended for individual job seekers and professionals in India.</p>
 
       <h2>2. Eligibility</h2>
       <p>You must be at least 18 years of age to use this service. By using JobTrack AI, you confirm that you are 18 or older and capable of entering into a legally binding agreement.</p>
@@ -22,11 +22,11 @@ export default function TermsAndConditions() {
 
       <h2>4. Credits and Payments</h2>
       <ul>
-        <li>New users receive 2 free credits upon registration. No credit card is required.</li>
+        <li>New users receive 3 free credits upon registration. No credit card is required.</li>
         <li>Additional credits can be purchased via Razorpay (₹199 for 10 credits, ₹499 for 30 credits).</li>
         <li>Credits are non-transferable and tied to your account.</li>
-        <li>CV parsing and application tracking are free and do not consume credits.</li>
-        <li>JD evaluation and CV tailoring each consume 1 credit per use.</li>
+        <li>CV parsing, job search, and application tracking are free and do not consume credits.</li>
+        <li>JD evaluation, CV tailoring, and interview preparation each consume 1 credit per use.</li>
         <li>All payments are processed securely by Razorpay. We do not store payment details.</li>
       </ul>
 
@@ -42,7 +42,7 @@ export default function TermsAndConditions() {
       </ul>
 
       <h2>6. AI-Generated Content Disclaimer</h2>
-      <p>JobTrack AI uses artificial intelligence (Anthropic Claude) to evaluate job descriptions and tailor CVs. AI outputs are for informational purposes only and may not always be accurate. We do not guarantee job offers, interview calls, or employment outcomes as a result of using our service. You are responsible for reviewing all AI-generated content before submitting it to employers.</p>
+      <p>JobTrack AI uses artificial intelligence (Anthropic Claude) to evaluate job descriptions, tailor CVs, and generate interview preparation content. AI outputs are for informational purposes only and may not always be accurate. We do not guarantee job offers, interview calls, or employment outcomes as a result of using our service. You are responsible for reviewing all AI-generated content before submitting it to employers or using it in interviews.</p>
 
       <h2>7. Intellectual Property</h2>
       <p>All content, design, code, and branding on JobTrack AI is owned by Bharti Rohilla / JobTrack AI. You retain ownership of your CV content and data. You grant us a limited licence to process your data solely to provide the service.</p>

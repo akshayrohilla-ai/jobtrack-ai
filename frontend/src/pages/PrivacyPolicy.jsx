@@ -10,7 +10,7 @@ export default function PrivacyPolicy() {
       <ul>
         <li><strong>Account information:</strong> Email address and password (or Google OAuth token) when you register.</li>
         <li><strong>CV data:</strong> The text extracted from your uploaded CV — skills, experience, job titles. We do not store your original CV file permanently.</li>
-        <li><strong>Usage data:</strong> Actions you take within the app (e.g., JD evaluations, CV tailoring) to manage your credit balance.</li>
+        <li><strong>Usage data:</strong> Actions you take within the app (e.g., JD evaluations, CV tailoring, interview preparation) to manage your credit balance.</li>
         <li><strong>Payment data:</strong> Order IDs and payment IDs from Razorpay. We do not store card numbers or UPI details — all payment processing is handled by Razorpay.</li>
         <li><strong>Technical data:</strong> Browser type, IP address, and access timestamps for security and debugging purposes.</li>
       </ul>
@@ -19,14 +19,14 @@ export default function PrivacyPolicy() {
       <ul>
         <li>To provide and operate the JobTrack AI service</li>
         <li>To process credit purchases and maintain your credit balance</li>
-        <li>To personalise job evaluations and CV tailoring using your CV profile</li>
+        <li>To personalise job evaluations, CV tailoring, and interview preparation using your CV profile</li>
         <li>To send transactional emails (account verification, password reset)</li>
         <li>To improve the product based on aggregated usage patterns</li>
       </ul>
 
       <h2>3. Data Storage and Security</h2>
       <p>Your data is stored on <strong>Supabase</strong> (PostgreSQL database hosted on AWS). We use Row-Level Security (RLS) to ensure your data is only accessible by you. All data is encrypted in transit using HTTPS/TLS.</p>
-      <p>Our AI features are powered by <strong>Anthropic Claude API</strong>. Your CV text and job descriptions are sent to Anthropic for processing. Anthropic does not use your data to train their models. See Anthropic's privacy policy for details.</p>
+      <p>Our AI features are powered by <strong>Anthropic Claude API</strong>. Your CV text, job descriptions, and interview-related inputs are sent to Anthropic for processing. Anthropic does not use your data to train their models. See Anthropic's privacy policy for details.</p>
 
       <h2>4. Data Sharing</h2>
       <p>We do not sell, rent, or share your personal data with third parties, except:</p>
