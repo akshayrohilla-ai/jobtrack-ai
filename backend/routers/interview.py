@@ -93,7 +93,7 @@ Return the full interview prep pack as JSON."""
     try:
         message = client.messages.create(
             model="claude-sonnet-4-6",
-            max_tokens=2500,
+            max_tokens=4096,
             temperature=0,
             system=[
                 {
@@ -120,8 +120,12 @@ Return the full interview prep pack as JSON."""
         result["_credits"] = {"balance": new_balance}
         return result
 
-    except (json.JSONDecodeError, Exception) as e:
-        # Refund the credit — the AI failed, not the user
+    except json.JSONDecodeError as e:
         await refund_credits(user_id, cost=1)
-        print(f"Interview prep error (refunded): {e}")
+        print(f"Interview prep JSON parse error: {e}")
+        print(f"Raw response was: {raw[:500]}")
+        raise HTTPException(status_code=500, detail="Interview prep failed — your credit has been refunded. Please try again.")
+    except Exception as e:
+        await refund_credits(user_id, cost=1)
+        print(f"Interview prep exception (refunded): {type(e).__name__}: {e}")
         raise HTTPException(status_code=500, detail="Interview prep failed — your credit has been refunded. Please try again.")
