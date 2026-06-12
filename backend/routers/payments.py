@@ -5,12 +5,12 @@ import os
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from slowapi import Limiter
-from slowapi.util import get_remote_address
+from middleware.ratelimit import user_or_ip
 from services.supabase_client import get_supabase
 from middleware.auth import get_current_user, get_credit_balance
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=user_or_ip)
 
 CREDIT_PACKS = {
     "pack_10": {"credits": 10, "amount_paise": 19900, "label": "10 Credits — ₹199"},

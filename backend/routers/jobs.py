@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Query, Request
 from slowapi import Limiter
-from slowapi.util import get_remote_address
+from middleware.ratelimit import user_or_ip
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=user_or_ip)
 
 LOCATION_MAP = {
     "pune": "Pune%2C+Maharashtra%2C+India",

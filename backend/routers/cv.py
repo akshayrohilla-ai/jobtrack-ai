@@ -2,13 +2,16 @@ from fastapi import APIRouter, UploadFile, File, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional
 from slowapi import Limiter
-from slowapi.util import get_remote_address
+from middleware.ratelimit import user_or_ip
 from services.cv_parser import extract_text_from_file, parse_cv_with_ai
 from services.supabase_client import get_supabase
 from middleware.auth import get_current_user
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=user_or_ip)
 
 
 class CVProfile(BaseModel):
@@ -59,7 +62,8 @@ async def parse_cv(
     try:
         profile = parse_cv_with_ai(cv_text)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI parsing failed: {str(e)}")
+        logger.error("CV AI parsing failed", exc_info=True)
+        raise HTTPException(status_code=500, detail="Could not parse this CV. Please try again.")
 
     # Save to Supabase scoped to user_id (best-effort, non-blocking)
     try:

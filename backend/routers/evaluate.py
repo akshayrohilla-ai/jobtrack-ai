@@ -5,11 +5,11 @@ import anthropic
 import os
 import json
 from slowapi import Limiter
-from slowapi.util import get_remote_address
+from middleware.ratelimit import user_or_ip
 from services.supabase_client import get_supabase
 from middleware.auth import get_current_user, require_credits, get_credit_balance
 
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=user_or_ip)
 
 router = APIRouter()
 

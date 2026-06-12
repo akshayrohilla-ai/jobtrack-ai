@@ -2,16 +2,19 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from middleware.ratelimit import user_or_ip
 from slowapi.errors import RateLimitExceeded
 from dotenv import load_dotenv
+import logging
 import os
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 from routers import cv, jobs, applications, recruiter, evaluate, admin, tailor, payments, interview, user
 
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=user_or_ip)
 
 app = FastAPI(
     title="JobTrack AI API",
@@ -22,12 +25,27 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+# Parse allowed origins: trim whitespace, drop blanks.
+allowed_origins = [
+    o.strip() for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+    if o.strip()
+]
+
+# Safety guard: a wildcard origin combined with credentialed requests is unsafe
+# (and rejected by browsers). If "*" is configured, disable credentials so we
+# never echo back arbitrary origins with Access-Control-Allow-Credentials.
+allow_credentials = True
+if "*" in allowed_origins:
+    logger.warning(
+        "ALLOWED_ORIGINS contains '*'; disabling credentialed CORS. "
+        "Set ALLOWED_ORIGINS to your exact frontend domain(s) in production."
+    )
+    allow_credentials = False
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=True,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

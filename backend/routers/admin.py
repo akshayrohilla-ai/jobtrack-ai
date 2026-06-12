@@ -1,13 +1,16 @@
 from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
 from slowapi import Limiter
-from slowapi.util import get_remote_address
+from middleware.ratelimit import user_or_ip
 from middleware.admin import require_admin
 from services.supabase_client import get_supabase
 from datetime import datetime, timedelta, timezone
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=user_or_ip)
 
 # Cost per 1000 tokens (approximate, adjust if you change models)
 OPUS_INPUT_COST_PER_1K  = 0.015
@@ -161,7 +164,8 @@ async def gift_credits(request: Request, payload: GiftCreditsRequest):
             # Fallback: query credits table for user_id if email lookup failed
             user_id = None
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Could not query users: {str(e)}")
+        logger.error("admin user query failed", exc_info=True)
+        raise HTTPException(status_code=500, detail="Could not query users")
 
     if not user_id:
         raise HTTPException(status_code=404, detail=f"No user found with email {payload.email}")
@@ -256,6 +260,7 @@ async def delete_user(request: Request, payload: DeleteUserRequest):
     try:
         supabase.auth.admin.delete_user(user_id)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete auth user: {str(e)}")
+        logger.error("admin delete user failed", exc_info=True)
+        raise HTTPException(status_code=500, detail="Could not delete user")
 
     return {"success": True, "deleted_user_id": user_id, "email": email}

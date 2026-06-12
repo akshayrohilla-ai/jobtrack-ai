@@ -1,13 +1,16 @@
 from fastapi import APIRouter, Request, HTTPException
 from slowapi import Limiter
-from slowapi.util import get_remote_address
+from middleware.ratelimit import user_or_ip
 from middleware.auth import get_current_user
 from services.supabase_client import get_supabase
 import httpx
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=user_or_ip)
 
 ADMIN_EMAIL = "support@jobtrackai.co.in"
 FROM_EMAIL  = "noreply@jobtrackai.co.in"
@@ -150,7 +153,8 @@ async def delete_own_account(request: Request):
     try:
         supabase.auth.admin.delete_user(user_id)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete account: {str(e)}")
+        logger.error("account deletion failed", exc_info=True)
+        raise HTTPException(status_code=500, detail="Could not delete account. Please contact support.")
 
     # 4. Notify admin (non-blocking)
     await _notify_admin_deletion(email, name, credits_remaining)

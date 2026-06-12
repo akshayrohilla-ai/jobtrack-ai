@@ -6,10 +6,10 @@ import os
 import json
 import re
 from slowapi import Limiter
-from slowapi.util import get_remote_address
+from middleware.ratelimit import user_or_ip
 from middleware.auth import get_current_user, require_credits, refund_credits
 
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=user_or_ip)
 router = APIRouter()
 
 INTERVIEW_SYSTEM_PROMPT = """You are a senior career coach preparing candidates for job interviews.

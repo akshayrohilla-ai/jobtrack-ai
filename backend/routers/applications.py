@@ -2,12 +2,15 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional
 from slowapi import Limiter
-from slowapi.util import get_remote_address
+from middleware.ratelimit import user_or_ip
 from services.supabase_client import get_supabase
 from middleware.auth import get_current_user
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=user_or_ip)
 
 
 class ApplicationCreate(BaseModel):
@@ -41,7 +44,8 @@ async def get_applications(request: Request):
             .execute()
         return result.data or []
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("applications endpoint failed", exc_info=True)
+        raise HTTPException(status_code=500, detail="Something went wrong")
 
 
 @router.get("/stats")
@@ -78,7 +82,8 @@ async def get_stats(request: Request):
             "avg_match_score": avg_score
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("applications endpoint failed", exc_info=True)
+        raise HTTPException(status_code=500, detail="Something went wrong")
 
 
 @router.post("/")
@@ -106,7 +111,8 @@ async def create_application(request: Request, app: ApplicationCreate):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("applications endpoint failed", exc_info=True)
+        raise HTTPException(status_code=500, detail="Something went wrong")
 
 
 @router.patch("/{application_id}")
@@ -141,7 +147,8 @@ async def update_application(request: Request, application_id: str, update: Appl
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("applications endpoint failed", exc_info=True)
+        raise HTTPException(status_code=500, detail="Something went wrong")
 
 
 @router.delete("/{application_id}")
@@ -159,4 +166,5 @@ async def delete_application(request: Request, application_id: str):
             .execute()
         return {"deleted": application_id}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("applications endpoint failed", exc_info=True)
+        raise HTTPException(status_code=500, detail="Something went wrong")
