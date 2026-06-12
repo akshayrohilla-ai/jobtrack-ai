@@ -166,22 +166,24 @@ async def gift_credits(request: Request, payload: GiftCreditsRequest):
     if not user_id:
         raise HTTPException(status_code=404, detail=f"No user found with email {payload.email}")
 
-    # Upsert credits row
-    existing = supabase.table("credits").select("balance, lifetime_purchased").eq("user_id", user_id).execute()
-    if existing.data:
-        current = existing.data[0]
-        supabase.table("credits").update({
-            "balance": current["balance"] + payload.credits,
-            "lifetime_purchased": (current.get("lifetime_purchased") or 0) + payload.credits,
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }).eq("user_id", user_id).execute()
-    else:
+    # Add credits atomically. The RPC only updates an existing row (returns the
+    # new balance, or null if the user has no credits row yet).
+    add_result = supabase.rpc("add_purchased_credits", {
+        "p_user": user_id,
+        "p_credits": payload.credits,
+    }).execute()
+
+    if add_result.data is None:
+        # No credits row yet — create one.
         supabase.table("credits").insert({
             "user_id": user_id,
             "balance": payload.credits,
             "lifetime_used": 0,
             "lifetime_purchased": payload.credits,
         }).execute()
+        new_balance = payload.credits
+    else:
+        new_balance = add_result.data
 
     # Log it — best-effort, don't crash the response if the table schema differs
     try:
@@ -193,7 +195,6 @@ async def gift_credits(request: Request, payload: GiftCreditsRequest):
     except Exception:
         pass
 
-    new_balance = (existing.data[0]["balance"] if existing.data else 0) + payload.credits
     return {"success": True, "email": payload.email, "credits_added": payload.credits, "new_balance": new_balance}
 
 

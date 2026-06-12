@@ -99,40 +99,57 @@ async def verify_payment(request: Request, payload: VerifyPaymentRequest):
     if not hmac.compare_digest(expected_sig, payload.razorpay_signature):
         raise HTTPException(status_code=400, detail="Payment verification failed")
 
+    # SECURITY: never trust the client's pack_id for how many credits to grant.
+    # Read the authoritative pack/credits from the order's `notes`, which we set
+    # server-side at create-order time. Otherwise a buyer could pay for pack_10
+    # and replay verify-payment claiming pack_30.
+    client = _razorpay_client()
+    try:
+        order = client.order.fetch(payload.razorpay_order_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Could not verify order")
+
+    notes = order.get("notes") or {}
+    if notes.get("user_id") != user_id:
+        raise HTTPException(status_code=403, detail="Order does not belong to this user")
+
+    server_pack_id = notes.get("pack_id")
+    server_pack = CREDIT_PACKS.get(server_pack_id)
+    if not server_pack:
+        raise HTTPException(status_code=400, detail="Unknown pack on order")
+
+    # Confirm the amount paid matches the pack price (defence in depth).
+    if order.get("amount") != server_pack["amount_paise"]:
+        raise HTTPException(status_code=400, detail="Order amount mismatch")
+
+    credits_to_add = server_pack["credits"]
     supabase = get_supabase()
 
-    # Idempotency: check if this payment was already processed
-    existing = supabase.table("payment_log") \
-        .select("id") \
-        .eq("razorpay_payment_id", payload.razorpay_payment_id) \
-        .execute()
-    if existing.data:
+    # Idempotency is enforced by the UNIQUE constraint on razorpay_payment_id.
+    # Insert the payment_log FIRST: if this payment was already processed, the
+    # insert fails and we return the existing balance without double-crediting.
+    try:
+        supabase.table("payment_log").insert({
+            "user_id": user_id,
+            "pack_id": server_pack_id,
+            "credits_added": credits_to_add,
+            "amount_paise": server_pack["amount_paise"],
+            "razorpay_order_id": payload.razorpay_order_id,
+            "razorpay_payment_id": payload.razorpay_payment_id,
+        }).execute()
+    except Exception:
+        # Duplicate payment_id (already applied) or insert failure — don't re-credit.
         balance = await get_credit_balance(user_id)
         return {"success": True, "balance": balance, "already_applied": True}
 
-    credits_to_add = pack["credits"]
-
-    # Add credits to user's balance
-    current = supabase.table("credits").select("balance, lifetime_purchased").eq("user_id", user_id).single().execute()
-    if not current.data:
-        raise HTTPException(status_code=404, detail="Credit record not found")
-
-    new_balance = current.data["balance"] + credits_to_add
-    lifetime_purchased = (current.data.get("lifetime_purchased") or 0) + credits_to_add
-
-    supabase.table("credits").update({
-        "balance": new_balance,
-        "lifetime_purchased": lifetime_purchased,
-    }).eq("user_id", user_id).execute()
-
-    # Log the payment
-    supabase.table("payment_log").insert({
-        "user_id": user_id,
-        "pack_id": payload.pack_id,
-        "credits_added": credits_to_add,
-        "amount_paise": pack["amount_paise"],
-        "razorpay_order_id": payload.razorpay_order_id,
-        "razorpay_payment_id": payload.razorpay_payment_id,
+    # Credit the account atomically only after the log row is committed.
+    add_result = supabase.rpc("add_purchased_credits", {
+        "p_user": user_id,
+        "p_credits": credits_to_add,
     }).execute()
+
+    new_balance = add_result.data
+    if new_balance is None:
+        raise HTTPException(status_code=404, detail="Credit record not found")
 
     return {"success": True, "balance": new_balance, "credits_added": credits_to_add}

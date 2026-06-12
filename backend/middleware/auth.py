@@ -23,68 +23,48 @@ async def get_current_user(request: Request) -> str:
 
 async def require_credits(user_id: str, action: str = "jd_evaluate", cost: int = 1) -> int:
     """
-    Checks the credits table for the given user.
-    Decrements balance atomically and logs the usage.
-    Returns the new balance.
-    Raises 402 if balance is insufficient.
+    Atomically decrements credits and logs usage via the spend_credits RPC.
+    The deduction + usage log happen in a single SQL statement, so concurrent
+    requests can never spend the same credit twice (TOCTOU-safe).
+    Returns the new balance. Raises 402 if balance is insufficient.
     """
     supabase = get_supabase()
 
-    result = supabase.table("credits") \
-        .select("balance, lifetime_used") \
-        .eq("user_id", user_id) \
-        .single() \
-        .execute()
+    try:
+        result = supabase.rpc("spend_credits", {
+            "p_user": user_id,
+            "p_cost": cost,
+            "p_action": action,
+        }).execute()
+    except Exception as e:
+        # The RPC raises 'insufficient_credits' when the balance is too low.
+        if "insufficient_credits" in str(e):
+            raise HTTPException(
+                status_code=402,
+                detail={
+                    "message": "Insufficient credits",
+                    "required": cost,
+                    "upgrade_message": "Purchase a credit pack to continue.",
+                }
+            )
+        # Unknown failure — don't leak internals.
+        raise HTTPException(status_code=500, detail="Could not process credits")
 
-    if not result.data:
+    new_balance = result.data
+    if new_balance is None:
         raise HTTPException(
             status_code=402,
             detail={"message": "No credit record found for this account. Please contact support."}
         )
 
-    balance = result.data["balance"]
-    lifetime_used = result.data.get("lifetime_used", 0)
-
-    if balance < cost:
-        raise HTTPException(
-            status_code=402,
-            detail={
-                "message": "Insufficient credits",
-                "balance": balance,
-                "required": cost,
-                "upgrade_message": "Purchase a credit pack to continue evaluating jobs."
-            }
-        )
-
-    new_balance = balance - cost
-
-    # Decrement balance + update lifetime counter
-    supabase.table("credits").update({
-        "balance": new_balance,
-        "lifetime_used": lifetime_used + cost,
-    }).eq("user_id", user_id).execute()
-
-    # Log the usage
-    supabase.table("usage_log").insert({
-        "user_id": user_id,
-        "action": action,
-        "credits_used": cost,
-    }).execute()
-
     return new_balance
 
 
 async def refund_credits(user_id: str, cost: int = 1):
-    """Refunds credits on AI failure — reverses the deduction from require_credits."""
+    """Refunds credits on AI failure — atomic reversal via the refund_credits RPC."""
     try:
         supabase = get_supabase()
-        result = supabase.table("credits").select("balance, lifetime_used").eq("user_id", user_id).single().execute()
-        if not result.data:
-            return
-        supabase.table("credits").update({
-            "balance": result.data["balance"] + cost,
-            "lifetime_used": max(0, result.data.get("lifetime_used", 0) - cost),
-        }).eq("user_id", user_id).execute()
+        supabase.rpc("refund_credits", {"p_user": user_id, "p_cost": cost}).execute()
     except Exception:
         pass  # best-effort refund
 
