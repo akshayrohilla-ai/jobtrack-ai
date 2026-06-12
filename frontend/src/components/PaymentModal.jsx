@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { api } from '../lib/api'
 import { useAuth } from '../App'
+import { trackEvent } from '../lib/analytics'
 
 const PACKS = [
   { id: 'pack_10', credits: 10, amount_inr: 199, label: '10 Credits', per: '₹19.9 / credit', popular: false },
@@ -42,6 +43,14 @@ export default function PaymentModal({ onClose, onSuccess }) {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               pack_id: selected,
+            })
+            // Revenue analytics — attributed to the identified user.
+            const boughtPack = PACKS.find(p => p.id === selected)
+            trackEvent('credit_purchased', {
+              pack_id: selected,
+              credits: boughtPack?.credits,
+              amount_inr: boughtPack?.amount_inr,
+              new_balance: data.balance,
             })
             setCreditBalance(data.balance)
             onSuccess?.(data)

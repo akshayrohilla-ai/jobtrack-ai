@@ -12,6 +12,7 @@ import ResetPassword from './pages/ResetPassword'
 import AuthModal from './components/AuthModal'
 import PaymentModal from './components/PaymentModal'
 import { supabase, signOut } from './lib/supabase'
+import { identifyUser, resetAnalytics } from './lib/analytics'
 
 export const AuthContext = createContext(null)
 export function useAuth() { return useContext(AuthContext) }
@@ -71,6 +72,7 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return
+    identifyUser(user)   // tie analytics events to this user
     const API_URL = import.meta.env.VITE_API_URL
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) return
@@ -88,6 +90,7 @@ export default function App() {
 
   async function handleSignOut() {
     await signOut()
+    resetAnalytics()   // clear analytics identity
     setUser(null)
     setCreditBalance(null)
     localStorage.removeItem('jobtrack_display_name')

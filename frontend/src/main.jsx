@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import * as Sentry from '@sentry/react'
 import App from './App.jsx'
+import { initAnalytics } from './lib/analytics'
 import './index.css'
 
 // Sentry error tracking — dormant unless VITE_SENTRY_DSN is set.
@@ -15,6 +16,9 @@ if (sentryDsn) {
     sendDefaultPii: false,        // don't attach user IP / personal data
   })
 }
+
+// PostHog analytics — dormant unless VITE_POSTHOG_KEY is set.
+initAnalytics()
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
