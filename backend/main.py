@@ -24,7 +24,10 @@ if _sentry_dsn:
         # Do NOT send personal data (auth headers, CV text, user IPs) to Sentry.
         send_default_pii=False,
     )
-    logger.info("Sentry initialised")
+    # print() (not logger.info) so it reliably shows in Render logs regardless of log level.
+    print("Sentry initialised — error tracking active", flush=True)
+else:
+    print("Sentry DSN not set — error tracking disabled", flush=True)
 
 from routers import cv, jobs, applications, recruiter, evaluate, admin, tailor, payments, interview, user
 
