@@ -40,7 +40,7 @@ export default function LandingPage({ onGetStarted }) {
               <div style={{ fontWeight: 700, fontSize: 15, letterSpacing: '-0.3px', color: '#fff', lineHeight: 1 }}>
                 JobTrack<span style={{ color: '#60a5fa' }}>AI</span>
               </div>
-              <div style={{ fontSize: 10, color: '#ffffff', letterSpacing: '0.15em', fontWeight: 600, marginTop: 3, lineHeight: 1 }}>YOUR AI CAREER COPILOT</div>
+              <div style={{ fontSize: 10, color: '#60a5fa', letterSpacing: '0.15em', fontWeight: 700, marginTop: 3, lineHeight: 1 }}>YOUR AI CAREER COPILOT</div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
