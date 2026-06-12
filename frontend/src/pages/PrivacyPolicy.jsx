@@ -3,7 +3,7 @@ import LegalLayout from '../components/LegalLayout'
 export default function PrivacyPolicy() {
   return (
     <LegalLayout title="Privacy Policy" lastUpdated="June 2026">
-      <p>This Privacy Policy explains how JobTrack AI ("we", "our", or "us"), owned and operated by Bharti Rohilla, collects, uses, and protects your personal information when you use our website at <strong>jobtrackai.co.in</strong> and related services.</p>
+      <p>This Privacy Policy explains how JobTrack AI ("we", "our", or "us"), owned and operated by Bharti, collects, uses, and protects your personal information when you use our website at <strong>jobtrackai.co.in</strong> and related services.</p>
 
       <h2>1. Information We Collect</h2>
       <p>We collect the following types of information:</p>

@@ -24,7 +24,7 @@ export default function Contact() {
       <ul>
         <li><strong>Product:</strong> JobTrack AI</li>
         <li><strong>Website:</strong> jobtrackai.co.in</li>
-        <li><strong>Owner:</strong> Bharti Rohilla</li>
+        <li><strong>Owner:</strong> Bharti</li>
         <li><strong>Country:</strong> India</li>
         <li><strong>Support email:</strong> support@jobtrackai.co.in</li>
       </ul>

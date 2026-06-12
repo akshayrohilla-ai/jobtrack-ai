@@ -3,7 +3,7 @@ import LegalLayout from '../components/LegalLayout'
 export default function RefundPolicy() {
   return (
     <LegalLayout title="Refund & Cancellation Policy" lastUpdated="June 2026">
-      <p>This Refund & Cancellation Policy applies to all credit purchases made on JobTrack AI, owned and operated by Bharti Rohilla, at <strong>jobtrackai.co.in</strong>.</p>
+      <p>This Refund & Cancellation Policy applies to all credit purchases made on JobTrack AI, owned and operated by Bharti, at <strong>jobtrackai.co.in</strong>.</p>
 
       <h2>1. Nature of the Product</h2>
       <p>JobTrack AI sells digital credits that are used to access AI-powered features (JD evaluation, CV tailoring, and interview preparation). Credits are consumed instantly when a feature is used. Because the service is delivered digitally and immediately upon use, special considerations apply to refunds.</p>

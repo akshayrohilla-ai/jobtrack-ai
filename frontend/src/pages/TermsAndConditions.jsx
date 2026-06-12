@@ -3,7 +3,7 @@ import LegalLayout from '../components/LegalLayout'
 export default function TermsAndConditions() {
   return (
     <LegalLayout title="Terms & Conditions" lastUpdated="June 2026">
-      <p>These Terms & Conditions ("Terms") govern your use of JobTrack AI, owned and operated by Bharti Rohilla ("we", "our", "us"), accessible at <strong>jobtrackai.co.in</strong>. By creating an account or using our service, you agree to these Terms.</p>
+      <p>These Terms & Conditions ("Terms") govern your use of JobTrack AI, owned and operated by Bharti ("we", "our", "us"), accessible at <strong>jobtrackai.co.in</strong>. By creating an account or using our service, you agree to these Terms.</p>
 
       <h2>1. Service Description</h2>
       <p>JobTrack AI is an AI-powered career platform that provides CV parsing, job description evaluation, CV tailoring, interview preparation, job search, and application tracking services. The service is intended for individual job seekers and professionals in India.</p>
@@ -45,7 +45,7 @@ export default function TermsAndConditions() {
       <p>JobTrack AI uses artificial intelligence (Anthropic Claude) to evaluate job descriptions, tailor CVs, and generate interview preparation content. AI outputs are for informational purposes only and may not always be accurate. We do not guarantee job offers, interview calls, or employment outcomes as a result of using our service. You are responsible for reviewing all AI-generated content before submitting it to employers or using it in interviews.</p>
 
       <h2>7. Intellectual Property</h2>
-      <p>All content, design, code, and branding on JobTrack AI is owned by Bharti Rohilla / JobTrack AI. You retain ownership of your CV content and data. You grant us a limited licence to process your data solely to provide the service.</p>
+      <p>All content, design, code, and branding on JobTrack AI is owned by Bharti / JobTrack AI. You retain ownership of your CV content and data. You grant us a limited licence to process your data solely to provide the service.</p>
 
       <h2>8. Limitation of Liability</h2>
       <p>To the maximum extent permitted by law, JobTrack AI shall not be liable for any indirect, incidental, or consequential damages arising from your use of the service, including but not limited to loss of job opportunities, career decisions made based on AI output, or data loss.</p>

@@ -7,7 +7,7 @@ import json
 from slowapi import Limiter
 from middleware.ratelimit import user_or_ip
 from services.supabase_client import get_supabase
-from middleware.auth import get_current_user, require_credits
+from middleware.auth import get_current_user, require_credits, refund_credits
 
 limiter = Limiter(key_func=user_or_ip)
 
@@ -192,6 +192,9 @@ Rewrite the CV to maximise fit for this specific role. Return JSON only."""
         return tailored
 
     except json.JSONDecodeError:
+        # AI failed to deliver usable output — refund the credit (Refund Policy §3).
+        await refund_credits(user_id, cost=1)
         raise HTTPException(status_code=500, detail="AI returned an unexpected response. Please try again.")
     except Exception:
+        await refund_credits(user_id, cost=1)
         raise HTTPException(status_code=500, detail="CV tailoring failed. Please try again.")
