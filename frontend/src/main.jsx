@@ -14,6 +14,15 @@ if (sentryDsn) {
     environment: import.meta.env.MODE,
     tracesSampleRate: 0.1,        // 10% performance sampling — stays in free quota
     sendDefaultPii: false,        // don't attach user IP / personal data
+    // Filter transient client-network noise (backgrounded tabs, flaky mobile
+    // connections). These are retried automatically and aren't app bugs.
+    ignoreErrors: [
+      'AuthRetryableFetchError',
+      'Load failed',
+      'Failed to fetch',
+      'Network request failed',
+      'NetworkError',
+    ],
   })
 }
 

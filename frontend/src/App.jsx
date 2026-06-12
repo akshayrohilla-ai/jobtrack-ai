@@ -54,6 +54,10 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       setAuthLoading(false)
+    }).catch(() => {
+      // Transient network failure (common on mobile Safari when backgrounding
+      // or on a flaky connection). The SDK retries — just don't hang on loading.
+      setAuthLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -85,7 +89,7 @@ export default function App() {
           setCreditBalance(data.balance)
         }
       } catch { }
-    })
+    }).catch(() => { /* transient auth/network failure — SDK retries */ })
   }, [user])
 
   async function handleSignOut() {
