@@ -12,6 +12,20 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+# --- Sentry error tracking (dormant unless SENTRY_DSN is set) ---
+_sentry_dsn = os.getenv("SENTRY_DSN")
+if _sentry_dsn:
+    import sentry_sdk
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        environment=os.getenv("SENTRY_ENV", "production"),
+        # Capture 10% of requests for performance tracing — keeps within free quota.
+        traces_sample_rate=0.1,
+        # Do NOT send personal data (auth headers, CV text, user IPs) to Sentry.
+        send_default_pii=False,
+    )
+    logger.info("Sentry initialised")
+
 from routers import cv, jobs, applications, recruiter, evaluate, admin, tailor, payments, interview, user
 
 limiter = Limiter(key_func=user_or_ip)
