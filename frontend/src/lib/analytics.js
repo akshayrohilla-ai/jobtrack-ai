@@ -14,6 +14,13 @@ export function initAnalytics() {
     capture_pageview: true,      // pageviews (incl. SPA route changes)
     capture_pageleave: true,     // needed for accurate session duration
     person_profiles: 'identified_only',
+    // Session replay privacy — this app shows CV/personal data, so mask ALL
+    // text + inputs in recordings. You still see layout, clicks, navigation,
+    // and drop-off, but no CV content, names, or emails are ever captured.
+    session_recording: {
+      maskAllInputs: true,
+      maskTextSelector: '*',
+    },
   })
   enabled = true
 }

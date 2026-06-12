@@ -13,6 +13,7 @@ export default function PrivacyPolicy() {
         <li><strong>Usage data:</strong> Actions you take within the app (e.g., JD evaluations, CV tailoring, interview preparation) to manage your credit balance.</li>
         <li><strong>Payment data:</strong> Order IDs and payment IDs from Razorpay. We do not store card numbers or UPI details — all payment processing is handled by Razorpay.</li>
         <li><strong>Technical data:</strong> Browser type, IP address, and access timestamps for security and debugging purposes.</li>
+        <li><strong>Analytics data:</strong> We use PostHog to understand how visitors use the site — pages visited, approximate region (from IP), session duration, and anonymised interaction recordings. <strong>All text, form inputs, and on-screen CV content are masked in these recordings</strong>, so your personal details and CV data are never captured.</li>
       </ul>
 
       <h2>2. How We Use Your Information</h2>
@@ -36,6 +37,7 @@ export default function PrivacyPolicy() {
         <li><strong>Razorpay</strong> — payment processing</li>
         <li><strong>Vercel</strong> — frontend hosting</li>
         <li><strong>Render</strong> — backend API hosting</li>
+        <li><strong>PostHog</strong> — privacy-focused product analytics (masked, no personal content)</li>
         <li>As required by law or legal process</li>
       </ul>
 
@@ -43,7 +45,7 @@ export default function PrivacyPolicy() {
       <p>We retain your account data for as long as your account is active. You may delete your account directly from the Account Settings section within the app, or by emailing <a href="mailto:support@jobtrackai.co.in">support@jobtrackai.co.in</a>. Account deletion is immediate and permanent — all your CV data, applications, and credit balance are removed and cannot be recovered.</p>
 
       <h2>6. Cookies</h2>
-      <p>We use minimal cookies necessary for authentication (session tokens via Supabase). We do not use advertising or tracking cookies.</p>
+      <p>We use cookies necessary for authentication (session tokens via Supabase) and a small number of analytics cookies (via PostHog) to measure site usage. We do not use advertising cookies, and we do not sell your data to advertisers.</p>
 
       <h2>7. Your Rights</h2>
       <p>You have the right to access, correct, or delete your personal data. To exercise these rights, contact us at <a href="mailto:support@jobtrackai.co.in">support@jobtrackai.co.in</a>.</p>
