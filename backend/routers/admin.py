@@ -12,11 +12,22 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 limiter = Limiter(key_func=user_or_ip)
 
-# Cost per 1000 tokens (approximate, adjust if you change models)
-OPUS_INPUT_COST_PER_1K  = 0.015
-OPUS_OUTPUT_COST_PER_1K = 0.075
-HAIKU_INPUT_COST_PER_1K  = 0.00025
-HAIKU_OUTPUT_COST_PER_1K = 0.00125
+# --- Anthropic cost model (approximate; see memory project-ai-models) ---
+# Pricing is USD per 1M tokens. Recruiter mode (Opus 4.5) is "coming soon"
+# and not billed to users yet, so it's intentionally excluded here.
+SONNET_IN_PER_M,  SONNET_OUT_PER_M = 3.00, 15.00   # Sonnet 4.6
+HAIKU_IN_PER_M,   HAIKU_OUT_PER_M  = 1.00,  5.00   # Haiku 4.5
+
+# action -> (avg_input_tokens, avg_output_tokens, in_rate_per_M, out_rate_per_M)
+# Token counts are rough averages; actual usage varies per request.
+COST_MODEL = {
+    "jd_evaluate":    (1000,  800, SONNET_IN_PER_M, SONNET_OUT_PER_M),  # Sonnet 4.6
+    "cv_tailor":      (1500, 2000, SONNET_IN_PER_M, SONNET_OUT_PER_M),  # Sonnet 4.6
+    "interview_prep": (1000, 1200, SONNET_IN_PER_M, SONNET_OUT_PER_M),  # Sonnet 4.6
+    # cv_parse (Haiku 4.5) is free to users and not logged to usage_log,
+    # so it won't have a count here — kept for reference if logging is added.
+    "cv_parse":       (1200,  400, HAIKU_IN_PER_M,  HAIKU_OUT_PER_M),   # Haiku 4.5
+}
 
 
 @router.get("/stats")
@@ -67,14 +78,16 @@ async def get_admin_stats(request: Request):
             usage_last_30d += cost
 
     # --- Estimated Anthropic spend (from usage log, not live balance) ---
-    # Each jd_evaluate = ~1 Opus call (~800 input + ~500 output tokens avg)
-    # Each cv_parse    = ~1 Haiku call (~1200 input + ~400 output tokens avg)
-    jd_evals  = by_action.get("jd_evaluate", 0)
-    cv_parses = by_action.get("cv_parse", 0)
-
-    opus_cost  = jd_evals  * ((800  * OPUS_INPUT_COST_PER_1K  / 1000) + (500 * OPUS_OUTPUT_COST_PER_1K  / 1000))
-    haiku_cost = cv_parses * ((1200 * HAIKU_INPUT_COST_PER_1K / 1000) + (400 * HAIKU_OUTPUT_COST_PER_1K / 1000))
-    total_estimated_cost_usd = round(opus_cost + haiku_cost, 4)
+    # Each action is billed at its real model's rate (see COST_MODEL above).
+    # by_action[action] = number of calls (each paid action logs credits_used=1).
+    cost_breakdown = {}
+    total_estimated_cost_usd = 0.0
+    for action, (in_tok, out_tok, in_rate_m, out_rate_m) in COST_MODEL.items():
+        count = by_action.get(action, 0)
+        action_cost = count * ((in_tok * in_rate_m / 1_000_000) + (out_tok * out_rate_m / 1_000_000))
+        cost_breakdown[action] = {"calls": count, "est_cost_usd": round(action_cost, 4)}
+        total_estimated_cost_usd += action_cost
+    total_estimated_cost_usd = round(total_estimated_cost_usd, 4)
 
     # --- Fetch emails from auth.users ---
     email_map = {}
@@ -127,7 +140,8 @@ async def get_admin_stats(request: Request):
             "by_action":    by_action,
         },
         "estimated_spend_usd": total_estimated_cost_usd,
-        "cost_note": "Estimated from usage logs. Check console.anthropic.com for exact balance.",
+        "cost_breakdown": cost_breakdown,
+        "cost_note": "Estimated from usage logs (jd_evaluate/cv_tailor/interview_prep on Sonnet 4.6, cv_parse on Haiku 4.5). Recruiter mode (Opus) excluded — coming soon. Check console.anthropic.com for exact balance.",
         "user_details": user_details,
     }
 
