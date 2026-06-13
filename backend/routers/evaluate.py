@@ -201,7 +201,9 @@ Return the full evaluation as JSON."""
                     if t_first is None:
                         t_first = time.perf_counter()
                     full_text += text
-                    yield f"event: delta\ndata: {json.dumps({'n': len(full_text)})}\n\n"
+                    # Send the incremental text so the client can progressively
+                    # parse + render sections as they complete.
+                    yield f"event: delta\ndata: {json.dumps({'t': text})}\n\n"
 
             t_llm = time.perf_counter()
             raw = full_text.strip().replace("```json", "").replace("```", "").strip()

@@ -140,4 +140,13 @@ No code behavior was modified during the diagnosis. The only change made during 
 
 **Caveat:** measured at the LLM layer (the dominant phase and the only thing Fix #1 changes). Full end-to-end HTTP timing requires the deployed authed flow — confirm via the per-request Render log line `[rid] evaluate-jd(stream) | … TTFT=… total=…` after deploy.
 
-**Status:** committed, not yet deployed. Tailor CV + Interview Prep pending (same pattern) — awaiting review before proceeding.
+**Status:** committed + deployed (pilot). Tailor CV + Interview Prep pending (same pattern).
+
+### 2026-06-13 — Progressive section rendering added to JD Evaluation
+**Why:** the initial pilot only flipped the button label to "Analyzing…" — too subtle; the perceived-latency win didn't land. Upgraded to true section-by-section build-up.
+
+**Change:** backend `delta` events now stream the actual text chunks (`{t: <chunk>}`). Frontend (`JDEvaluator.jsx`) accumulates the text and runs a **tolerant partial-JSON parser** (`parsePartialJSON`) on each chunk, calling `onResultChange(partial)` so sections render as their keys complete in the stream. The results block now renders during streaming (gate loosened from `result && gc` to `result`), with the grade hero showing a skeleton until the grade arrives. Export/"evaluate another" actions hidden until generation completes. The `done` event still delivers the authoritative complete object — partial-parse misses only affect intermediate frames. Output unchanged.
+
+**Validation:** frontend builds clean; `parsePartialJSON` unit-tested against 6 partial fragments (code fences, incomplete strings/arrays, dangling keys) — all produce correct partial objects. Full SSE round-trip needs verification on deploy.
+
+**Files:** `backend/routers/evaluate.py`, `frontend/src/components/JDEvaluator.jsx`

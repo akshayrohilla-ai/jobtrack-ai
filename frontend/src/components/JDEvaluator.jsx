@@ -25,6 +25,41 @@ function formatSalary(n) {
   return `₹${(n/1000).toFixed(0)}K`
 }
 
+// Best-effort parse of an incomplete JSON object streamed from the API.
+// Returns the largest valid object parseable so far, or null. The `done` event
+// always carries the authoritative complete object, so a missed intermediate
+// frame here is harmless — the UI just waits for the next chunk.
+function parsePartialJSON(s) {
+  if (!s) return null
+  const start = s.indexOf('{')
+  if (start === -1) return null
+  const str = s.slice(start)
+  try { return JSON.parse(str) } catch {}
+  const stack = []
+  let inStr = false, esc = false, out = ''
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i]
+    if (inStr) {
+      out += ch
+      if (esc) esc = false
+      else if (ch === '\\') esc = true
+      else if (ch === '"') inStr = false
+      continue
+    }
+    out += ch
+    if (ch === '"') inStr = true
+    else if (ch === '{' || ch === '[') stack.push(ch)
+    else if (ch === '}' || ch === ']') stack.pop()
+  }
+  if (inStr) out += '"'                                   // close an open string
+  out = out.replace(/,\s*"[^"]*"\s*:?\s*$/, '')           // drop a dangling key
+         .replace(/\{\s*"[^"]*"\s*:?\s*$/, '{')           // ...or a dangling key right after {
+         .replace(/[:,]\s*$/, '')                         // drop trailing colon/comma
+  for (let i = stack.length - 1; i >= 0; i--) out += stack[i] === '{' ? '}' : ']'
+  out = out.replace(/,(\s*[}\]])/g, '$1')                 // remove trailing commas before closers
+  try { return JSON.parse(out) } catch { return null }
+}
+
 function CreditMeter({ balance }) {
   const limit = 2
   const pct = Math.min(100, (balance / limit) * 100)
@@ -246,6 +281,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let buf = ''
+      let acc = ''            // accumulated model text, parsed progressively
       let finished = false
       while (!finished) {
         const { value, done } = await reader.read()
@@ -261,9 +297,12 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
           }
           if (ev === 'delta') {
             setStreaming(true)   // first token arrived — show live progress
+            try { acc += JSON.parse(dataStr).t || '' } catch {}
+            const partial = parsePartialJSON(acc)
+            if (partial) onResultChange(partial)   // render sections as they complete
           } else if (ev === 'done') {
             const data = JSON.parse(dataStr)
-            onResultChange(data)
+            onResultChange(data)                    // authoritative complete result
             if (data._credits?.balance !== undefined) setCreditBalance(data._credits.balance)
             finished = true
           } else if (ev === 'error') {
@@ -274,6 +313,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
       }
 
     } catch (e) {
+      onResultChange(null)   // discard any partial render so the form + error show
       setError(e.message || 'Evaluation failed. Make sure your backend is running.')
     } finally { setLoading(false); setStreaming(false) }
   }
@@ -419,10 +459,11 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
         </div>
       )}
 
-      {/* Results */}
-      {result && gc && (
+      {/* Results — renders progressively as sections stream in. `gc` may be null
+          until the grade arrives, so the grade hero falls back to a skeleton. */}
+      {result && (
         <>
-          {/* Header row — profile + actions */}
+          {/* Header row — profile + actions (actions hidden until generation completes) */}
           <div className="flex items-center justify-between">
             {profile && (
               <div className="flex items-center gap-2">
@@ -435,69 +476,87 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
                 </span>
               </div>
             )}
-            <div className="flex items-center gap-2 ml-auto">
-              {/* PDF Export */}
-              <button
-                onClick={() => exportEvaluationToPDF(result, profile, savedRole, savedCompany)}
-                className="btn-secondary text-xs py-1.5">
-                <Download size={12} />Export Report
-              </button>
-              {!outOfCredits && (
-                <button onClick={() => { onResultChange(null); onJdTextChange(''); setTracked(false) }}
-                  className="btn-ghost text-xs py-1.5">
-                  <RefreshCw size={12} />Evaluate another JD
+            {!loading && (
+              <div className="flex items-center gap-2 ml-auto">
+                {/* PDF Export */}
+                <button
+                  onClick={() => exportEvaluationToPDF(result, profile, savedRole, savedCompany)}
+                  className="btn-secondary text-xs py-1.5">
+                  <Download size={12} />Export Report
                 </button>
+                {!outOfCredits && (
+                  <button onClick={() => { onResultChange(null); onJdTextChange(''); setTracked(false) }}
+                    className="btn-ghost text-xs py-1.5">
+                    <RefreshCw size={12} />Evaluate another JD
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Grade hero — or skeleton while the grade is still streaming */}
+          {gc ? (
+            <div className="card animate-grade" style={{
+              border: `1px solid ${gc.border}`,
+              background: gc.bg,
+              boxShadow: `0 0 0 4px ${gc.glow}, 0 2px 8px rgba(0,0,0,0.06)`
+            }}>
+              <div className="flex items-start gap-5">
+                <div className="grade-display animate-grade flex-shrink-0" style={{ color: gc.color }}>
+                  {grade}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-semibold" style={{ color: gc.color }}>{gc.label}</span>
+                    {ac && <span className={ac.badge}>{ac.label}</span>}
+                  </div>
+                  <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                    {result.grade_reasoning}
+                  </p>
+                </div>
+              </div>
+              {result.recommended_action_reason && (
+                <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${gc.border}` }}>
+                  <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
+                    <strong style={{ color: 'var(--text-secondary)' }}>Next step:</strong> {result.recommended_action_reason}
+                  </p>
+                </div>
               )}
             </div>
-          </div>
-
-          {/* Grade hero */}
-          <div className="card animate-grade" style={{
-            border: `1px solid ${gc.border}`,
-            background: gc.bg,
-            boxShadow: `0 0 0 4px ${gc.glow}, 0 2px 8px rgba(0,0,0,0.06)`
-          }}>
-            <div className="flex items-start gap-5">
-              <div className="grade-display animate-grade flex-shrink-0" style={{ color: gc.color }}>
-                {grade}
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-semibold" style={{ color: gc.color }}>{gc.label}</span>
-                  {ac && <span className={ac.badge}>{ac.label}</span>}
-                </div>
-                <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                  {result.grade_reasoning}
-                </p>
+          ) : (
+            <div className="card" style={{ border: '1px solid var(--border)' }}>
+              <div className="flex items-center gap-3">
+                <span className="animate-spin w-4 h-4 border-2 rounded-full"
+                  style={{ borderColor: 'var(--blue-accent)', borderTopColor: 'transparent' }} />
+                <span className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                  Analyzing your fit — building your report…
+                </span>
               </div>
             </div>
-            {result.recommended_action_reason && (
-              <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${gc.border}` }}>
-                <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                  <strong style={{ color: 'var(--text-secondary)' }}>Next step:</strong> {result.recommended_action_reason}
-                </p>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Role summary */}
-          <div className="card">
-            <span className="section-label">Role summary</span>
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{result.role_summary}</p>
-            {result.company_signals && (
-              <p className="text-xs leading-relaxed mt-3 pt-3" style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border-light)' }}>
-                {result.company_signals}
-              </p>
-            )}
-          </div>
+          {result.role_summary && (
+            <div className="card">
+              <span className="section-label">Role summary</span>
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>{result.role_summary}</p>
+              {result.company_signals && (
+                <p className="text-xs leading-relaxed mt-3 pt-3" style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border-light)' }}>
+                  {result.company_signals}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* CV Match */}
-          <Section icon={CheckCircle} iconColor="var(--success)" title={`CV match — ${result.cv_match?.matched_skills?.length || 0} skills aligned`} defaultOpen={true}>
-            <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>{result.cv_match?.match_summary}</p>
-            <div className="flex flex-wrap">
-              {result.cv_match?.matched_skills?.map((s, i) => <span key={i} className="skill-chip-match">{s}</span>)}
-            </div>
-          </Section>
+          {result.cv_match && (
+            <Section icon={CheckCircle} iconColor="var(--success)" title={`CV match — ${result.cv_match?.matched_skills?.length || 0} skills aligned`} defaultOpen={true}>
+              <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>{result.cv_match?.match_summary}</p>
+              <div className="flex flex-wrap">
+                {result.cv_match?.matched_skills?.map((s, i) => <span key={i} className="skill-chip-match">{s}</span>)}
+              </div>
+            </Section>
+          )}
 
           {/* Gaps */}
           {result.gaps?.length > 0 && (
@@ -552,14 +611,16 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
           )}
 
           {/* Salary */}
-          <Section icon={DollarSign} iconColor="var(--text-muted)" title={`Salary — ${formatSalary(result.salary_range?.min)} – ${formatSalary(result.salary_range?.max)} / year`}>
-            <div className="flex items-center gap-2 mb-2">
-              <span className={result.salary_range?.confidence === 'high' ? 'badge-green' : result.salary_range?.confidence === 'medium' ? 'badge-amber' : 'badge-red'}>
-                {result.salary_range?.confidence || 'low'} confidence
-              </span>
-            </div>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>{result.salary_range?.reasoning}</p>
-          </Section>
+          {result.salary_range && (
+            <Section icon={DollarSign} iconColor="var(--text-muted)" title={`Salary — ${formatSalary(result.salary_range?.min)} – ${formatSalary(result.salary_range?.max)} / year`}>
+              <div className="flex items-center gap-2 mb-2">
+                <span className={result.salary_range?.confidence === 'high' ? 'badge-green' : result.salary_range?.confidence === 'medium' ? 'badge-amber' : 'badge-red'}>
+                  {result.salary_range?.confidence || 'low'} confidence
+                </span>
+              </div>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--text-muted)' }}>{result.salary_range?.reasoning}</p>
+            </Section>
+          )}
 
           {/* Track CTA */}
           {(result.recommended_action === 'apply_now' || result.recommended_action === 'apply_with_tailoring') && (
