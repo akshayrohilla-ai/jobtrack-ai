@@ -38,5 +38,8 @@ jobs:
         working-directory: frontend
 
       - name: Run npm audit
-        run: npm audit --audit-level=high
+        # Audit production dependencies only. Dev-tooling vulnerabilities (e.g.
+        # Vite/esbuild dev-server issues) never ship to users in the built site,
+        # so they shouldn't fail CI. --omit=dev keeps this focused on shipped code.
+        run: npm audit --omit=dev --audit-level=high
         working-directory: frontend
