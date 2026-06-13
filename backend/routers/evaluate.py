@@ -1,9 +1,12 @@
 from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
 import anthropic
 import os
 import json
+import time
+import uuid
 from slowapi import Limiter
 from middleware.ratelimit import user_or_ip
 from services.supabase_client import get_supabase
@@ -135,6 +138,10 @@ async def get_balance(request: Request):
 @router.post("/evaluate-jd")
 @limiter.limit("10/minute")
 async def evaluate_jd(request: Request, payload: EvaluationRequest):
+    # --- timing instrumentation (diagnostic) ---
+    rid = uuid.uuid4().hex[:8]
+    t_start = time.perf_counter()
+
     # 1. Verify JWT — raises 401 if missing/invalid
     user_id = await get_current_user(request)
 
@@ -145,8 +152,9 @@ async def evaluate_jd(request: Request, payload: EvaluationRequest):
     new_balance = await require_credits(user_id, action="jd_evaluate", cost=1)
 
     # 3. Build prompt
-    # Switched from Opus to Sonnet 4.6 — 40% cheaper, no quality loss for structured JSON
-    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    # Switched from Opus to Sonnet 4.6 — 40% cheaper, no quality loss for structured JSON.
+    # Async client so the SSE stream below doesn't block the event loop.
+    client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
     profile_context = ""
     if payload.cv_skills:
@@ -166,69 +174,78 @@ JOB DESCRIPTION:
 
 Return the full evaluation as JSON."""
 
-    try:
-        message = client.messages.create(
-            model="claude-sonnet-4-6",  # Switched from Opus — 40% cheaper, same quality for structured output
-            max_tokens=1500,
-            temperature=0,  # Deterministic grading — prevents A/B flip on same CV+JD
-            system=[
-                {
-                    "type": "text",
-                    "text": EVALUATION_SYSTEM_PROMPT,
-                    "cache_control": {"type": "ephemeral"}
-                    # Cache activates because prompt is >1024 tokens.
-                    # First call: 1.25x write cost. Subsequent calls: 0.1x read cost (90% off).
-                }
-            ],
-            messages=[{"role": "user", "content": user_prompt}]
-        )
+    t_pre_llm = time.perf_counter()
 
-        raw = message.content[0].text.strip().replace("```json", "").replace("```", "").strip()
-        evaluation = json.loads(raw)
-
-        # Log cache usage
-        usage_meta = getattr(message, 'usage', None)
-        if usage_meta:
-            cache_read    = getattr(usage_meta, 'cache_read_input_tokens', 0)
-            cache_write   = getattr(usage_meta, 'cache_creation_input_tokens', 0)
-            input_tokens  = getattr(usage_meta, 'input_tokens', 0)
-            output_tokens = getattr(usage_meta, 'output_tokens', 0)
-            print(f"Tokens — input: {input_tokens}, output: {output_tokens}, cache_write: {cache_write}, cache_read: {cache_read}")
-            if cache_read:
-                print(f"Cache HIT: {cache_read} tokens at 0.1x price")
-            elif cache_write:
-                print(f"Cache WRITE: {cache_write} tokens at 1.25x price (next call will be cheaper)")
-
-        # 4. Save evaluation to Supabase
+    async def event_stream():
+        """Stream the evaluation over SSE. Only the TRANSPORT changes (buffered -> streamed);
+        model, prompt, max_tokens, temperature and the final JSON are identical to before.
+        Emits `delta` progress events while generating, a `done` event carrying the complete
+        evaluation JSON, or an `error` event (credit refunded) on failure."""
+        full_text = ""
+        t_first = None
         try:
-            supabase = get_supabase()
-            supabase.table("jd_evaluations").insert({
-                "user_id": user_id,
-                "jd_text": payload.jd_text[:3000],
-                "grade": evaluation.get("grade"),
-                "role_summary": evaluation.get("role_summary"),
-                "matched_skills": evaluation.get("cv_match", {}).get("matched_skills", []),
-                "gaps": [g.get("skill") for g in evaluation.get("gaps", [])],
-                "red_flags": evaluation.get("red_flags", []),
-                "recommended_action": evaluation.get("recommended_action"),
-                "salary_min": evaluation.get("salary_range", {}).get("min"),
-                "salary_max": evaluation.get("salary_range", {}).get("max"),
-                **({"application_id": payload.application_id} if payload.application_id else {})
-            }).execute()
-        except Exception as e:
-            print(f"Failed to save evaluation to DB: {e}")
+            async with client.messages.stream(
+                model="claude-sonnet-4-6",
+                max_tokens=1500,
+                temperature=0,  # Deterministic grading — prevents A/B flip on same CV+JD
+                system=[
+                    {
+                        "type": "text",
+                        "text": EVALUATION_SYSTEM_PROMPT,
+                        "cache_control": {"type": "ephemeral"}
+                    }
+                ],
+                messages=[{"role": "user", "content": user_prompt}]
+            ) as stream:
+                async for text in stream.text_stream:
+                    if t_first is None:
+                        t_first = time.perf_counter()
+                    full_text += text
+                    yield f"event: delta\ndata: {json.dumps({'n': len(full_text)})}\n\n"
 
-        # 5. Return evaluation + remaining balance
-        evaluation["_credits"] = {"balance": new_balance}
-        return evaluation
+            t_llm = time.perf_counter()
+            raw = full_text.strip().replace("```json", "").replace("```", "").strip()
+            evaluation = json.loads(raw)
+            t_parse = time.perf_counter()
 
-    except json.JSONDecodeError:
-        # AI failed to deliver usable output — refund the credit (Refund Policy §3).
-        await refund_credits(user_id, cost=1)
-        raise HTTPException(status_code=500, detail="AI returned an unexpected response. Please try again.")
-    except Exception:
-        await refund_credits(user_id, cost=1)
-        raise HTTPException(status_code=500, detail="Evaluation failed. Please try again.")
+            # Save evaluation to Supabase (unchanged)
+            try:
+                supabase = get_supabase()
+                supabase.table("jd_evaluations").insert({
+                    "user_id": user_id,
+                    "jd_text": payload.jd_text[:3000],
+                    "grade": evaluation.get("grade"),
+                    "role_summary": evaluation.get("role_summary"),
+                    "matched_skills": evaluation.get("cv_match", {}).get("matched_skills", []),
+                    "gaps": [g.get("skill") for g in evaluation.get("gaps", [])],
+                    "red_flags": evaluation.get("red_flags", []),
+                    "recommended_action": evaluation.get("recommended_action"),
+                    "salary_min": evaluation.get("salary_range", {}).get("min"),
+                    "salary_max": evaluation.get("salary_range", {}).get("max"),
+                    **({"application_id": payload.application_id} if payload.application_id else {})
+                }).execute()
+            except Exception as e:
+                print(f"Failed to save evaluation to DB: {e}")
+
+            t_db = time.perf_counter()
+            ttft = (t_first - t_pre_llm) if t_first else 0.0
+            print(f"[{rid}] evaluate-jd(stream) | pre-LLM={t_pre_llm-t_start:.2f}s "
+                  f"TTFT={ttft:.2f}s LLM={t_llm-t_pre_llm:.2f}s parse={t_parse-t_llm:.2f}s "
+                  f"db={t_db-t_parse:.2f}s | total={t_db-t_start:.2f}s | chars={len(full_text)} | streaming=True",
+                  flush=True)
+
+            evaluation["_credits"] = {"balance": new_balance}
+            yield f"event: done\ndata: {json.dumps(evaluation)}\n\n"
+
+        except json.JSONDecodeError:
+            # AI failed to deliver usable output — refund the credit (Refund Policy §3).
+            await refund_credits(user_id, cost=1)
+            yield f"event: error\ndata: {json.dumps({'detail': 'AI returned an unexpected response. Please try again.'})}\n\n"
+        except Exception:
+            await refund_credits(user_id, cost=1)
+            yield f"event: error\ndata: {json.dumps({'detail': 'Evaluation failed. Please try again.'})}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @router.get("/history")

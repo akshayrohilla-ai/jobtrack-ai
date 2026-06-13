@@ -184,6 +184,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
   const { user, creditBalance, setCreditBalance, setShowAuthModal } = useAuth()
 
   const [loading, setLoading]   = useState(false)
+  const [streaming, setStreaming] = useState(false)
   const [error, setError]       = useState(null)
   const [tracking, setTracking] = useState(false)
   const [tracked, setTracked]   = useState(false)
@@ -219,7 +220,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
     if (creditBalance !== null && creditBalance <= 0) return
     if (!savedJdText?.trim() || savedJdText.length < 50) { setError('Paste a complete job description first.'); return }
 
-    setLoading(true); setError(null); onResultChange(null)
+    setLoading(true); setStreaming(false); setError(null); onResultChange(null)
 
     try {
       const headers = await getAuthHeader()
@@ -236,17 +237,45 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
         })
       })
 
+      // Errors are returned BEFORE the stream starts, so status is available immediately.
       if (res.status === 401) { setShowAuthModal(true); setError('Session expired. Please sign in again.'); return }
       if (res.status === 402) { setCreditBalance(0); return }
-      if (!res.ok) { const err = await res.json(); throw new Error(err.detail || 'Evaluation failed') }
+      if (!res.ok) { let d = 'Evaluation failed'; try { d = (await res.json()).detail } catch {} ; throw new Error(d) }
 
-      const data = await res.json()
-      onResultChange(data)
-      if (data._credits?.balance !== undefined) setCreditBalance(data._credits.balance)
+      // Consume the SSE stream: `delta` = progress, `done` = full result, `error` = failure.
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buf = ''
+      let finished = false
+      while (!finished) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buf += decoder.decode(value, { stream: true })
+        let sep
+        while ((sep = buf.indexOf('\n\n')) !== -1) {
+          const frame = buf.slice(0, sep); buf = buf.slice(sep + 2)
+          let ev = 'message', dataStr = ''
+          for (const line of frame.split('\n')) {
+            if (line.startsWith('event:')) ev = line.slice(6).trim()
+            else if (line.startsWith('data:')) dataStr += line.slice(5).trim()
+          }
+          if (ev === 'delta') {
+            setStreaming(true)   // first token arrived — show live progress
+          } else if (ev === 'done') {
+            const data = JSON.parse(dataStr)
+            onResultChange(data)
+            if (data._credits?.balance !== undefined) setCreditBalance(data._credits.balance)
+            finished = true
+          } else if (ev === 'error') {
+            let d = 'Evaluation failed'; try { d = JSON.parse(dataStr).detail } catch {}
+            throw new Error(d)
+          }
+        }
+      }
 
     } catch (e) {
       setError(e.message || 'Evaluation failed. Make sure your backend is running.')
-    } finally { setLoading(false) }
+    } finally { setLoading(false); setStreaming(false) }
   }
 
   async function handleTrack() {
@@ -383,7 +412,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
           <button className="btn-primary w-full justify-center mt-4" onClick={handleEvaluate}
             disabled={loading || !savedJdText?.trim()}>
             {loading
-              ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Evaluating with AI...</>
+              ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />{streaming ? 'Analyzing your fit…' : 'Evaluating with AI...'}</>
               : <><Sparkles size={15} />Evaluate this job</>
             }
           </button>

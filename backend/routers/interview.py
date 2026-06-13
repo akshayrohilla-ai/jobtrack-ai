@@ -5,6 +5,8 @@ import anthropic
 import os
 import json
 import re
+import time
+import uuid
 from slowapi import Limiter
 from middleware.ratelimit import user_or_ip
 from middleware.auth import get_current_user, require_credits, refund_credits
@@ -65,6 +67,10 @@ class InterviewPrepRequest(BaseModel):
 @router.post("/prep")
 @limiter.limit("10/minute")
 async def interview_prep(request: Request, payload: InterviewPrepRequest):
+    # --- timing instrumentation (diagnostic) ---
+    rid = uuid.uuid4().hex[:8]
+    t_start = time.perf_counter()
+
     user_id = await get_current_user(request)
 
     if len(payload.raw_cv.strip()) < 100:
@@ -89,6 +95,7 @@ JOB DESCRIPTION:
 
 Return the full interview prep pack as JSON."""
 
+    t_pre_llm = time.perf_counter()
     try:
         message = client.messages.create(
             model="claude-sonnet-4-6",
@@ -104,6 +111,8 @@ Return the full interview prep pack as JSON."""
             messages=[{"role": "user", "content": user_prompt}]
         )
 
+        t_llm = time.perf_counter()
+
         raw = message.content[0].text.strip()
         # Strip markdown code fences
         raw = re.sub(r"```json\s*", "", raw)
@@ -116,6 +125,13 @@ Return the full interview prep pack as JSON."""
                 raw = match.group()
 
         result = json.loads(raw)
+        t_parse = time.perf_counter()
+
+        out_tok = getattr(getattr(message, 'usage', None), 'output_tokens', 0)
+        print(f"[{rid}] interview-prep | pre-LLM={t_pre_llm-t_start:.2f}s "
+              f"LLM={t_llm-t_pre_llm:.2f}s parse={t_parse-t_llm:.2f}s "
+              f"| total={t_parse-t_start:.2f}s | out_tokens={out_tok} | streaming=False", flush=True)
+
         result["_credits"] = {"balance": new_balance}
         return result
 

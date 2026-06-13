@@ -4,6 +4,8 @@ from typing import Optional
 import anthropic
 import os
 import json
+import time
+import uuid
 from slowapi import Limiter
 from middleware.ratelimit import user_or_ip
 from services.supabase_client import get_supabase
@@ -120,6 +122,10 @@ class TailorRequest(BaseModel):
 @router.post("/tailor-cv")
 @limiter.limit("10/minute")
 async def tailor_cv(request: Request, payload: TailorRequest):
+    # --- timing instrumentation (diagnostic) ---
+    rid = uuid.uuid4().hex[:8]
+    t_start = time.perf_counter()
+
     # 1. Verify JWT
     user_id = await get_current_user(request)
 
@@ -153,6 +159,7 @@ JOB DESCRIPTION:
 
 Rewrite the CV to maximise fit for this specific role. Return JSON only."""
 
+    t_pre_llm = time.perf_counter()
     try:
         message = client.messages.create(
             model="claude-sonnet-4-6",
@@ -167,8 +174,11 @@ Rewrite the CV to maximise fit for this specific role. Return JSON only."""
             messages=[{"role": "user", "content": user_prompt}]
         )
 
+        t_llm = time.perf_counter()
+
         raw = message.content[0].text.strip().replace("```json", "").replace("```", "").strip()
         tailored = json.loads(raw)
+        t_parse = time.perf_counter()
 
         # Log cache usage
         usage_meta = getattr(message, 'usage', None)
@@ -187,6 +197,12 @@ Rewrite the CV to maximise fit for this specific role. Return JSON only."""
             }).execute()
         except Exception:
             pass
+
+        t_db = time.perf_counter()
+        out_tok = getattr(usage_meta, 'output_tokens', 0) if usage_meta else 0
+        print(f"[{rid}] tailor-cv | pre-LLM={t_pre_llm-t_start:.2f}s "
+              f"LLM={t_llm-t_pre_llm:.2f}s parse={t_parse-t_llm:.2f}s db={t_db-t_parse:.2f}s "
+              f"| total={t_db-t_start:.2f}s | out_tokens={out_tok} | streaming=False", flush=True)
 
         tailored["_credits"] = {"balance": new_balance}
         return tailored
