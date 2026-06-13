@@ -472,6 +472,19 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
           stay hidden until generation completes (no partial .docx downloads). */}
       {result && (
         <>
+          {/* In-progress banner — shown while sections stream in, so the user
+              knows it's still working until the green "ready" banner replaces it. */}
+          {loading && (
+            <div className="card flex items-center gap-2"
+              style={{ background: 'var(--blue-pale)', border: '1px solid #BFDBFE' }}>
+              <span className="animate-spin w-4 h-4 border-2 rounded-full flex-shrink-0"
+                style={{ borderColor: 'var(--blue-accent)', borderTopColor: 'transparent' }} />
+              <span className="text-sm font-medium" style={{ color: 'var(--blue-accent)' }}>
+                Rewriting your CV… sections appear below as they're ready
+              </span>
+            </div>
+          )}
+
           {/* Completion banner — clear "done" signal after streaming finishes */}
           {justCompleted && !loading && (
             <div className="card flex items-center gap-2 animate-slide-up"
