@@ -110,7 +110,10 @@ Return the full interview prep pack as JSON."""
         try:
             async with client.messages.stream(
                 model="claude-sonnet-4-6",
-                max_tokens=2000,
+                # 4000 (was 2000): the full pack — 5 STAR answers + red flags +
+                # questions — can exceed 2000 tokens for a rich CV, which truncated
+                # the JSON mid-structure and failed the strict parse below (refund).
+                max_tokens=4000,
                 temperature=0,
                 system=[
                     {
@@ -162,8 +165,15 @@ Return the full interview prep pack as JSON."""
 
         except json.JSONDecodeError as e:
             await refund_credits(user_id, cost=1)
-            print(f"Interview prep JSON parse error: {e}")
-            print(f"Raw response was: {raw[:500]}")
+            # Diagnose truncation vs malformed JSON: a tail that doesn't end in '}'
+            # plus stop_reason == 'max_tokens' means we hit the token cap.
+            stop_reason = None
+            try:
+                stop_reason = getattr(await stream.get_final_message(), 'stop_reason', None)
+            except Exception:
+                pass
+            print(f"Interview prep JSON parse error: {e} | len={len(full_text)} "
+                  f"| stop_reason={stop_reason} | tail={full_text[-200:]!r}")
             yield f"event: error\ndata: {json.dumps({'detail': 'Interview prep failed — your credit has been refunded. Please try again.'})}\n\n"
         except Exception as e:
             await refund_credits(user_id, cost=1)
