@@ -220,6 +220,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
 
   const [loading, setLoading]   = useState(false)
   const [streaming, setStreaming] = useState(false)
+  const [justCompleted, setJustCompleted] = useState(false)
   const [error, setError]       = useState(null)
   const [tracking, setTracking] = useState(false)
   const [tracked, setTracked]   = useState(false)
@@ -255,7 +256,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
     if (creditBalance !== null && creditBalance <= 0) return
     if (!savedJdText?.trim() || savedJdText.length < 50) { setError('Paste a complete job description first.'); return }
 
-    setLoading(true); setStreaming(false); setError(null); onResultChange(null)
+    setLoading(true); setStreaming(false); setJustCompleted(false); setError(null); onResultChange(null)
 
     try {
       const headers = await getAuthHeader()
@@ -304,6 +305,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
             const data = JSON.parse(dataStr)
             onResultChange(data)                    // authoritative complete result
             if (data._credits?.balance !== undefined) setCreditBalance(data._credits.balance)
+            setJustCompleted(true)                  // show the "ready" banner
             finished = true
           } else if (ev === 'error') {
             let d = 'Evaluation failed'; try { d = JSON.parse(dataStr).detail } catch {}
@@ -463,6 +465,17 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
           until the grade arrives, so the grade hero falls back to a skeleton. */}
       {result && (
         <>
+          {/* Completion banner — clear "done" signal after streaming finishes */}
+          {justCompleted && !loading && (
+            <div className="card flex items-center gap-2 animate-slide-up"
+              style={{ background: 'var(--success-bg)', border: '1px solid #6EE7B7' }}>
+              <CheckCircle size={16} style={{ color: 'var(--success)', flexShrink: 0 }} />
+              <span className="text-sm font-medium" style={{ color: 'var(--success)' }}>
+                Your JD evaluation is ready
+              </span>
+            </div>
+          )}
+
           {/* Header row — profile + actions (actions hidden until generation completes) */}
           <div className="flex items-center justify-between">
             {profile && (
@@ -485,7 +498,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
                   <Download size={12} />Export Report
                 </button>
                 {!outOfCredits && (
-                  <button onClick={() => { onResultChange(null); onJdTextChange(''); setTracked(false) }}
+                  <button onClick={() => { onResultChange(null); onJdTextChange(''); setTracked(false); setJustCompleted(false) }}
                     className="btn-ghost text-xs py-1.5">
                     <RefreshCw size={12} />Evaluate another JD
                   </button>
