@@ -4,7 +4,8 @@ import {
   AlignmentType, LevelFormat, BorderStyle
 } from 'docx'
 import { Sparkles, Lock, Download, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, Zap, FileText, Eye, EyeOff } from 'lucide-react'
-import { tailorCV } from '../lib/api'
+import { getAuthHeader } from '../lib/supabase'
+import { parsePartialJSON } from '../lib/partialJson'
 import { useAuth } from '../App'
 
 // --- DOCX export using docx npm package ---
@@ -253,6 +254,8 @@ function BriefingCard({ briefing }) {
 export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, evalCompany, loading, setLoading, result, setResult }) {
   const { user, creditBalance, setCreditBalance, setShowAuthModal } = useAuth()
   const [error, setError]       = useState(null)
+  const [streaming, setStreaming] = useState(false)
+  const [justCompleted, setJustCompleted] = useState(false)
   const [showFullSummary, setShowFullSummary] = useState(true)
 
   const outOfCredits = user && creditBalance !== null && creditBalance <= 0
@@ -264,18 +267,66 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
   async function handleTailor() {
     if (!user) { setShowAuthModal(true); return }
     if (outOfCredits || loading) return  // guard against double-click or in-flight request
-    setLoading(true); setError(null); setResult(null)
+    setLoading(true); setStreaming(false); setJustCompleted(false); setError(null); setResult(null)
 
     try {
-      const { data } = await tailorCV(evalJdText, rawCvText, profile)
-      setResult(data)
-      if (data._credits?.balance !== undefined) setCreditBalance(data._credits.balance)
+      const headers = await getAuthHeader()
+      const API_URL = import.meta.env.VITE_API_URL
+
+      const res = await fetch(`${API_URL}/api/tailor/tailor-cv`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({
+          jd_text: evalJdText,
+          cv_raw_text: rawCvText,
+          cv_profile: profile,
+        })
+      })
+
+      // Errors are returned BEFORE the stream starts, so status is available immediately.
+      if (res.status === 401) { setShowAuthModal(true); return }
+      if (res.status === 402) { setCreditBalance(0); return }
+      if (!res.ok) { let d = 'CV tailoring failed'; try { d = (await res.json()).detail } catch {} ; throw new Error(d) }
+
+      // Consume the SSE stream: `delta` = progress, `done` = full result, `error` = failure.
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buf = ''
+      let acc = ''            // accumulated model text, parsed progressively
+      let finished = false
+      while (!finished) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buf += decoder.decode(value, { stream: true })
+        let sep
+        while ((sep = buf.indexOf('\n\n')) !== -1) {
+          const frame = buf.slice(0, sep); buf = buf.slice(sep + 2)
+          let ev = 'message', dataStr = ''
+          for (const line of frame.split('\n')) {
+            if (line.startsWith('event:')) ev = line.slice(6).trim()
+            else if (line.startsWith('data:')) dataStr += line.slice(5).trim()
+          }
+          if (ev === 'delta') {
+            setStreaming(true)   // first token arrived — show live progress
+            try { acc += JSON.parse(dataStr).t || '' } catch {}
+            const partial = parsePartialJSON(acc)
+            if (partial) setResult(partial)   // render sections as they complete
+          } else if (ev === 'done') {
+            const data = JSON.parse(dataStr)
+            setResult(data)                    // authoritative complete result
+            if (data._credits?.balance !== undefined) setCreditBalance(data._credits.balance)
+            setJustCompleted(true)             // show the "ready" banner
+            finished = true
+          } else if (ev === 'error') {
+            let d = 'CV tailoring failed'; try { d = JSON.parse(dataStr).detail } catch {}
+            throw new Error(d)
+          }
+        }
+      }
     } catch (e) {
-      const detail = e.response?.data?.detail
-      if (e.response?.status === 402) { setCreditBalance(0); return }
-      if (e.response?.status === 401) { setShowAuthModal(true); return }
-      setError(typeof detail === 'string' ? detail : 'CV tailoring failed. Try again.')
-    } finally { setLoading(false) }
+      setResult(null)   // discard any partial render so the form + error show
+      setError(e.message || 'CV tailoring failed. Try again.')
+    } finally { setLoading(false); setStreaming(false) }
   }
 
   // Not signed in
@@ -405,7 +456,7 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
             className="btn-primary w-full justify-center"
             style={{ opacity: (missingCV || missingJD) ? 0.5 : 1 }}>
             {loading
-              ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Tailoring your CV with AI...</>
+              ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />{streaming ? 'Rewriting your CV…' : 'Tailoring your CV with AI...'}</>
               : <><Sparkles size={15} />Tailor CV for this role — 1 credit</>
             }
           </button>
@@ -417,9 +468,21 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
         </div>
       )}
 
-      {/* Results */}
+      {/* Results — renders progressively as sections stream in. Download actions
+          stay hidden until generation completes (no partial .docx downloads). */}
       {result && (
         <>
+          {/* Completion banner — clear "done" signal after streaming finishes */}
+          {justCompleted && !loading && (
+            <div className="card flex items-center gap-2 animate-slide-up"
+              style={{ background: 'var(--success-bg)', border: '1px solid #6EE7B7' }}>
+              <CheckCircle size={16} style={{ color: 'var(--success)', flexShrink: 0 }} />
+              <span className="text-sm font-medium" style={{ color: 'var(--success)' }}>
+                Your tailored CV is ready
+              </span>
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -432,13 +495,15 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
                 {evalCompany ? <span> at <strong style={{ color: 'var(--text-secondary)' }}>{evalCompany}</strong></span> : ''}
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => downloadTailoredCV(result, profile, evalRole, evalCompany)}
-                className="btn-primary text-xs py-2">
-                <Download size={13} />Download CV (.docx)
-              </button>
-            </div>
+            {!loading && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => downloadTailoredCV(result, profile, evalRole, evalCompany)}
+                  className="btn-primary text-xs py-2">
+                  <Download size={13} />Download CV (.docx)
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Application briefing — screen only */}
@@ -536,23 +601,25 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
             </div>
           )}
 
-          {/* Download CTA at bottom */}
-          <div className="card" style={{ background: 'var(--navy-900)', border: 'none' }}>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-semibold text-white">Your tailored CV is ready</div>
-                <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                  Download and open in Word to add contact details and education
+          {/* Download CTA at bottom — only once generation has completed */}
+          {!loading && (
+            <div className="card" style={{ background: 'var(--navy-900)', border: 'none' }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-semibold text-white">Your tailored CV is ready</div>
+                  <div className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                    Download and open in Word to add contact details and education
+                  </div>
                 </div>
+                <button
+                  onClick={() => downloadTailoredCV(result, profile, evalRole, evalCompany)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+                  style={{ background: 'var(--blue-accent)', color: 'white' }}>
+                  <Download size={14} />Download .docx
+                </button>
               </div>
-              <button
-                onClick={() => downloadTailoredCV(result, profile, evalRole, evalCompany)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
-                style={{ background: 'var(--blue-accent)', color: 'white' }}>
-                <Download size={14} />Download .docx
-              </button>
             </div>
-          </div>
+          )}
         </>
       )}
     </div>
