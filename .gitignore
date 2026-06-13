@@ -18,3 +18,6 @@ dist/
 .idea/
 *.swp
 .DS_Store
+
+# Graphify generated output (local only)
+graphify-out/

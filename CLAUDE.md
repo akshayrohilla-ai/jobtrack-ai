@@ -1,5 +1,20 @@
 # CLAUDE.md — JobTrack AI
 
+## Context Navigation
+
+A graphify knowledge graph of this repo lives in `graphify-out/` (gitignored, local only).
+Queries are a local graph traversal (~1k tokens, no LLM call) — far cheaper than reading files
+to orient. Use it accordingly:
+
+1. **For understanding / navigation** — "how does X work", "where is Y", "what connects Z",
+   tracing flows across files — query the graph first: `/graphify query "your question"`.
+2. **For exact edit targets** — when you need the precise current bytes of a file to edit it —
+   read those specific lines directly. The graph maps structure; it does not replace reading
+   the lines you're about to change.
+3. **Entrypoints:** `graphify-out/GRAPH_REPORT.md` (god nodes, communities, suggested questions)
+   and `graphify-out/graph.html` (interactive). Keep the graph fresh with `/graphify <path> --update`
+   after meaningful changes — code re-extraction is free; only changed docs cost tokens.
+
 Guidance for Claude Code when working in this repo. Read this first.
 
 ## What this is
