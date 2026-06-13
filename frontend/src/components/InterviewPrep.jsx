@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Sparkles, Lock, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, Zap, MessageSquare, ShieldAlert, HelpCircle, Download } from 'lucide-react'
-import { prepareInterview } from '../lib/api'
+import { getAuthHeader } from '../lib/supabase'
+import { parsePartialJSON } from '../lib/partialJson'
 import { useAuth } from '../App'
 
 function downloadInterviewPDF(result, profile, role, company) {
@@ -191,6 +192,8 @@ function STARCard({ q, index }) {
 export default function InterviewPrep({ profile, rawCvText, evalJdText, evalRole, evalCompany, loading, setLoading, result, setResult }) {
   const { user, creditBalance, setCreditBalance, setShowAuthModal } = useAuth()
   const [error, setError] = useState(null)
+  const [streaming, setStreaming] = useState(false)
+  const [justCompleted, setJustCompleted] = useState(false)
 
   const outOfCredits = user && creditBalance !== null && creditBalance <= 0
   const missingCV = !profile || !rawCvText
@@ -200,17 +203,67 @@ export default function InterviewPrep({ profile, rawCvText, evalJdText, evalRole
   async function handlePrep() {
     if (!user) { setShowAuthModal(true); return }
     if (!canRun) return
-    setLoading(true); setError(null); setResult(null)
+    setLoading(true); setStreaming(false); setJustCompleted(false); setError(null); setResult(null)
+
     try {
-      const { data } = await prepareInterview(rawCvText, evalJdText, evalRole, evalCompany)
-      setResult(data)
-      if (data._credits?.balance !== undefined) setCreditBalance(data._credits.balance)
+      const headers = await getAuthHeader()
+      const API_URL = import.meta.env.VITE_API_URL
+
+      const res = await fetch(`${API_URL}/api/interview/prep`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: JSON.stringify({
+          raw_cv: rawCvText,
+          jd_text: evalJdText,
+          role: evalRole || '',
+          company: evalCompany || '',
+        })
+      })
+
+      // Errors are returned BEFORE the stream starts, so status is available immediately.
+      if (res.status === 401) { setShowAuthModal(true); return }
+      if (res.status === 402) { setCreditBalance(0); return }
+      if (!res.ok) { let d = 'Interview prep failed'; try { d = (await res.json()).detail } catch {} ; throw new Error(d) }
+
+      // Consume the SSE stream: `delta` = progress, `done` = full result, `error` = failure.
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buf = ''
+      let acc = ''            // accumulated model text, parsed progressively
+      let finished = false
+      while (!finished) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buf += decoder.decode(value, { stream: true })
+        let sep
+        while ((sep = buf.indexOf('\n\n')) !== -1) {
+          const frame = buf.slice(0, sep); buf = buf.slice(sep + 2)
+          let ev = 'message', dataStr = ''
+          for (const line of frame.split('\n')) {
+            if (line.startsWith('event:')) ev = line.slice(6).trim()
+            else if (line.startsWith('data:')) dataStr += line.slice(5).trim()
+          }
+          if (ev === 'delta') {
+            setStreaming(true)   // first token arrived — show live progress
+            try { acc += JSON.parse(dataStr).t || '' } catch {}
+            const partial = parsePartialJSON(acc)
+            if (partial) setResult(partial)   // render sections as they complete
+          } else if (ev === 'done') {
+            const data = JSON.parse(dataStr)
+            setResult(data)                    // authoritative complete result
+            if (data._credits?.balance !== undefined) setCreditBalance(data._credits.balance)
+            setJustCompleted(true)             // show the "ready" banner
+            finished = true
+          } else if (ev === 'error') {
+            let d = 'Interview prep failed'; try { d = JSON.parse(dataStr).detail } catch {}
+            throw new Error(d)
+          }
+        }
+      }
     } catch (e) {
-      const detail = e.response?.data?.detail
-      if (e.response?.status === 402) { setCreditBalance(0); return }
-      if (e.response?.status === 401) { setShowAuthModal(true); return }
-      setError(typeof detail === 'string' ? detail : 'Interview prep failed. Try again.')
-    } finally { setLoading(false) }
+      setResult(null)   // discard any partial render so the form + error show
+      setError(e.message || 'Interview prep failed. Try again.')
+    } finally { setLoading(false); setStreaming(false) }
   }
 
   if (!user) return (
@@ -321,7 +374,7 @@ export default function InterviewPrep({ profile, rawCvText, evalJdText, evalRole
             className="btn-primary w-full justify-center"
             style={{ opacity: (!missingCV && !missingJD) ? 1 : 0.5 }}>
             {loading
-              ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />Preparing your interview pack...</>
+              ? <><span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />{streaming ? 'Writing your STAR answers…' : 'Preparing your interview pack...'}</>
               : <><Sparkles size={15} />Generate interview prep — 1 credit</>
             }
           </button>
@@ -333,9 +386,21 @@ export default function InterviewPrep({ profile, rawCvText, evalJdText, evalRole
         </div>
       )}
 
-      {/* Results */}
+      {/* Results — renders progressively as sections stream in. Download stays
+          hidden until generation completes (no partial export). */}
       {result && (
         <>
+          {/* Completion banner — clear "done" signal after streaming finishes */}
+          {justCompleted && !loading && (
+            <div className="card flex items-center gap-2 animate-slide-up"
+              style={{ background: 'var(--success-bg)', border: '1px solid #6EE7B7' }}>
+              <CheckCircle size={16} style={{ color: 'var(--success)', flexShrink: 0 }} />
+              <span className="text-sm font-medium" style={{ color: 'var(--success)' }}>
+                Your interview prep pack is ready
+              </span>
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -348,11 +413,13 @@ export default function InterviewPrep({ profile, rawCvText, evalJdText, evalRole
                 {evalCompany ? <span> at <strong style={{ color: 'var(--text-secondary)' }}>{evalCompany}</strong></span> : ''}
               </span>
             </div>
-            <button
-              onClick={() => downloadInterviewPDF(result, profile, evalRole, evalCompany)}
-              className="btn-primary text-xs py-2">
-              <Download size={13} />Download prep
-            </button>
+            {!loading && (
+              <button
+                onClick={() => downloadInterviewPDF(result, profile, evalRole, evalCompany)}
+                className="btn-primary text-xs py-2">
+                <Download size={13} />Download prep
+              </button>
+            )}
           </div>
 
           {/* Behavioural questions */}

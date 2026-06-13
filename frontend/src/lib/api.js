@@ -65,18 +65,9 @@ export const deleteApplication = (id) =>
 export const getStats = () =>
   api.get('/api/applications/stats')
 
-// CV Tailoring — costs 1 credit
-// CV tailoring (/api/tailor/tailor-cv) is consumed as an SSE stream directly in
-// CVTailor.jsx via fetch — no axios helper here (see JDEvaluator for the pattern).
-
-// Interview Prep — costs 1 credit
-export const prepareInterview = (rawCv, jdText, role, company) =>
-  api.post('/api/interview/prep', {
-    raw_cv: rawCv,
-    jd_text: jdText,
-    role: role || '',
-    company: company || '',
-  })
+// CV Tailoring (/api/tailor/tailor-cv) and Interview Prep (/api/interview/prep) are
+// consumed as SSE streams directly in their components via fetch — no axios helpers
+// here (see JDEvaluator for the pattern).
 
 // Recruiter
 export const analyzeJD = (jdText) =>

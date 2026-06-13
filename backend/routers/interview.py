@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
 import anthropic
@@ -80,7 +81,8 @@ async def interview_prep(request: Request, payload: InterviewPrepRequest):
 
     new_balance = await require_credits(user_id, action="interview_prep", cost=1)
 
-    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+    # Async client so the SSE stream below doesn't block the event loop.
+    client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
     role_context = f" for the {payload.role} role" if payload.role else ""
     company_context = f" at {payload.company}" if payload.company else ""
@@ -96,51 +98,76 @@ JOB DESCRIPTION:
 Return the full interview prep pack as JSON."""
 
     t_pre_llm = time.perf_counter()
-    try:
-        message = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=2000,
-            temperature=0,
-            system=[
-                {
-                    "type": "text",
-                    "text": INTERVIEW_SYSTEM_PROMPT,
-                    "cache_control": {"type": "ephemeral"}
-                }
-            ],
-            messages=[{"role": "user", "content": user_prompt}]
-        )
 
-        t_llm = time.perf_counter()
+    async def event_stream():
+        """Stream the interview pack over SSE. Only the TRANSPORT changes (buffered -> streamed);
+        model, prompt, max_tokens, temperature and the final JSON are identical to before. Emits
+        `delta` progress events while generating, a `done` event carrying the complete pack JSON,
+        or an `error` event (credit refunded) on failure."""
+        full_text = ""
+        raw = ""
+        t_first = None
+        try:
+            async with client.messages.stream(
+                model="claude-sonnet-4-6",
+                max_tokens=2000,
+                temperature=0,
+                system=[
+                    {
+                        "type": "text",
+                        "text": INTERVIEW_SYSTEM_PROMPT,
+                        "cache_control": {"type": "ephemeral"}
+                    }
+                ],
+                messages=[{"role": "user", "content": user_prompt}]
+            ) as stream:
+                async for text in stream.text_stream:
+                    if t_first is None:
+                        t_first = time.perf_counter()
+                    full_text += text
+                    # Send the incremental text so the client can progressively
+                    # parse + render sections as they complete.
+                    yield f"event: delta\ndata: {json.dumps({'t': text})}\n\n"
 
-        raw = message.content[0].text.strip()
-        # Strip markdown code fences
-        raw = re.sub(r"```json\s*", "", raw)
-        raw = re.sub(r"```\s*", "", raw)
-        raw = raw.strip()
-        # If model added preamble, extract the JSON object
-        if not raw.startswith("{"):
-            match = re.search(r"\{.*\}", raw, re.DOTALL)
-            if match:
-                raw = match.group()
+            t_llm = time.perf_counter()
 
-        result = json.loads(raw)
-        t_parse = time.perf_counter()
+            raw = full_text.strip()
+            # Strip markdown code fences
+            raw = re.sub(r"```json\s*", "", raw)
+            raw = re.sub(r"```\s*", "", raw)
+            raw = raw.strip()
+            # If model added preamble, extract the JSON object
+            if not raw.startswith("{"):
+                match = re.search(r"\{.*\}", raw, re.DOTALL)
+                if match:
+                    raw = match.group()
 
-        out_tok = getattr(getattr(message, 'usage', None), 'output_tokens', 0)
-        print(f"[{rid}] interview-prep | pre-LLM={t_pre_llm-t_start:.2f}s "
-              f"LLM={t_llm-t_pre_llm:.2f}s parse={t_parse-t_llm:.2f}s "
-              f"| total={t_parse-t_start:.2f}s | out_tokens={out_tok} | streaming=False", flush=True)
+            result = json.loads(raw)
+            t_parse = time.perf_counter()
 
-        result["_credits"] = {"balance": new_balance}
-        return result
+            out_tok = 0
+            try:
+                final_message = await stream.get_final_message()
+                out_tok = getattr(getattr(final_message, 'usage', None), 'output_tokens', 0)
+            except Exception:
+                pass
 
-    except json.JSONDecodeError as e:
-        await refund_credits(user_id, cost=1)
-        print(f"Interview prep JSON parse error: {e}")
-        print(f"Raw response was: {raw[:500]}")
-        raise HTTPException(status_code=500, detail="Interview prep failed — your credit has been refunded. Please try again.")
-    except Exception as e:
-        await refund_credits(user_id, cost=1)
-        print(f"Interview prep exception (refunded): {type(e).__name__}: {e}")
-        raise HTTPException(status_code=500, detail="Interview prep failed — your credit has been refunded. Please try again.")
+            ttft = (t_first - t_pre_llm) if t_first else 0.0
+            print(f"[{rid}] interview-prep(stream) | pre-LLM={t_pre_llm-t_start:.2f}s "
+                  f"TTFT={ttft:.2f}s LLM={t_llm-t_pre_llm:.2f}s parse={t_parse-t_llm:.2f}s "
+                  f"| total={t_parse-t_start:.2f}s | out_tokens={out_tok} | streaming=True", flush=True)
+
+            result["_credits"] = {"balance": new_balance}
+            yield f"event: done\ndata: {json.dumps(result)}\n\n"
+
+        except json.JSONDecodeError as e:
+            await refund_credits(user_id, cost=1)
+            print(f"Interview prep JSON parse error: {e}")
+            print(f"Raw response was: {raw[:500]}")
+            yield f"event: error\ndata: {json.dumps({'detail': 'Interview prep failed — your credit has been refunded. Please try again.'})}\n\n"
+        except Exception as e:
+            await refund_credits(user_id, cost=1)
+            print(f"Interview prep exception (refunded): {type(e).__name__}: {e}")
+            yield f"event: error\ndata: {json.dumps({'detail': 'Interview prep failed — your credit has been refunded. Please try again.'})}\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
