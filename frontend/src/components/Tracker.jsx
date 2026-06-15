@@ -3,8 +3,8 @@ import { updateApplication, deleteApplication } from '../lib/api'
 import { Download, Trash2, RefreshCw, Kanban } from 'lucide-react'
 
 const COLS = [
-  { id: 'applied',   label: 'Applied',   dot: 'var(--blue-accent)', count_bg: '#EBF2FF', count_text: '#1D4ED8' },
-  { id: 'interview', label: 'Interview', dot: '#7C3AED',            count_bg: '#F3F0FF', count_text: '#6D28D9' },
+  { id: 'applied',   label: 'Applied',   dot: 'var(--blue-accent)', count_bg: 'var(--blue-pale)', count_text: 'var(--blue-accent)' },
+  { id: 'interview', label: 'Interview', dot: 'var(--brass)',       count_bg: 'rgba(166,128,60,0.14)', count_text: 'var(--brass)' },
   { id: 'offer',     label: 'Offer',     dot: 'var(--success)',     count_bg: 'var(--success-bg)', count_text: 'var(--success)' },
   { id: 'rejected',  label: 'Rejected',  dot: 'var(--danger)',      count_bg: 'var(--danger-bg)',  count_text: 'var(--danger)' },
 ]
@@ -73,7 +73,7 @@ export default function Tracker({ applications, loading, onUpdate, onRefresh }) 
         style={{ background: 'var(--blue-pale)', border: '1px solid #BFDBFE' }}>
         <Kanban size={24} style={{ color: 'var(--blue-accent)' }} />
       </div>
-      <h3 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.25rem', color: 'var(--navy-900)' }}>No applications yet</h3>
+      <h3 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.25rem', color: 'var(--navy-900)' }}>No applications yet</h3>
       <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>Find jobs and click "Open & track" or add from a JD evaluation.</p>
       {onRefresh && <button onClick={onRefresh} className="btn-ghost mt-4"><RefreshCw size={13} />Refresh</button>}
     </div>
@@ -83,7 +83,7 @@ export default function Tracker({ applications, loading, onUpdate, onRefresh }) 
     <div className="animate-slide-up">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.5rem', color: 'var(--navy-900)' }}>Application tracker</h2>
+          <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.5rem', color: 'var(--navy-900)' }}>Application tracker</h2>
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>{applications.length} application{applications.length !== 1 ? 's' : ''} tracked</p>
         </div>
         <div className="flex gap-2">
@@ -101,8 +101,8 @@ export default function Tracker({ applications, loading, onUpdate, onRefresh }) 
               onDragLeave={onDragLeave}
               onDrop={e => onDrop(e, col.id)}
               style={{ transition: 'background 0.15s', borderRadius: 12,
-                background: dragOverCol === col.id ? 'rgba(27,111,235,0.06)' : 'transparent',
-                outline: dragOverCol === col.id ? '2px dashed rgba(27,111,235,0.35)' : '2px dashed transparent' }}>
+                background: dragOverCol === col.id ? 'rgba(122,46,46,0.06)' : 'transparent',
+                outline: dragOverCol === col.id ? '2px dashed rgba(122,46,46,0.35)' : '2px dashed transparent' }}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: col.dot }} />

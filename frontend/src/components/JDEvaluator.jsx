@@ -7,7 +7,7 @@ import { useAuth } from '../App'
 
 const GRADE_CONFIG = {
   A: { color: 'var(--success)',  bg: 'var(--success-bg)', border: '#6EE7B7', label: 'Excellent fit',  glow: 'rgba(5,150,105,0.15)' },
-  B: { color: 'var(--blue-accent)', bg: 'var(--blue-pale)', border: '#93C5FD', label: 'Good fit',     glow: 'rgba(27,111,235,0.15)' },
+  B: { color: 'var(--blue-accent)', bg: 'var(--blue-pale)', border: '#D8B7A8', label: 'Good fit',     glow: 'rgba(122,46,46,0.15)' },
   C: { color: 'var(--warning)', bg: 'var(--warning-bg)', border: '#FCD34D', label: 'Partial fit',    glow: 'rgba(217,119,6,0.15)' },
   D: { color: '#EA580C',        bg: '#FFF7ED',           border: '#FDBA74', label: 'Poor fit',       glow: 'rgba(234,88,12,0.1)' },
   F: { color: 'var(--danger)',  bg: 'var(--danger-bg)',  border: '#FCA5A5', label: 'Not suitable',   glow: 'rgba(220,38,38,0.1)' },
@@ -69,7 +69,7 @@ function exportEvaluationToPDF(result, profile, role, company) {
   const date = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
   const gc = GRADE_CONFIG[result.grade] || {}
 
-  const gradeColors = { A: '#059669', B: '#1B6FEB', C: '#D97706', D: '#EA580C', F: '#DC2626' }
+  const gradeColors = { A: '#2F6B4F', B: '#7A2E2E', C: '#9A6B1F', D: '#B5562A', F: '#B23A2A' }
   const gradeColor = gradeColors[result.grade] || '#666'
 
   const gapsHtml = (result.gaps || []).map(g => `
@@ -85,7 +85,7 @@ function exportEvaluationToPDF(result, profile, role, company) {
     `<li style="margin-bottom:4px;color:#059669">✓ ${f}</li>`).join('')
 
   const skillsHtml = (result.cv_match?.matched_skills || []).map(s =>
-    `<span style="display:inline-block;background:#EBF2FF;color:#1D4ED8;border-radius:4px;padding:2px 8px;font-size:11px;margin:2px">${s}</span>`).join('')
+    `<span style="display:inline-block;background:#F2E6E2;color:#7A2E2E;border-radius:4px;padding:2px 8px;font-size:11px;margin:2px">${s}</span>`).join('')
 
   const html = `<!DOCTYPE html>
 <html>
@@ -95,9 +95,9 @@ function exportEvaluationToPDF(result, profile, role, company) {
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; background: white; padding: 40px; max-width: 800px; margin: 0 auto; }
-    .header { border-bottom: 2px solid #1B6FEB; padding-bottom: 20px; margin-bottom: 28px; }
-    .brand { font-size: 13px; color: #1B6FEB; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
-    .job-title { font-size: 22px; font-weight: 700; color: #0A1628; }
+    .header { border-bottom: 2px solid #7A2E2E; padding-bottom: 20px; margin-bottom: 28px; }
+    .brand { font-size: 13px; color: #7A2E2E; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+    .job-title { font-size: 22px; font-weight: 700; color: #211E18; }
     .company { font-size: 14px; color: #666; margin-top: 4px; }
     .meta { font-size: 12px; color: #999; margin-top: 4px; }
     .grade-box { display: flex; align-items: center; gap: 20px; padding: 20px; border-radius: 10px; background: #f8f9fa; border: 1px solid #e5e7eb; margin-bottom: 20px; }
@@ -353,7 +353,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
             style={{ background: 'var(--navy-900)' }}>
             <Lock size={22} style={{ color: 'rgba(255,255,255,0.6)' }} />
           </div>
-          <h3 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.25rem', color: 'var(--navy-900)' }}>
+          <h3 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.25rem', color: 'var(--navy-900)' }}>
             You've used all your credits
           </h3>
           <p className="text-sm mt-2 mb-6 max-w-xs mx-auto" style={{ color: 'var(--text-muted)' }}>
@@ -386,7 +386,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
                 style={{ background: 'var(--blue-accent)' }}>
                 {profile.initials || profile.name?.split(' ').map(w=>w[0]).join('').slice(0,2) || '?'}
               </div>
-              <span className="text-xs" style={{ color: '#1D4ED8' }}>
+              <span className="text-xs" style={{ color: 'var(--blue-accent)' }}>
                 Evaluating as <strong>{profile.name}</strong> · {profile.title}
               </span>
             </div>

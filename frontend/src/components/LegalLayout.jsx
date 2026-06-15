@@ -1,12 +1,12 @@
 export default function LegalLayout({ title, lastUpdated, children }) {
   return (
-    <div style={{ background: '#050B18', minHeight: '100vh', color: 'white', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ background: '#14110C', minHeight: '100vh', color: '#EFE8DC', fontFamily: "'DM Sans', system-ui, sans-serif" }}>
 
       {/* Nav */}
       <nav style={{ borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '0 24px' }}>
         <div style={{ maxWidth: 800, margin: '0 auto', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <a href="/" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-            <div style={{ width: 28, height: 28, borderRadius: 6, background: 'linear-gradient(135deg, #1B6FEB, #0EA5E9)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 28, height: 28, borderRadius: 6, background: '#7A2E2E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="15" height="15" viewBox="0 0 20 20" fill="none">
                 <rect x="3" y="8" width="14" height="10" rx="2" stroke="white" strokeWidth="1.6" strokeLinejoin="round"/>
                 <path d="M7 8V6a3 3 0 0 1 6 0v2" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
@@ -16,7 +16,7 @@ export default function LegalLayout({ title, lastUpdated, children }) {
               </svg>
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 14, color: '#fff', lineHeight: 1 }}>JobTrack <span style={{ color: '#60a5fa' }}>AI</span></div>
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#fff', lineHeight: 1 }}>JobTrack <span style={{ color: '#C9A86A' }}>AI</span></div>
               <div style={{ fontSize: 9, color: '#ffffff', letterSpacing: '0.15em', fontWeight: 600, marginTop: 3, lineHeight: 1, opacity: 0.7 }}>YOUR AI CAREER COPILOT</div>
             </div>
           </a>
@@ -90,7 +90,7 @@ export default function LegalLayout({ title, lastUpdated, children }) {
           margin-bottom: 6px;
         }
         .legal-content a {
-          color: #60a5fa;
+          color: #C9A86A;
           text-decoration: none;
         }
         .legal-content a:hover {

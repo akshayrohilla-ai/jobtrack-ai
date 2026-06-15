@@ -44,7 +44,7 @@ export default function CVProfile({ profile, onProfileParsed, onSwap, onFindJobs
               {initials}
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-semibold" style={{ fontFamily: 'DM Serif Display, Georgia, serif', color: 'var(--text-primary)' }}>
+              <h2 className="text-lg font-semibold" style={{ fontFamily: 'Fraunces, Georgia, serif', color: 'var(--text-primary)' }}>
                 {profile.name}
               </h2>
               <p className="text-sm mt-0.5" style={{ color: 'var(--text-secondary)' }}>{profile.title}</p>
@@ -146,7 +146,7 @@ export default function CVProfile({ profile, onProfileParsed, onSwap, onFindJobs
           style={{ background: 'var(--blue-pale)', border: '1px solid #BFDBFE' }}>
           <Briefcase size={22} style={{ color: 'var(--blue-accent)' }} />
         </div>
-        <h1 style={{ fontFamily: 'DM Serif Display, Georgia, serif', fontSize: '1.75rem', color: 'var(--navy-900)', lineHeight: 1.2 }}>
+        <h1 style={{ fontFamily: 'Fraunces, Georgia, serif', fontSize: '1.75rem', color: 'var(--navy-900)', lineHeight: 1.2 }}>
           Upload your CV
         </h1>
         <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>

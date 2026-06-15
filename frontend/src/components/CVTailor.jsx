@@ -52,14 +52,14 @@ async function downloadTailoredCV(tailored, profile, role, company) {
   // Divider
   sections_children.push(new Paragraph({
     spacing: { after: 160 },
-    border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '1B6FEB', space: 1 } },
+    border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '374151', space: 1 } },
     children: []
   }))
 
   // PROFESSIONAL SUMMARY
   sections_children.push(new Paragraph({
     spacing: { before: 0, after: 80 },
-    children: [new TextRun({ text: 'PROFESSIONAL SUMMARY', font: 'Arial', size: 22, bold: true, color: '1B6FEB' })]
+    children: [new TextRun({ text: 'PROFESSIONAL SUMMARY', font: 'Arial', size: 22, bold: true, color: '374151' })]
   }))
   sections_children.push(new Paragraph({
     spacing: { after: 160 },
@@ -69,7 +69,7 @@ async function downloadTailoredCV(tailored, profile, role, company) {
   // KEY SKILLS
   sections_children.push(new Paragraph({
     spacing: { before: 0, after: 80 },
-    children: [new TextRun({ text: 'KEY SKILLS', font: 'Arial', size: 22, bold: true, color: '1B6FEB' })]
+    children: [new TextRun({ text: 'KEY SKILLS', font: 'Arial', size: 22, bold: true, color: '374151' })]
   }))
   sections_children.push(new Paragraph({
     spacing: { after: 160 },
@@ -79,7 +79,7 @@ async function downloadTailoredCV(tailored, profile, role, company) {
   // PROFESSIONAL EXPERIENCE
   sections_children.push(new Paragraph({
     spacing: { before: 0, after: 80 },
-    children: [new TextRun({ text: 'PROFESSIONAL EXPERIENCE', font: 'Arial', size: 22, bold: true, color: '1B6FEB' })]
+    children: [new TextRun({ text: 'PROFESSIONAL EXPERIENCE', font: 'Arial', size: 22, bold: true, color: '374151' })]
   }))
 
   for (const exp of (tailored.experience || [])) {
@@ -104,7 +104,7 @@ async function downloadTailoredCV(tailored, profile, role, company) {
   if (tailored.technical_projects?.length > 0) {
     sections_children.push(new Paragraph({
       spacing: { before: 160, after: 80 },
-      children: [new TextRun({ text: 'SELECTED TECHNICAL PROJECTS', font: 'Arial', size: 22, bold: true, color: '1B6FEB' })]
+      children: [new TextRun({ text: 'SELECTED TECHNICAL PROJECTS', font: 'Arial', size: 22, bold: true, color: '374151' })]
     }))
     for (const proj of tailored.technical_projects) {
       sections_children.push(new Paragraph({
@@ -130,7 +130,7 @@ async function downloadTailoredCV(tailored, profile, role, company) {
   // CERTIFICATIONS
   sections_children.push(new Paragraph({
     spacing: { before: 160, after: 80 },
-    children: [new TextRun({ text: 'CERTIFICATIONS', font: 'Arial', size: 22, bold: true, color: '1B6FEB' })]
+    children: [new TextRun({ text: 'CERTIFICATIONS', font: 'Arial', size: 22, bold: true, color: '374151' })]
   }))
   if (tailored.certifications?.length > 0) {
     for (const cert of tailored.certifications) {
@@ -149,7 +149,7 @@ async function downloadTailoredCV(tailored, profile, role, company) {
   // EDUCATION
   sections_children.push(new Paragraph({
     spacing: { before: 160, after: 80 },
-    children: [new TextRun({ text: 'EDUCATION', font: 'Arial', size: 22, bold: true, color: '1B6FEB' })]
+    children: [new TextRun({ text: 'EDUCATION', font: 'Arial', size: 22, bold: true, color: '374151' })]
   }))
   if (tailored.education?.length > 0) {
     for (const edu of tailored.education) {
@@ -228,7 +228,7 @@ function BriefingCard({ briefing }) {
               <div className="flex flex-wrap gap-1.5">
                 {briefing.mirror_language.map((p, i) => (
                   <span key={i} className="px-2 py-1 rounded text-xs font-medium"
-                    style={{ background: 'rgba(27,111,235,0.15)', color: 'var(--blue-accent)', border: '1px solid rgba(27,111,235,0.2)' }}>
+                    style={{ background: 'rgba(122,46,46,0.10)', color: 'var(--blue-accent)', border: '1px solid rgba(122,46,46,0.2)' }}>
                     "{p}"
                   </span>
                 ))}
@@ -376,7 +376,7 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--navy-900)' }}>
             <Lock size={22} style={{ color: 'rgba(255,255,255,0.6)' }} />
           </div>
-          <h3 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.25rem', color: 'var(--navy-900)' }}>No credits remaining</h3>
+          <h3 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.25rem', color: 'var(--navy-900)' }}>No credits remaining</h3>
           <p className="text-sm mt-2 mb-6 max-w-xs mx-auto" style={{ color: 'var(--text-muted)' }}>
             Top up to continue tailoring CVs and evaluating jobs.
           </p>
@@ -390,7 +390,7 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
       {/* Setup prompt — show what's missing */}
       {!outOfCredits && !result && (
         <div className="card">
-          <h2 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.4rem', color: 'var(--navy-900)', marginBottom: '4px' }}>
+          <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.4rem', color: 'var(--navy-900)', marginBottom: '4px' }}>
             Tailor CV for this role
           </h2>
           <p className="text-sm mb-5" style={{ color: 'var(--text-muted)' }}>

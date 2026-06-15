@@ -100,7 +100,7 @@ export default function ResetPassword() {
               type="submit"
               disabled={loading}
               className="w-full py-2.5 rounded-lg text-sm font-semibold transition-all mt-1"
-              style={{ background: loading ? 'rgba(27,111,235,0.5)' : 'var(--blue-accent)', color: 'white', cursor: loading ? 'not-allowed' : 'pointer' }}
+              style={{ background: loading ? 'rgba(122,46,46,0.5)' : 'var(--blue-accent)', color: 'white', cursor: loading ? 'not-allowed' : 'pointer' }}
             >
               {loading ? 'Updating…' : 'Update password'}
             </button>

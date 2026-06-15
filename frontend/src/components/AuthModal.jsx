@@ -65,7 +65,7 @@ export default function AuthModal({ onClose }) {
         {/* Logo mark */}
         <div className="flex justify-center mb-5">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #1B6FEB, #0EA5E9)' }}>
+            style={{ background: 'var(--blue-accent)' }}>
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <rect x="3" y="8" width="14" height="10" rx="2" stroke="white" strokeWidth="1.6" strokeLinejoin="round"/>
               <path d="M7 8V6a3 3 0 0 1 6 0v2" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
@@ -214,7 +214,7 @@ export default function AuthModal({ onClose }) {
             disabled={loading}
             className="w-full py-2.5 rounded-lg text-sm font-semibold transition-all mt-1"
             style={{
-              background: loading ? 'rgba(27,111,235,0.5)' : 'var(--blue-accent)',
+              background: loading ? 'rgba(122,46,46,0.5)' : 'var(--blue-accent)',
               color: 'white',
               cursor: loading ? 'not-allowed' : 'pointer'
             }}

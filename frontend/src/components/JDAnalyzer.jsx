@@ -22,7 +22,7 @@ export default function JDAnalyzer({ onAnalyzed }) {
   return (
     <div className="animate-slide-up">
       <div className="mb-6">
-        <h2 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.5rem', color: 'var(--navy-900)' }}>Recruiter mode</h2>
+        <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.5rem', color: 'var(--navy-900)' }}>Recruiter mode</h2>
         <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Analyze a job description, then score and rank candidate CVs against it</p>
       </div>
 
