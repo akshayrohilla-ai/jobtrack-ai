@@ -15,7 +15,7 @@ function StatCard({ icon: Icon, iconColor, label, value, sub }) {
           <Icon size={15} style={{ color: iconColor }} />
         </div>
       </div>
-      <div className="text-2xl font-semibold" style={{ fontFamily: 'DM Serif Display, serif', color: 'var(--text-primary)' }}>
+      <div className="text-2xl font-semibold" style={{ fontFamily: 'Fraunces, serif', color: 'var(--text-primary)' }}>
         {value}
       </div>
       <div className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{label}</div>
@@ -140,7 +140,7 @@ export default function AdminDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.75rem', color: 'var(--text-primary)' }}>
+          <h1 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.75rem', color: 'var(--text-primary)' }}>
             Admin dashboard
           </h1>
           {lastRefresh && (

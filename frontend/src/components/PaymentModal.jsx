@@ -60,7 +60,7 @@ export default function PaymentModal({ onClose, onSuccess }) {
           }
         },
         modal: { ondismiss: () => setLoading(false) },
-        theme: { color: '#1B6FEB' },
+        theme: { color: '#7A2E2E' },
       }
 
       const rzp = new window.Razorpay(options)
@@ -102,12 +102,12 @@ export default function PaymentModal({ onClose, onSuccess }) {
             <button key={pack.id} onClick={() => setSelected(pack.id)}
               className="relative w-full rounded-xl p-4 text-left transition-all"
               style={{
-                background: selected === pack.id ? 'rgba(27,111,235,0.15)' : 'rgba(255,255,255,0.04)',
+                background: selected === pack.id ? 'rgba(166,128,60,0.16)' : 'rgba(255,255,255,0.04)',
                 border: selected === pack.id ? '1.5px solid var(--blue-accent)' : '1.5px solid rgba(255,255,255,0.08)',
               }}>
               {pack.popular && (
                 <span className="absolute top-3 right-3 text-xs px-2 py-0.5 rounded-full font-medium"
-                  style={{ background: 'rgba(27,111,235,0.3)', color: 'var(--blue-light)' }}>
+                  style={{ background: 'rgba(166,128,60,0.3)', color: 'var(--brass-soft)' }}>
                   Best value
                 </span>
               )}
@@ -134,7 +134,7 @@ export default function PaymentModal({ onClose, onSuccess }) {
         <button onClick={handleBuy} disabled={loading}
           className="w-full py-3 rounded-xl font-semibold text-sm transition-all"
           style={{
-            background: loading ? 'rgba(27,111,235,0.5)' : 'var(--blue-accent)',
+            background: loading ? 'rgba(122,46,46,0.5)' : 'var(--blue-accent)',
             color: 'white',
             opacity: loading ? 0.7 : 1,
           }}>

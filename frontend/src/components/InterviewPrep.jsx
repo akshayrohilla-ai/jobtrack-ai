@@ -10,7 +10,7 @@ function downloadInterviewPDF(result, profile, role, company) {
   const companyLabel = company || ''
   const date = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
 
-  const starColor = { situation: '#7C3AED', task: '#1B6FEB', action: '#059669', result: '#D97706' }
+  const starColor = { situation: '#7A2E2E', task: '#A6803C', action: '#2F6B4F', result: '#4E483D' }
   const starLabel = { situation: 'S — Situation', task: 'T — Task', action: 'A — Action', result: 'R — Result' }
 
   const questionsHtml = (result.behavioral_questions || []).map((q, i) => `
@@ -55,15 +55,15 @@ function downloadInterviewPDF(result, profile, role, company) {
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family:'Segoe UI',Arial,sans-serif; color:#1a1a2e; background:white; padding:40px; max-width:820px; margin:0 auto; }
-    .header { border-bottom:2px solid #1B6FEB; padding-bottom:18px; margin-bottom:24px; }
-    .brand { font-size:12px; color:#1B6FEB; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
-    .title { font-size:22px; font-weight:700; color:#0A1628; }
+    .header { border-bottom:2px solid #7A2E2E; padding-bottom:18px; margin-bottom:24px; }
+    .brand { font-size:12px; color:#7A2E2E; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+    .title { font-size:22px; font-weight:700; color:#211E18; }
     .meta { font-size:12px; color:#999; margin-top:4px; }
     .section-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#999; margin:28px 0 12px; }
     .question-card { border:1px solid #e5e7eb; border-radius:10px; padding:18px; margin-bottom:14px; }
     .q-header { display:flex; gap:12px; align-items:flex-start; margin-bottom:14px; }
-    .q-num { width:24px; height:24px; border-radius:50%; background:#1B6FEB; color:white; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
-    .q-text { font-size:14px; font-weight:600; color:#0A1628; line-height:1.5; }
+    .q-num { width:24px; height:24px; border-radius:50%; background:#7A2E2E; color:white; font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; }
+    .q-text { font-size:14px; font-weight:600; color:#211E18; line-height:1.5; }
     .q-probe { font-size:12px; color:#999; margin-top:4px; }
     .star-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
     .star-block { padding:10px 12px; border-radius:6px; background:#f9fafb; }
@@ -71,7 +71,7 @@ function downloadInterviewPDF(result, profile, role, company) {
     .star-text { font-size:12px; color:#444; line-height:1.6; }
     .phrases-label { font-size:11px; font-weight:600; color:#999; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
     .phrases { display:flex; flex-wrap:wrap; gap:6px; }
-    .phrase { background:#EBF2FF; color:#1D4ED8; border-radius:4px; padding:2px 8px; font-size:11px; border:1px solid #BFDBFE; }
+    .phrase { background:#F2E6E2; color:#7A2E2E; border-radius:4px; padding:2px 8px; font-size:11px; border:1px solid #E2C9C2; }
     .flag-card { border:1px solid #FCD34D; border-radius:8px; padding:14px; margin-bottom:10px; background:#FFFBEB; }
     .flag-topic { font-size:13px; font-weight:700; color:#92400E; margin-bottom:4px; }
     .flag-q { font-size:12px; color:#B45309; font-style:italic; margin-bottom:6px; }
@@ -80,8 +80,8 @@ function downloadInterviewPDF(result, profile, role, company) {
     .ask-q { font-size:13px; font-weight:600; color:#065F46; margin-bottom:4px; }
     .ask-why { font-size:12px; color:#6B7280; }
     .coming-soon { margin-top:28px; padding:16px 20px; border:1px dashed #C4B5FD; border-radius:10px; background:#F5F3FF; text-align:center; }
-    .cs-title { font-size:13px; font-weight:700; color:#7C3AED; margin-bottom:4px; }
-    .cs-desc { font-size:12px; color:#8B5CF6; }
+    .cs-title { font-size:13px; font-weight:700; color:#7A2E2E; margin-bottom:4px; }
+    .cs-desc { font-size:12px; color:#97413E; }
     .footer { margin-top:32px; padding-top:14px; border-top:1px solid #e5e7eb; font-size:11px; color:#bbb; text-align:center; }
     @media print { body { padding:20px; } }
   </style>
@@ -153,10 +153,10 @@ function STARCard({ q, index }) {
           {/* STAR answer */}
           <div className="space-y-3 mb-4">
             {[
-              { key: 'situation', label: 'S — Situation', color: '#7C3AED' },
-              { key: 'task',      label: 'T — Task',      color: '#1B6FEB' },
-              { key: 'action',    label: 'A — Action',    color: '#059669' },
-              { key: 'result',    label: 'R — Result',    color: '#D97706' },
+              { key: 'situation', label: 'S — Situation', color: '#7A2E2E' },
+              { key: 'task',      label: 'T — Task',      color: '#A6803C' },
+              { key: 'action',    label: 'A — Action',    color: '#2F6B4F' },
+              { key: 'result',    label: 'R — Result',    color: '#4E483D' },
             ].map(({ key, label, color }) => (
               q.star_answer?.[key] && (
                 <div key={key} className="rounded-lg p-3" style={{ background: `${color}10`, border: `1px solid ${color}25` }}>
@@ -176,7 +176,7 @@ function STARCard({ q, index }) {
               <div className="flex flex-wrap gap-1.5">
                 {q.key_phrases.map((p, i) => (
                   <span key={i} className="px-2 py-1 rounded text-xs font-medium"
-                    style={{ background: 'rgba(27,111,235,0.12)', color: 'var(--blue-accent)', border: '1px solid rgba(27,111,235,0.2)' }}>
+                    style={{ background: 'rgba(122,46,46,0.10)', color: 'var(--blue-accent)', border: '1px solid rgba(122,46,46,0.2)' }}>
                     "{p}"
                   </span>
                 ))}
@@ -309,7 +309,7 @@ export default function InterviewPrep({ profile, rawCvText, evalJdText, evalRole
       {/* Setup / action card */}
       {!result && (
         <div className="card">
-          <h2 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.4rem', color: 'var(--navy-900)', marginBottom: '4px' }}>
+          <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.4rem', color: 'var(--navy-900)', marginBottom: '4px' }}>
             Interview prep pack
           </h2>
           <p className="text-sm mb-5" style={{ color: 'var(--text-muted)' }}>

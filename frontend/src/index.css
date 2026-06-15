@@ -1,56 +1,75 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Light theme ─── */
+/* ─── Light theme — "The Verdict" editorial / quiet-luxury ─── */
+/* Warm ivory paper, deep ink, a single claret accent + brass detail.    */
+/* Variable NAMES are preserved (e.g. --blue-accent) for back-compat;     */
+/* their VALUES now carry the editorial system. --blue-accent = claret.   */
 :root {
-  --navy-950: #050D1A;
-  --navy-900: #0A1628;
-  --navy-800: #0F2040;
-  --navy-700: #1A3358;
-  --blue-accent: #1B6FEB;
-  --blue-light: #3B8AF5;
-  --blue-pale: #EBF2FF;
-  --success: #059669;
-  --success-bg: #ECFDF5;
-  --warning: #D97706;
-  --warning-bg: #FFFBEB;
-  --danger: #DC2626;
-  --danger-bg: #FEF2F2;
-  --text-primary: #0A1628;
-  --text-secondary: #374151;
-  --text-muted: #6B7280;
-  --text-ghost: #9CA3AF;
-  --border: #E5E7EB;
-  --border-light: #F3F4F6;
-  --surface: #FFFFFF;
-  --surface-raised: #F9FAFB;
-  --surface-subtle: #F3F4F6;
-  --bg: #EEF2F8;
+  /* deep ink scale (was "navy") — used for the app chrome / nav bar */
+  --navy-950: #16130E;
+  --navy-900: #211E18;
+  --navy-800: #2C281F;
+  --navy-700: #3A352A;
+  --navy-600: #4A4334;
+  /* brand accent = claret */
+  --blue-accent: #7A2E2E;
+  --blue-light: #97413E;
+  --blue-pale: #F2E6E2;
+  /* brass — warm secondary highlight (seals, recommended rule, grade) */
+  --brass: #A6803C;
+  --brass-soft: #C29A52;
+  /* semantics — tuned warm so they sit on ivory without screaming */
+  --success: #2F6B4F;
+  --success-bg: #E9F0EA;
+  --warning: #9A6B1F;
+  --warning-bg: #F6EEDC;
+  --danger: #B23A2A;
+  --danger-bg: #F6E6E1;
+  /* text — warm ink, never pure black */
+  --text-primary: #211E18;
+  --text-secondary: #4E483D;
+  --text-muted: #837B6B;
+  --text-ghost: #ADA491;
+  /* hairlines + paper surfaces */
+  --border: #E2D8C6;
+  --border-light: #EDE5D6;
+  --surface: #FBF7F0;
+  --surface-raised: #F6F0E5;
+  --surface-subtle: #ECE3D3;
+  --bg: #F3EDE2;
   --nav-bg: var(--navy-900);
-  --nav-text: rgba(255,255,255,0.65);
-  --nav-text-active: #FFFFFF;
+  --nav-text: rgba(244,239,231,0.62);
+  --nav-text-active: #F4EFE7;
 }
 
-/* ─── Dark theme ─── */
+/* ─── Dark theme — warm near-black editorial (NOT navy) ─── */
 [data-theme="dark"] {
-  --blue-pale: #1E3A6E;
-  --success-bg: #064E3B;
-  --warning-bg: #451A03;
-  --danger-bg: #450A0A;
-  --text-primary: #F1F5F9;
-  --text-secondary: #CBD5E1;
-  --text-muted: #94A3B8;
-  --text-ghost: #475569;
-  --border: #1E293B;
-  --border-light: #0F172A;
-  --surface: #0F172A;
-  --surface-raised: #1E293B;
-  --surface-subtle: #162032;
-  --bg: #070E1A;
-  --nav-bg: #020812;
+  --blue-accent: #C68A57;   /* in dark, the accent warms to terracotta/brass */
+  --blue-light: #D9A06C;
+  --blue-pale: #2A211A;
+  --brass: #C9A86A;
+  --brass-soft: #DBC08A;
+  --success: #5FAE83;
+  --success-bg: #16241C;
+  --warning: #C9A05A;
+  --warning-bg: #271E10;
+  --danger: #D2654F;
+  --danger-bg: #2A1611;
+  --text-primary: #EFE8DC;
+  --text-secondary: #C7BDAB;
+  --text-muted: #948B79;
+  --text-ghost: #5E574A;
+  --border: #2E2820;
+  --border-light: #221D16;
+  --surface: #1C1813;
+  --surface-raised: #231E17;
+  --surface-subtle: #15110C;
+  --bg: #14110C;
+  --nav-bg: #0E0B07;
 }
 
 @layer base {
@@ -67,32 +86,34 @@
 }
 
 @layer components {
-  /* Buttons */
+  /* Display type — Fraunces editorial serif */
+  .font-display { font-family: 'Fraunces', Georgia, serif; font-weight: 400; }
+
+  /* Buttons — flat editorial. Primary = ink on paper (auto-inverts in dark) */
   .btn-primary {
     display: inline-flex; align-items: center; gap: 8px;
-    padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 500;
-    background: var(--blue-accent); color: white; border: none; cursor: pointer;
+    padding: 11px 22px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    letter-spacing: 0.2px;
+    background: var(--text-primary); color: var(--bg); border: none; cursor: pointer;
     font-family: 'DM Sans', sans-serif;
-    box-shadow: 0 1px 3px rgba(27,111,235,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
-    transition: all 0.15s;
+    transition: opacity 0.15s, transform 0.15s, box-shadow 0.15s;
   }
   .btn-primary:hover:not(:disabled) {
-    background: var(--blue-light);
-    box-shadow: 0 4px 12px rgba(27,111,235,0.4);
+    opacity: 0.9;
     transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(33,30,24,0.18);
   }
-  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
   .btn-secondary {
     display: inline-flex; align-items: center; gap: 8px;
-    padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
-    background: var(--surface); color: var(--text-secondary);
+    padding: 9px 18px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    background: transparent; color: var(--text-secondary);
     border: 1px solid var(--border); cursor: pointer;
     font-family: 'DM Sans', sans-serif;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     transition: all 0.15s;
   }
-  .btn-secondary:hover { background: var(--surface-raised); }
+  .btn-secondary:hover { background: var(--surface-raised); border-color: var(--text-ghost); }
 
   .btn-ghost {
     display: inline-flex; align-items: center; gap: 6px;
@@ -104,23 +125,23 @@
   }
   .btn-ghost:hover { background: var(--surface-subtle); color: var(--text-secondary); border-color: var(--border); }
 
-  /* Cards */
+  /* Cards — crisp hairline, minimal shadow (editorial favours edges) */
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px;
+    border-radius: 10px;
+    padding: 22px;
     margin-bottom: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    box-shadow: none;
     transition: background 0.2s, border-color 0.2s;
   }
 
-  /* Section labels */
+  /* Section labels — letter-spaced small caps */
   .section-label {
     display: block;
     font-size: 10px; font-weight: 600;
     color: var(--text-ghost);
-    text-transform: uppercase; letter-spacing: 0.08em;
+    text-transform: uppercase; letter-spacing: 0.14em;
     margin-bottom: 10px;
   }
 
@@ -128,25 +149,25 @@
   .skill-chip {
     display: inline-flex; align-items: center;
     background: var(--surface-subtle); border: 1px solid var(--border);
-    border-radius: 6px; padding: 3px 10px;
+    border-radius: 5px; padding: 3px 10px;
     font-size: 11px; font-weight: 500; color: var(--text-secondary); margin: 2px;
   }
   .skill-chip-match {
     display: inline-flex; align-items: center;
-    background: var(--blue-pale); border: 1px solid rgba(27,111,235,0.25);
-    border-radius: 6px; padding: 3px 10px;
+    background: var(--blue-pale); border: 1px solid rgba(122,46,46,0.22);
+    border-radius: 5px; padding: 3px 10px;
     font-size: 11px; font-weight: 500; color: var(--blue-accent); margin: 2px;
   }
 
-  /* Badges */
-  .badge-green { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; background: var(--success-bg); color: var(--success); }
-  .badge-amber { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; background: var(--warning-bg); color: var(--warning); }
-  .badge-red   { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; background: var(--danger-bg); color: var(--danger); }
-  .badge-blue  { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; background: var(--blue-pale); color: var(--blue-accent); }
-  .badge-navy  { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; background: var(--navy-900); color: white; }
+  /* Badges — squarer editorial tags */
+  .badge-green { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 5px; background: var(--success-bg); color: var(--success); }
+  .badge-amber { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 5px; background: var(--warning-bg); color: var(--warning); }
+  .badge-red   { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 5px; background: var(--danger-bg); color: var(--danger); }
+  .badge-blue  { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 5px; background: var(--blue-pale); color: var(--blue-accent); }
+  .badge-navy  { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 5px; background: var(--navy-900); color: var(--nav-text-active); }
 
-  /* Grade display */
-  .grade-display { font-family: 'DM Serif Display', Georgia, serif; font-size: 4rem; line-height: 1; }
+  /* Grade display — Fraunces editorial serif */
+  .grade-display { font-family: 'Fraunces', Georgia, serif; font-weight: 400; font-size: 4rem; line-height: 1; }
 
   /* Inputs */
   .input-field {
@@ -155,7 +176,7 @@
     background: var(--surface); color: var(--text-primary); outline: none;
     transition: border-color 0.15s, box-shadow 0.15s, background 0.2s;
   }
-  .input-field:focus { border-color: var(--blue-accent); box-shadow: 0 0 0 3px rgba(27,111,235,0.12); }
+  .input-field:focus { border-color: var(--blue-accent); box-shadow: 0 0 0 3px rgba(122,46,46,0.10); }
   .input-field::placeholder { color: var(--text-ghost); }
 
   .textarea-field {
@@ -165,7 +186,7 @@
     resize: vertical; min-height: 160px; line-height: 1.7; outline: none;
     transition: border-color 0.15s, box-shadow 0.15s, background 0.2s;
   }
-  .textarea-field:focus { border-color: var(--blue-accent); box-shadow: 0 0 0 3px rgba(27,111,235,0.12); background: var(--surface); }
+  .textarea-field:focus { border-color: var(--blue-accent); box-shadow: 0 0 0 3px rgba(122,46,46,0.10); background: var(--surface); }
 
   /* Kanban */
   .kanban-col { background: var(--surface-subtle); border: 1px solid var(--border-light); border-radius: 12px; padding: 12px; min-height: 160px; }
@@ -174,7 +195,7 @@
 
   /* Metric cards */
   .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; transition: background 0.2s; }
-  .metric-value { font-family: 'DM Serif Display', Georgia, serif; font-size: 2rem; color: var(--text-primary); line-height: 1.1; }
+  .metric-value { font-family: 'Fraunces', Georgia, serif; font-weight: 400; font-size: 2rem; color: var(--text-primary); line-height: 1.1; }
   .metric-label { font-size: 10px; font-weight: 600; color: var(--text-ghost); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
 
   /* Animations */
@@ -182,31 +203,52 @@
   @keyframes gradeReveal { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
   .animate-slide-up { animation: slideUp 0.25s ease forwards; }
   .animate-grade { animation: gradeReveal 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+
+  /* Landing — examiner's grade stamp thunks onto the dossier */
+  @keyframes stampIn {
+    0%   { opacity: 0; transform: scale(2.4) rotate(-18deg); }
+    60%  { opacity: 1; transform: scale(0.92) rotate(-11deg); }
+    78%  { transform: scale(1.04) rotate(-12.5deg); }
+    100% { opacity: 1; transform: scale(1) rotate(-12deg); }
+  }
+  @keyframes inkRise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes hairlineDraw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 }
 
 /* ============================================
    DARK MODE
    ============================================ */
 .dark {
-  --navy-950: #050D1A;
-  --navy-900: #0A1628;
-  --text-primary: #F1F5F9;
-  --text-secondary: #CBD5E1;
-  --text-muted: #94A3B8;
-  --text-ghost: #64748B;
-  --border: #1E293B;
-  --border-light: #0F172A;
-  --surface: #0F1C2E;
-  --surface-raised: #0A1628;
-  --surface-subtle: #060F1A;
-  --blue-pale: #0F2040;
-  --success-bg: #052E16;
-  --warning-bg: #1C1007;
-  --danger-bg: #1C0A0A;
+  --navy-950: #0A0805;
+  --navy-900: #0E0B07;
+  --navy-800: #17130D;
+  --navy-700: #221C14;
+  --blue-accent: #C68A57;   /* warm terracotta/brass accent in dark */
+  --blue-light: #D9A06C;
+  --blue-pale: #2A211A;
+  --brass: #C9A86A;
+  --brass-soft: #DBC08A;
+  --success: #5FAE83;
+  --success-bg: #16241C;
+  --warning: #C9A05A;
+  --warning-bg: #271E10;
+  --danger: #D2654F;
+  --danger-bg: #2A1611;
+  --text-primary: #EFE8DC;
+  --text-secondary: #C7BDAB;
+  --text-muted: #948B79;
+  --text-ghost: #5E574A;
+  --border: #2E2820;
+  --border-light: #221D16;
+  --surface: #1C1813;
+  --surface-raised: #231E17;
+  --surface-subtle: #15110C;
+  --bg: #14110C;
+  --nav-bg: #0E0B07;
 }
 
 .dark body {
-  background: #060F1A;
+  background: #14110C;
 }
 
 /* ============================================
@@ -268,4 +310,13 @@
 @media (max-width: 480px) {
   .grade-display { font-size: 2.5rem !important; }
   .metric-grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* ============================================
+   LANDING ("The Verdict") — responsive
+   ============================================ */
+@media (max-width: 860px) {
+  .hero-grid { grid-template-columns: 1fr !important; gap: 48px !important; }
+  .dossier-wrap { max-width: 440px; }
+  .problem-cell { border-right: none !important; }
 }

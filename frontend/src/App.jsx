@@ -170,7 +170,7 @@ export default function App() {
 
   return (
     <AuthContext.Provider value={{ user, creditBalance, setCreditBalance, setShowAuthModal }}>
-      <div className="min-h-screen" style={{ background: darkMode ? '#060F1A' : '#F0F4FA' }}>
+      <div className="min-h-screen" style={{ background: darkMode ? '#14110C' : '#F3EDE2' }}>
 
         {/* Header */}
         <header style={{ background: 'var(--navy-900)', borderBottom: '1px solid rgba(255,255,255,0.06)' }} className="sticky top-0 z-20">
@@ -178,21 +178,21 @@ export default function App() {
 
             {/* Logo */}
             <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => window.location.pathname !== '/' && (window.location.href = '/')}>
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-                style={{ background: 'linear-gradient(135deg, #1B6FEB 0%, #0EA5E9 100%)', boxShadow: '0 2px 8px rgba(27,111,235,0.4)' }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                style={{ background: 'var(--blue-accent)' }}>
                 <svg width="17" height="17" viewBox="0 0 20 20" fill="none">
-                  <rect x="3" y="8" width="14" height="10" rx="2" stroke="white" strokeWidth="1.6" strokeLinejoin="round"/>
-                  <path d="M7 8V6a3 3 0 0 1 6 0v2" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
-                  <line x1="3" y1="13" x2="17" y2="13" stroke="white" strokeWidth="1.4" strokeLinecap="round"/>
-                  <circle cx="14.5" cy="16.5" r="2.2" stroke="white" strokeWidth="1.3"/>
-                  <path d="M16.2 18.2l1.3 1.3" stroke="white" strokeWidth="1.3" strokeLinecap="round"/>
+                  <rect x="3" y="8" width="14" height="10" rx="2" stroke="#F3EDE2" strokeWidth="1.6" strokeLinejoin="round"/>
+                  <path d="M7 8V6a3 3 0 0 1 6 0v2" stroke="#F3EDE2" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                  <line x1="3" y1="13" x2="17" y2="13" stroke="#F3EDE2" strokeWidth="1.4" strokeLinecap="round"/>
+                  <circle cx="14.5" cy="16.5" r="2.2" stroke="#F3EDE2" strokeWidth="1.3"/>
+                  <path d="M16.2 18.2l1.3 1.3" stroke="#F3EDE2" strokeWidth="1.3" strokeLinecap="round"/>
                 </svg>
               </div>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#ffffff', letterSpacing: '-0.3px' }}>
-                  JobTrack<span style={{ color: '#60AFFF' }}>AI</span>
+                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--nav-text-active)', letterSpacing: '-0.2px' }}>
+                  JobTrack<span style={{ color: 'var(--brass-soft)' }}> AI</span>
                 </div>
-                <div style={{ fontSize: 10, color: '#ffffff', letterSpacing: '0.15em', fontWeight: 600, marginTop: 3, opacity: 1 }}>YOUR AI CAREER COPILOT</div>
+                <div style={{ fontSize: 9, color: 'var(--nav-text)', letterSpacing: '0.2em', fontWeight: 600, marginTop: 3, textTransform: 'uppercase' }}>Your AI Career Copilot</div>
               </div>
             </div>
 
@@ -204,7 +204,7 @@ export default function App() {
                   <button onClick={() => setMode('seeker')}
                     className="mode-toggle-btn px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-150"
                     style={mode === 'seeker'
-                      ? { background: 'var(--blue-accent)', color: 'white', boxShadow: '0 1px 4px rgba(27,111,235,0.4)' }
+                      ? { background: 'var(--blue-accent)', color: 'var(--nav-text-active)', boxShadow: '0 1px 4px rgba(0,0,0,0.22)' }
                       : { color: 'rgba(255,255,255,0.6)' }
                     }>
                     Job seeker
@@ -214,7 +214,7 @@ export default function App() {
                     <button onClick={() => setMode('recruiter')}
                       className="mode-toggle-btn px-4 py-1.5 rounded-md text-xs font-medium transition-all duration-150"
                       style={mode === 'recruiter'
-                        ? { background: 'var(--blue-accent)', color: 'white', boxShadow: '0 1px 4px rgba(27,111,235,0.4)' }
+                        ? { background: 'var(--blue-accent)', color: 'var(--nav-text-active)', boxShadow: '0 1px 4px rgba(0,0,0,0.22)' }
                         : { color: 'rgba(255,255,255,0.6)' }
                       }>
                       Recruiter
@@ -264,9 +264,9 @@ export default function App() {
                   </div>
                   <button onClick={() => setShowPaymentModal(true)}
                     className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                    style={{ background: 'rgba(27,111,235,0.2)', color: 'var(--blue-light)', border: '1px solid rgba(27,111,235,0.3)' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(27,111,235,0.35)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(27,111,235,0.2)'}>
+                    style={{ background: 'rgba(166,128,60,0.22)', color: 'var(--brass-soft)', border: '1px solid rgba(166,128,60,0.35)' }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(166,128,60,0.36)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(166,128,60,0.22)'}>
                     + Buy
                   </button>
                 </div>
@@ -282,14 +282,14 @@ export default function App() {
                   </button>
                   {showHelp && (
                     <div className="absolute right-0 top-full mt-2 w-64 rounded-xl p-4 z-50"
-                      style={{ background: '#0F1E35', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+                      style={{ background: 'var(--navy-800)', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
                       <p className="text-xs font-semibold text-white mb-1">Need help?</p>
                       <p className="text-xs mb-2" style={{ color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
                         Having trouble or have a question? We're here to help.
                       </p>
                       <a href="mailto:support@jobtrackai.co.in"
                         className="text-xs font-medium"
-                        style={{ color: '#60AFFF' }}
+                        style={{ color: 'var(--brass-soft)' }}
                         onClick={() => setShowHelp(false)}>
                         support@jobtrackai.co.in →
                       </a>
@@ -371,7 +371,7 @@ export default function App() {
             style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}
             onClick={e => { if (e.target === e.currentTarget) setShowAccountSettings(false) }}>
             <div className="w-full max-w-sm mx-4 rounded-2xl p-6"
-              style={{ background: '#0F1E35', border: '1px solid rgba(255,255,255,0.1)' }}>
+              style={{ background: 'var(--navy-800)', border: '1px solid rgba(255,255,255,0.1)' }}>
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-white font-semibold text-base">Account Settings</h2>
                 <button onClick={() => setShowAccountSettings(false)}
@@ -410,7 +410,7 @@ export default function App() {
                 )}
                 <button type="submit" disabled={settingsSaving}
                   className="w-full py-2.5 rounded-lg text-sm font-semibold mt-1"
-                  style={{ background: settingsSaving ? 'rgba(27,111,235,0.5)' : 'var(--blue-accent)', color: 'white' }}>
+                  style={{ background: settingsSaving ? 'rgba(122,46,46,0.5)' : 'var(--blue-accent)', color: 'white' }}>
                   {settingsSaving ? 'Saving…' : 'Save changes'}
                 </button>
               </form>

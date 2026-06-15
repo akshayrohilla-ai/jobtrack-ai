@@ -75,7 +75,7 @@ export default function JobSearch({ profile, applications, onApply }) {
   return (
     <div className="animate-slide-up space-y-4">
       <div>
-        <h2 style={{ fontFamily: 'DM Serif Display, serif', fontSize: '1.5rem', color: 'var(--navy-900)' }}>Find jobs</h2>
+        <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.5rem', color: 'var(--navy-900)' }}>Find jobs</h2>
         <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Generate targeted LinkedIn searches filtered to your role and preferences</p>
       </div>
 
