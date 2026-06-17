@@ -17,8 +17,14 @@ limiter = Limiter(key_func=user_or_ip)
 router = APIRouter()
 
 # ---------------------------------------------------------------------
-# CV TAILORING SYSTEM PROMPT — kept above 1,024 tokens for prompt caching.
-# Do NOT shorten below ~1,024 tokens.
+# CV TAILORING SYSTEM PROMPT — prompt caching note (verified 2026-06):
+# Sonnet 4.6's minimum cacheable prefix is 2,048 tokens. This prompt is
+# ~1,200-1,460 tokens, so the cache_control marker below is currently a
+# NO-OP (cache_creation_input_tokens stays 0). The old "1,024" target was
+# for Sonnet 4.5; the 4.6 switch silently disabled caching here. To enable
+# cross-user caching, this prompt must exceed 2,048 tokens of genuine
+# instructions (don't pad with filler). The cache_write/cache_read log in
+# event_stream() below reports the real numbers.
 # ---------------------------------------------------------------------
 TAILORING_SYSTEM_PROMPT = """You are an expert CV writer and career coach who specialises in tailoring CVs for specific job applications.
 Your task is to rewrite a candidate's CV to maximise their chances of passing ATS screening and impressing hiring managers for a specific role.
@@ -157,7 +163,7 @@ FULL CV TEXT:
 {payload.cv_raw_text[:12000]}
 
 JOB DESCRIPTION:
-{payload.jd_text[:3000]}
+{payload.jd_text[:8000]}
 
 Rewrite the CV to maximise fit for this specific role. Return JSON only."""
 

@@ -17,10 +17,14 @@ limiter = Limiter(key_func=user_or_ip)
 router = APIRouter()
 
 # ---------------------------------------------------------------------
-# SYSTEM PROMPT — intentionally kept above 1,024 tokens so Anthropic's
-# prompt caching activates. Cache write costs 1.25x on first call, then
-# subsequent calls pay only 0.1x (90% discount) on these tokens.
-# Do NOT shorten this prompt below ~1,024 tokens or caching will silently stop.
+# SYSTEM PROMPT — prompt caching note (verified 2026-06):
+# Sonnet 4.6's minimum cacheable prefix is 2,048 tokens. This prompt is
+# ~1,300-1,500 tokens, so the cache_control marker below is currently a
+# NO-OP — caching does not engage (cache_creation_input_tokens stays 0).
+# The old "1,024" target was for Sonnet 4.5; the 4.6 switch silently
+# disabled caching here. To actually enable cross-user caching, this prompt
+# must exceed 2,048 tokens of genuine instructions (don't pad with filler).
+# Cache logging in event_stream() below reports the real numbers.
 # ---------------------------------------------------------------------
 EVALUATION_SYSTEM_PROMPT = """You are a senior career advisor evaluating job opportunities for candidates.
 Analyze the job description and candidate profile, then return a structured evaluation.
@@ -168,7 +172,7 @@ Candidate profile:
     user_prompt = f"""Evaluate this job opportunity for the candidate:
 
 JOB DESCRIPTION:
-{payload.jd_text[:4000]}
+{payload.jd_text[:8000]}
 
 {profile_context}
 
@@ -209,6 +213,18 @@ Return the full evaluation as JSON."""
             raw = full_text.strip().replace("```json", "").replace("```", "").strip()
             evaluation = json.loads(raw)
             t_parse = time.perf_counter()
+
+            # Log cache usage so we can confirm whether prompt caching engages.
+            # If cache_write/cache_read are both 0, the system prompt is below
+            # Sonnet 4.6's 2,048-token cacheable floor (see note at top of file).
+            try:
+                usage_meta = getattr(await stream.get_final_message(), 'usage', None)
+                if usage_meta:
+                    cache_read  = getattr(usage_meta, 'cache_read_input_tokens', 0)
+                    cache_write = getattr(usage_meta, 'cache_creation_input_tokens', 0)
+                    print(f"[{rid}] evaluate-jd — cache_write: {cache_write}, cache_read: {cache_read}", flush=True)
+            except Exception:
+                pass
 
             # Save evaluation to Supabase (unchanged)
             try:

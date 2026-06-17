@@ -15,6 +15,14 @@ from middleware.auth import get_current_user, require_credits, refund_credits
 limiter = Limiter(key_func=user_or_ip)
 router = APIRouter()
 
+# ---------------------------------------------------------------------
+# INTERVIEW SYSTEM PROMPT — prompt caching note (verified 2026-06):
+# Sonnet 4.6's minimum cacheable prefix is 2,048 tokens. This prompt is
+# only ~450-500 tokens, so the cache_control marker below is a NO-OP —
+# caching never engages here. Enabling it would mean ~4x-ing this prompt,
+# which isn't worth it for ~$0.004/call. Left as-is intentionally; the
+# cache log in event_stream() confirms cache_write/cache_read stay 0.
+# ---------------------------------------------------------------------
 INTERVIEW_SYSTEM_PROMPT = """You are a senior career coach preparing candidates for job interviews.
 Given a candidate's CV and a job description, produce a personalised interview preparation pack.
 Return ONLY valid JSON with no markdown, no backticks, no explanation.
@@ -90,10 +98,10 @@ async def interview_prep(request: Request, payload: InterviewPrepRequest):
     user_prompt = f"""Prepare a personalised interview pack{role_context}{company_context}.
 
 CANDIDATE CV:
-{payload.raw_cv[:3000]}
+{payload.raw_cv[:8000]}
 
 JOB DESCRIPTION:
-{payload.jd_text[:2000]}
+{payload.jd_text[:8000]}
 
 Return the full interview prep pack as JSON."""
 
@@ -151,7 +159,13 @@ Return the full interview prep pack as JSON."""
             out_tok = 0
             try:
                 final_message = await stream.get_final_message()
-                out_tok = getattr(getattr(final_message, 'usage', None), 'output_tokens', 0)
+                usage_meta = getattr(final_message, 'usage', None)
+                out_tok = getattr(usage_meta, 'output_tokens', 0)
+                if usage_meta:
+                    # Expected to stay 0 — prompt is below the 2,048 cacheable floor.
+                    cache_read  = getattr(usage_meta, 'cache_read_input_tokens', 0)
+                    cache_write = getattr(usage_meta, 'cache_creation_input_tokens', 0)
+                    print(f"[{rid}] interview-prep — cache_write: {cache_write}, cache_read: {cache_read}", flush=True)
             except Exception:
                 pass
 
