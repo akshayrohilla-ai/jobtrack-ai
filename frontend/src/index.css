@@ -104,6 +104,7 @@
     box-shadow: 0 6px 18px rgba(33,30,24,0.18);
   }
   .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  .btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(166,128,60,0.45); }
 
   .btn-secondary {
     display: inline-flex; align-items: center; gap: 8px;
@@ -114,6 +115,7 @@
     transition: all 0.15s;
   }
   .btn-secondary:hover { background: var(--surface-raised); border-color: var(--text-ghost); }
+  .btn-secondary:focus-visible { outline: none; border-color: var(--brass); box-shadow: 0 0 0 3px rgba(166,128,60,0.30); }
 
   .btn-ghost {
     display: inline-flex; align-items: center; gap: 6px;
@@ -124,6 +126,7 @@
     transition: all 0.15s;
   }
   .btn-ghost:hover { background: var(--surface-subtle); color: var(--text-secondary); border-color: var(--border); }
+  .btn-ghost:focus-visible { outline: none; color: var(--text-secondary); box-shadow: 0 0 0 3px rgba(166,128,60,0.30); }
 
   /* Cards — crisp hairline, minimal shadow (editorial favours edges) */
   .card {
@@ -212,7 +215,6 @@
     100% { opacity: 1; transform: scale(1) rotate(-12deg); }
   }
   @keyframes inkRise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes hairlineDraw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 }
 
 /* ============================================
