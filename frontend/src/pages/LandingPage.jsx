@@ -190,7 +190,7 @@ export default function LandingPage({ onGetStarted }) {
             </div>
 
             <p style={{ fontFamily: S, fontSize: 12, color: c.ghost, marginTop: 30, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-              No card · CV-aware · Credits never expire
+              No card · Your CV stays private · Credits never expire
             </p>
           </div>
 
@@ -269,7 +269,7 @@ export default function LandingPage({ onGetStarted }) {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 18 }}>
           {[
-            { Icon: FileText,         title: 'CV Parsing',          tag: 'Free',            desc: 'Upload once. The AI reads every line so you never fill another profile form.' },
+            { Icon: FileText,         title: 'CV Parsing',          tag: 'Free',            desc: 'Upload once. The AI reads every line so you never fill another profile form. Your CV stays yours — one click deletes everything.' },
             { Icon: ClipboardCheck,   title: 'JD Evaluation',       tag: '1 credit',        desc: 'An A–F grade, salary range, red flags, and a clear go / no-go — before you write a word.' },
             { Icon: Wand2,            title: 'CV Tailoring',        tag: '1 credit',        desc: 'Rewrites your CV for that one specific role. Download as DOCX. No more one-size-fits-all.' },
             { Icon: BriefcaseBusiness, title: 'Interview Prep',     tag: '1 credit',        desc: 'Five tailored STAR answers from your own history, red-flag coaching, and questions to ask them.' },
