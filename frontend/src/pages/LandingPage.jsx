@@ -202,7 +202,7 @@ export default function LandingPage({ onGetStarted }) {
       {/* ─────────────── TRUST STRIP ─────────────── */}
       <div style={{ borderTop: `1px solid ${c.hairline}`, borderBottom: `1px solid ${c.hairline}`, background: c.paperRaised }}>
         <div style={{ maxWidth: 1120, margin: '0 auto', padding: '20px 28px', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '12px 38px' }}>
-          {['AI reads your CV', 'Grades every job', 'Tailors your application', 'Preps your interview'].map((t, i) => (
+          {['AI reads your CV', 'Grades every job', 'Tailors your application', 'Preps your interview', 'Built on frontier AI'].map((t, i) => (
             <span key={i} style={{ fontFamily: S, fontSize: 12, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase', color: c.muted, display: 'inline-flex', alignItems: 'center', gap: 12 }}>
               {i > 0 && <span style={{ color: c.brass }}>·</span>}{t}
             </span>
@@ -293,6 +293,17 @@ export default function LandingPage({ onGetStarted }) {
         </div>
       </section>
 
+      {/* ─────────────── INSTEAD OF TESTIMONIALS ─────────────── */}
+      <section style={{ maxWidth: 760, margin: '0 auto', padding: '8px 28px 96px', textAlign: 'center' }}>
+        <div style={{ width: 30, height: 1, background: c.brass, margin: '0 auto 26px' }} />
+        <p style={{ fontFamily: F, fontWeight: 400, fontStyle: 'italic', fontSize: 'clamp(22px, 3vw, 31px)', lineHeight: 1.32, letterSpacing: '-0.3px', color: c.ink, margin: '0 0 16px' }}>
+          We could fill this page with testimonials. We'd rather give you 3 free credits and let you judge.
+        </p>
+        <p style={{ fontFamily: S, fontSize: 15, color: c.muted, lineHeight: 1.6, margin: 0 }}>
+          Grade a job, tailor your CV, prep an interview — no card. Delete it in one click if it isn't for you.
+        </p>
+      </section>
+
       {/* ─────────────── PRICING ─────────────── */}
       <section style={{ background: c.paperRaised, borderTop: `1px solid ${c.hairline}`, borderBottom: `1px solid ${c.hairline}` }}>
         <div style={{ maxWidth: 1000, margin: '0 auto', padding: '100px 28px' }}>
@@ -342,6 +353,15 @@ export default function LandingPage({ onGetStarted }) {
             </button>
           </div>
         </div>
+      </section>
+
+      {/* ─────────────── FOUNDER'S NOTE ─────────────── */}
+      <section style={{ maxWidth: 720, margin: '0 auto', padding: '96px 28px 8px' }}>
+        <Eyebrow c={c}>From the founder</Eyebrow>
+        <p style={{ fontFamily: F, fontWeight: 400, fontSize: 'clamp(20px, 2.6vw, 27px)', lineHeight: 1.45, letterSpacing: '-0.2px', color: c.ink, margin: '0 0 18px' }}>
+          I built JobTrack AI after watching good people send great CVs into silence — not because they weren't qualified, but because nobody told them how a specific job would read their application. So I made the second opinion I wished they'd had. Try it. If it doesn't earn its place, one click deletes everything.
+        </p>
+        <div style={{ fontFamily: S, fontSize: 13, fontWeight: 600, letterSpacing: '0.04em', color: c.muted }}>— Founder</div>
       </section>
 
       {/* ─────────────── CLOSING (contrast panel) ─────────────── */}
