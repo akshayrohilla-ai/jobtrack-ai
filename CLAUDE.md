@@ -103,3 +103,25 @@ GitHub Actions: `.github/workflows/security-audit.yml` (npm/pip audit on push �
 - Match surrounding style (Tailwind + inline styles coexist). Note: Tailwind `leading-none`/fixed heights have caused text clipping in the nav before — prefer inline styles there.
 - The briefcase+magnifying-glass SVG logo + "YOUR AI CAREER COPILOT" tagline must stay consistent across all surfaces (navbar, landing, legal pages, auth modal, emails).
 - Commit only when asked; push only when asked. Verify builds before pushing.
+
+### Design-system utilities (in `frontend/src/index.css` — prefer these over ad-hoc inline)
+
+- **Headings:** `.h-page` (page/feature title) and `.h-section` (sub-heading) — a shared Fraunces scale. Use them instead of inline `fontFamily: 'Fraunces'…fontSize` so heading sizes stop drifting per component. (Adopted on Dashboard + Tracker; roll out to other components incrementally.)
+- **Loading:** `.skeleton` (gentle pulse) for content-shaped loaders; Tracker's loading state is the reference. Spinners use a claret ring: `borderColor: var(--blue-accent); borderTopColor: transparent` — never Tailwind `border-t-blue-*` (off-palette).
+- **Focus:** buttons have brass `:focus-visible` rings — keep new interactive elements keyboard-visible.
+- **Motion:** a global `prefers-reduced-motion` guard neutralises animations — don't fight it.
+- **Flat only — no gradients** ("The Verdict" rule). Avatars/pills use solid `var(--blue-accent)`, not `linear-gradient`.
+
+### Brand / share assets (`frontend/public/`)
+
+- Favicon/app-icon set: `briefcase.svg`, `favicon.ico`, `favicon-16/32`, `apple-touch-icon.png` (180, full-bleed claret for iOS), `icon-192/512.png`, `site.webmanifest` — all wired in `index.html`. Regenerate from `briefcase.svg` with sharp if the mark changes.
+- `og-image.png` (1200×630) is the editorial Verdict share card (ivory dossier + claret grade stamp), rendered from an SVG via `@resvg/resvg-js` with Fraunces + DM Sans TTFs. Social caches are sticky — re-scrape via the Facebook Sharing Debugger after changes (WhatsApp uses FB's cache).
+
+## Marketing / go-to-market
+
+- **Stage:** live, **zero users**, actively trying to sell. Bottleneck is **distribution**, not the product or landing copy.
+- **Context file:** `.agents/product-marketing.md` — product, positioning, pricing, ICP, brand voice. Marketing skills auto-read it; keep it current.
+- **Skills installed (global):** `coreyhaines31/marketingskills` (copywriting, marketing-psychology, programmatic-seo, seo-audit, launch, marketing-plan, etc.) + `refoundai/lenny-skills` (founder-sales, startup-ideation, behavioral-product-design).
+- **Pricing truth:** free = CV parse + job search only; JD eval / CV tailor / interview prep = **1 credit each**; new users get **3 free credits on signup, no card** (which cover the paid actions for a first run). Never imply JD eval is free.
+- **Proof policy:** no fabricated testimonials/metrics, ever. Landing currently substitutes an honest "we'd rather give you 3 free credits and let you judge" band + a signed founder's note; replace with real proof once first users exist.
+- **Next planned work:** `cold-start-strategy` — first-cohort acquisition plan (India job-seeker communities, build-in-public, Product Hunt/directory launch sequence).
