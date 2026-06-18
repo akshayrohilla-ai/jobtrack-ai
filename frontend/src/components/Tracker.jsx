@@ -62,7 +62,8 @@ export default function Tracker({ applications, loading, onUpdate, onRefresh }) 
 
   if (loading) return (
     <div className="text-center py-20" style={{ color: 'var(--text-ghost)' }}>
-      <div className="animate-spin w-7 h-7 border-2 border-gray-200 border-t-blue-500 rounded-full mx-auto mb-3" />
+      <div className="animate-spin w-7 h-7 border-2 rounded-full mx-auto mb-3"
+        style={{ borderColor: 'var(--blue-accent)', borderTopColor: 'transparent' }} />
       <p className="text-sm">Loading your applications...</p>
     </div>
   )
@@ -70,7 +71,7 @@ export default function Tracker({ applications, loading, onUpdate, onRefresh }) 
   if (!applications.length) return (
     <div className="text-center py-20">
       <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
-        style={{ background: 'var(--blue-pale)', border: '1px solid #BFDBFE' }}>
+        style={{ background: 'var(--blue-pale)', border: '1px solid rgba(122,46,46,0.22)' }}>
         <Kanban size={24} style={{ color: 'var(--blue-accent)' }} />
       </div>
       <h3 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.25rem', color: 'var(--navy-900)' }}>No applications yet</h3>

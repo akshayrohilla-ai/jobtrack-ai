@@ -77,7 +77,8 @@ export default function CandidateScorer({ jdAnalysis, shortlist, onShortlist }) 
             </div>
             {loading && (
               <div className="flex items-center gap-2 mt-3 text-sm" style={{ color: 'var(--text-muted)' }}>
-                <span className="animate-spin w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full" />Parsing and scoring candidates...
+                <span className="animate-spin w-4 h-4 border-2 rounded-full"
+                  style={{ borderColor: 'var(--blue-accent)', borderTopColor: 'transparent' }} />Parsing and scoring candidates...
               </div>
             )}
           </>
