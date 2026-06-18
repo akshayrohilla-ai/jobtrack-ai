@@ -4,6 +4,8 @@ import SeekerMode from './pages/SeekerMode'
 import RecruiterMode from './pages/RecruiterMode'
 import AdminDashboard from './pages/AdminDashboard'
 import LandingPage from './pages/LandingPage'
+import JobscanAlternative from './pages/JobscanAlternative'
+import IndiaJobSeekers from './pages/IndiaJobSeekers'
 import PrivacyPolicy from './pages/PrivacyPolicy'
 import TermsAndConditions from './pages/TermsAndConditions'
 import RefundPolicy from './pages/RefundPolicy'
@@ -39,6 +41,8 @@ export default function App() {
   const path = window.location.pathname
   const isAdminRoute = path === '/admin'
   const isLegalRoute = ['/privacy', '/terms', '/refund', '/contact', '/reset-password'].includes(path)
+  // Public marketing/SEO pages — render standalone, no auth needed (like legal routes)
+  const isMarketingRoute = ['/alternatives/jobscan', '/for/india-job-seekers'].includes(path)
 
   useEffect(() => {
     if (darkMode) {
@@ -154,6 +158,16 @@ export default function App() {
         <Route path="/refund" element={<RefundPolicy />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+      </Routes>
+    )
+  }
+
+  // Public marketing/SEO pages — always accessible, no auth needed
+  if (isMarketingRoute) {
+    return (
+      <Routes>
+        <Route path="/alternatives/jobscan" element={<JobscanAlternative />} />
+        <Route path="/for/india-job-seekers" element={<IndiaJobSeekers />} />
       </Routes>
     )
   }

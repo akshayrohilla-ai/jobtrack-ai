@@ -21,3 +21,10 @@ dist/
 
 # Graphify generated output (local only)
 graphify-out/
+
+# Local agent / editor tooling & scratch (keep .agents/product-marketing.md tracked)
+.claude/
+.obsidian/
+.agents/skills/
+skills-lock.json
+docs/interview/

@@ -32,6 +32,60 @@
     <meta name="twitter:description" content="Score how well your CV matches any job, tailor it to the role, and prep for interviews — before you hit apply." />
     <meta name="twitter:image" content="https://www.jobtrackai.co.in/og-image.png" />
 
+    <!-- Structured data (JSON-LD) — for Google rich results + AI-engine citation.
+         Invisible to users; describes the org, the app, and key FAQs. Keep facts in
+         sync with the landing copy + pricing (free = CV parse + job search + tracker). -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "JobTrack AI",
+      "url": "https://www.jobtrackai.co.in/",
+      "logo": "https://www.jobtrackai.co.in/icon-512.png",
+      "email": "support@jobtrackai.co.in",
+      "areaServed": "IN",
+      "description": "An AI career copilot that grades your CV against a job before you apply — fit grade, salary read, red flags — then tailors your CV and preps the interview."
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "JobTrack AI",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "url": "https://www.jobtrackai.co.in/",
+      "description": "Paste a job description and upload your CV to get a verdict — an A–F fit grade, salary read, matched and missing skills, and red flags — in seconds. Then tailor your CV for the role and prep for the interview.",
+      "offers": {
+        "@type": "AggregateOffer",
+        "priceCurrency": "INR",
+        "lowPrice": "0",
+        "highPrice": "499",
+        "offerCount": "3"
+      },
+      "featureList": [
+        "CV-vs-job fit verdict (A–F grade, salary read, red flags)",
+        "AI CV tailoring for a specific role (DOCX export)",
+        "AI interview preparation (STAR answers)",
+        "AI job search",
+        "Application tracker (Kanban)"
+      ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "What does JobTrack AI do?", "acceptedAnswer": { "@type": "Answer", "text": "JobTrack AI reads a job description against your CV and returns a verdict in seconds — an A–F fit grade, a salary read, your matched and missing skills, and the red flags in the posting. It can then tailor your CV for that specific role and prepare you for the interview." } },
+        { "@type": "Question", "name": "Is JobTrack AI free?", "acceptedAnswer": { "@type": "Answer", "text": "CV upload and parsing, AI job search, and the application tracker are free. Evaluating a job against your CV, tailoring your CV, and interview prep each cost one credit. New users get 3 free credits on signup with no card — enough for a full first run." } },
+        { "@type": "Question", "name": "How much does JobTrack AI cost?", "acceptedAnswer": { "@type": "Answer", "text": "Pricing is India-first in INR: 3 credits free on signup (no card), 10 credits for ₹199, and 30 credits for ₹499. Credits never expire and there is no subscription." } },
+        { "@type": "Question", "name": "How is JobTrack AI different from an ATS keyword checker?", "acceptedAnswer": { "@type": "Answer", "text": "Instead of only matching keywords, JobTrack AI reads the full job description against your CV and returns an A–F fit grade, a salary read, matched and missing skills, and red flags — a verdict on whether a role is worth applying to before you spend an evening on it." } },
+        { "@type": "Question", "name": "Is my CV kept private?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Your CV stays private to your account and you can delete it in one click at any time." } }
+      ]
+    }
+    </script>
+
     <!-- docx-js browser build — used for CV tailoring .docx download -->
     <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
   </head>
