@@ -201,6 +201,15 @@
   .metric-value { font-family: 'Fraunces', Georgia, serif; font-weight: 400; font-size: 2rem; color: var(--text-primary); line-height: 1.1; }
   .metric-label { font-size: 10px; font-weight: 600; color: var(--text-ghost); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
 
+  /* Shared heading scale — Fraunces. Keeps page/section titles from drifting
+     per-component (page = top-of-feature title, section = sub-heading). */
+  .h-page    { font-family: 'Fraunces', Georgia, serif; font-weight: 400; font-size: 1.5rem; line-height: 1.2; color: var(--text-primary); }
+  .h-section { font-family: 'Fraunces', Georgia, serif; font-weight: 400; font-size: 1.2rem; line-height: 1.25; color: var(--text-primary); }
+
+  /* Skeleton — gentle pulse (neutralised by prefers-reduced-motion below) */
+  @keyframes skeletonPulse { 0% { opacity: 0.55; } 50% { opacity: 1; } 100% { opacity: 0.55; } }
+  .skeleton { background: var(--surface-subtle); border-radius: 6px; animation: skeletonPulse 1.4s ease-in-out infinite; }
+
   /* Animations */
   @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes gradeReveal { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }

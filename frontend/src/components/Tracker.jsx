@@ -60,13 +60,29 @@ export default function Tracker({ applications, loading, onUpdate, onRefresh }) 
     dragApp.current = null
   }
 
-  if (loading) return (
-    <div className="text-center py-20" style={{ color: 'var(--text-ghost)' }}>
-      <div className="animate-spin w-7 h-7 border-2 rounded-full mx-auto mb-3"
-        style={{ borderColor: 'var(--blue-accent)', borderTopColor: 'transparent' }} />
-      <p className="text-sm">Loading your applications...</p>
-    </div>
-  )
+  if (loading) {
+    const ghostCounts = [3, 2, 2, 1]
+    return (
+      <div className="animate-slide-up">
+        <div className="skeleton" style={{ height: 28, width: 220, marginBottom: 20 }} />
+        <div className="kanban-grid grid gap-3" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+          {COLS.map((col, ci) => (
+            <div key={col.id} className="kanban-col">
+              <div className="flex items-center justify-between mb-3">
+                <div className="skeleton" style={{ height: 12, width: 64 }} />
+                <div className="skeleton" style={{ height: 16, width: 16, borderRadius: 999 }} />
+              </div>
+              <div className="space-y-2">
+                {Array.from({ length: ghostCounts[ci] }).map((_, i) => (
+                  <div key={i} className="skeleton" style={{ height: 62, borderRadius: 8 }} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   if (!applications.length) return (
     <div className="text-center py-20">
@@ -74,7 +90,7 @@ export default function Tracker({ applications, loading, onUpdate, onRefresh }) 
         style={{ background: 'var(--blue-pale)', border: '1px solid rgba(122,46,46,0.22)' }}>
         <Kanban size={24} style={{ color: 'var(--blue-accent)' }} />
       </div>
-      <h3 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.25rem', color: 'var(--navy-900)' }}>No applications yet</h3>
+      <h3 className="h-section">No applications yet</h3>
       <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>Find jobs and click "Open & track" or add from a JD evaluation.</p>
       {onRefresh && <button onClick={onRefresh} className="btn-ghost mt-4"><RefreshCw size={13} />Refresh</button>}
     </div>
@@ -84,7 +100,7 @@ export default function Tracker({ applications, loading, onUpdate, onRefresh }) 
     <div className="animate-slide-up">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.5rem', color: 'var(--navy-900)' }}>Application tracker</h2>
+          <h2 className="h-page">Application tracker</h2>
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>{applications.length} application{applications.length !== 1 ? 's' : ''} tracked</p>
         </div>
         <div className="flex gap-2">

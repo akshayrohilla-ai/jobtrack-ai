@@ -361,7 +361,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
           </p>
           <div className="inline-flex flex-col items-center gap-2">
             <div className="px-6 py-3 rounded-xl text-sm font-semibold text-white"
-              style={{ background: 'linear-gradient(135deg, var(--blue-accent), var(--navy-700))' }}>
+              style={{ background: 'var(--blue-accent)' }}>
               ₹199 = 10 credits &nbsp;·&nbsp; ₹499 = 30 credits
               <span style={{ opacity: 0.6, fontWeight: 400 }}> (coming soon)</span>
             </div>

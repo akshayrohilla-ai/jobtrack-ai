@@ -30,7 +30,7 @@ export default function Dashboard({ applications }) {
   return (
     <div className="animate-slide-up">
       <div className="mb-6">
-        <h2 style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400, fontSize: '1.6rem', color: 'var(--text-primary)' }}>Dashboard</h2>
+        <h2 className="h-page">Dashboard</h2>
         <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Your job search at a glance</p>
       </div>
 
@@ -92,9 +92,15 @@ export default function Dashboard({ applications }) {
       <div className="card">
         <span className="section-label">All applications</span>
         {!applications.length ? (
-          <p className="text-sm py-6 text-center" style={{ color: 'var(--text-ghost)' }}>
-            No applications yet — start tracking jobs from the Tracker tab.
-          </p>
+          <div className="text-center py-8">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-3"
+              style={{ background: 'var(--blue-pale)', border: '1px solid rgba(122,46,46,0.22)' }}>
+              <Briefcase size={20} style={{ color: 'var(--blue-accent)' }} />
+            </div>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              No applications yet — start tracking jobs from the Tracker tab.
+            </p>
+          </div>
         ) : (
           <div style={{ borderTop: '1px solid var(--border-light)' }}>
             {applications.map(a => (

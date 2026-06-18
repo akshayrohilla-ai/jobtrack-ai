@@ -40,7 +40,7 @@ export default function CVProfile({ profile, onProfileParsed, onSwap, onFindJobs
         <div className="card" style={{ borderLeft: '3px solid var(--blue-accent)', padding: '24px' }}>
           <div className="flex items-start gap-4 mb-5">
             <div className="w-14 h-14 rounded-xl flex items-center justify-center text-white font-semibold text-lg flex-shrink-0"
-              style={{ background: 'linear-gradient(135deg, var(--blue-accent), var(--navy-700))' }}>
+              style={{ background: 'var(--blue-accent)' }}>
               {initials}
             </div>
             <div className="flex-1 min-w-0">

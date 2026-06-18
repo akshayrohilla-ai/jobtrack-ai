@@ -51,7 +51,7 @@ export default function Shortlist({ shortlist }) {
                 style={{ borderBottom: '1px solid var(--border-light)' }}>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-semibold text-white flex-shrink-0"
-                    style={{ background: 'linear-gradient(135deg, var(--blue-accent), var(--navy-700))' }}>{initials}</div>
+                    style={{ background: 'var(--blue-accent)' }}>{initials}</div>
                   <div>
                     <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{c.candidate?.name}</div>
                     <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>

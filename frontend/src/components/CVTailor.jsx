@@ -381,7 +381,7 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
             Top up to continue tailoring CVs and evaluating jobs.
           </p>
           <div className="px-6 py-3 rounded-xl text-sm font-semibold text-white inline-block"
-            style={{ background: 'linear-gradient(135deg, var(--blue-accent), var(--navy-700))' }}>
+            style={{ background: 'var(--blue-accent)' }}>
             ₹199 = 10 credits · ₹499 = 30 credits <span style={{ opacity: 0.6, fontWeight: 400 }}>(coming soon)</span>
           </div>
         </div>
