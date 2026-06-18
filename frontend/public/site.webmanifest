@@ -1,0 +1,13 @@
+{
+  "name": "JobTrack AI",
+  "short_name": "JobTrack AI",
+  "description": "Your AI career copilot — check your CV fit before you apply.",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "theme_color": "#211E18",
+  "background_color": "#F3EDE2",
+  "display": "standalone",
+  "start_url": "/"
+}
