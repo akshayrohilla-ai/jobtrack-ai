@@ -217,6 +217,10 @@ export default function InterviewPrep({ profile, rawCvText, evalJdText, evalRole
           jd_text: evalJdText,
           role: evalRole || '',
           company: evalCompany || '',
+          // Structured so a degree at the end of a long CV (past the raw_cv
+          // cutoff) is still seen — prevents false "missing qualification" flags.
+          education: profile?.education || [],
+          certifications: profile?.certifications || [],
         })
       })
 

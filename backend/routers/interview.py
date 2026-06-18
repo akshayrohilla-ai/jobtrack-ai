@@ -71,6 +71,8 @@ class InterviewPrepRequest(BaseModel):
     jd_text: str
     role: Optional[str] = ""
     company: Optional[str] = ""
+    education: list = []           # [{degree, institution, year}] — structured, truncation-proof
+    certifications: list[str] = []  # ["name | issuer | year"]
 
 
 @router.post("/prep")
@@ -95,15 +97,31 @@ async def interview_prep(request: Request, payload: InterviewPrepRequest):
     role_context = f" for the {payload.role} role" if payload.role else ""
     company_context = f" at {payload.company}" if payload.company else ""
 
+    # Structured education/certs are passed separately so a degree at the end of
+    # a long CV (past the raw_cv cutoff) is still visible — otherwise the model
+    # falsely flags a qualification the candidate actually holds as "missing".
+    edu_list = payload.education or []
+    edu_str = '; '.join(
+        f"{e.get('degree', '')} — {e.get('institution', '')} ({e.get('year', '')})".strip(" —()")
+        for e in edu_list if isinstance(e, dict)
+    ) or 'Not provided'
+    certs = payload.certifications or []
+    certs_str = '; '.join(str(c) for c in certs) or 'Not provided'
+
     user_prompt = f"""Prepare a personalised interview pack{role_context}{company_context}.
 
 CANDIDATE CV:
 {payload.raw_cv[:8000]}
 
+CANDIDATE EDUCATION (verified — treat as fact): {edu_str}
+CANDIDATE CERTIFICATIONS (verified — treat as fact): {certs_str}
+
 JOB DESCRIPTION:
 {payload.jd_text[:8000]}
 
-Return the full interview prep pack as JSON."""
+Use the verified Education and Certifications above as fact. Do NOT raise a weak spot
+about a missing degree or qualification if it is listed there. Return the full interview
+prep pack as JSON."""
 
     t_pre_llm = time.perf_counter()
 

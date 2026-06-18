@@ -67,6 +67,8 @@ Required format:
   "domain": "Short domain label e.g. Enterprise IT / AI, Data & Analytics, Cloud Infrastructure",
   "skills": ["skill1", "skill2", ...],
   "summary": "2-3 sentence professional summary based on the CV",
+  "education": [{"degree": "e.g. MBA Finance", "institution": "University/College name", "year": "e.g. 2020"}],
+  "certifications": ["Certification, license, or award name | Issuer | Year"],
   "initials": "XX"
 }
 
@@ -81,15 +83,21 @@ Rules:
 - Use short 1-3 word skill names that match how JDs describe them
 - years_exp: calculate from earliest to most recent role, or use stated years
 - seniority: infer from titles and years
+- education: extract ALL degrees/qualifications as objects (degree, institution, year). Scan the ENTIRE CV — education is very often near the END, after all work experience. If none found, use []
+- certifications: extract certifications, licenses, AND professional awards (name, issuer, year if stated). These also tend to appear near the end. If none found, use []
 - initials: first letter of first name + first letter of last name
-- If a field cannot be determined, use null"""
+- If a field cannot be determined, use null (for lists, use [])"""
 
+    # Read up to 20k chars (was 6k): education, certifications, and awards
+    # almost always sit at the END of a CV, past the old 6k cutoff. Haiku is
+    # cheap (~$0.005 for a full CV) and parsing is free to the user, so the
+    # extra coverage is worth it to capture degree/credential data reliably.
     message = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=1024,
+        max_tokens=1536,
         system=system_prompt,
         messages=[
-            {"role": "user", "content": f"Parse this CV and return JSON:\n\n{cv_text[:6000]}"}
+            {"role": "user", "content": f"Parse this CV and return JSON:\n\n{cv_text[:20000]}"}
         ]
     )
 

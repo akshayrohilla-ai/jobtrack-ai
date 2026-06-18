@@ -149,6 +149,18 @@ async def tailor_cv(request: Request, payload: TailorRequest):
     client = anthropic.AsyncAnthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
     profile = payload.cv_profile
+    # Structured education/certifications come from the parsed profile so the
+    # degree survives even when it sits past the raw-text cutoff (it usually
+    # lives at the very end of a CV). Without this the model leaves a
+    # "[add actual degree]" placeholder for long CVs.
+    edu_list = profile.get('education') or []
+    edu_str = '; '.join(
+        f"{e.get('degree', '')} — {e.get('institution', '')} ({e.get('year', '')})".strip(" —()")
+        for e in edu_list if isinstance(e, dict)
+    ) or 'Not provided'
+    certs = profile.get('certifications') or []
+    certs_str = '; '.join(str(c) for c in certs) or 'Not provided'
+
     user_prompt = f"""Tailor this candidate's CV for the specific job description below.
 
 CANDIDATE PROFILE:
@@ -158,14 +170,18 @@ Experience: {profile.get('years_exp', 'Not provided')}
 Seniority: {profile.get('seniority', 'Not provided')}
 Domain: {profile.get('domain', 'Not provided')}
 Current skills: {', '.join(profile.get('skills', [])[:25])}
+Education: {edu_str}
+Certifications: {certs_str}
 
 FULL CV TEXT:
-{payload.cv_raw_text[:12000]}
+{payload.cv_raw_text[:20000]}
 
 JOB DESCRIPTION:
 {payload.jd_text[:8000]}
 
-Rewrite the CV to maximise fit for this specific role. Return JSON only."""
+Use the structured Education and Certifications above as the source of truth for those
+sections — never output placeholders like "[add degree]". Rewrite the CV to maximise fit
+for this specific role. Return JSON only."""
 
     t_pre_llm = time.perf_counter()
 

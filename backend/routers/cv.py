@@ -26,6 +26,8 @@ class CVProfile(BaseModel):
     domain: Optional[str] = None
     skills: list[str] = []
     summary: Optional[str] = None
+    education: list = []          # [{degree, institution, year}] — threaded into Tailor/Interview
+    certifications: list[str] = []  # ["name | issuer | year"] — threaded into Tailor/Interview
     initials: Optional[str] = None
     raw_text: Optional[str] = None  # Returned to frontend for CV tailoring
 
@@ -65,29 +67,42 @@ async def parse_cv(
         logger.error("CV AI parsing failed", exc_info=True)
         raise HTTPException(status_code=500, detail="Could not parse this CV. Please try again.")
 
-    # Save to Supabase scoped to user_id (best-effort, non-blocking)
+    # Save to Supabase scoped to user_id (best-effort, non-blocking).
+    # raw_text cap raised 12k -> 20k so the CV tail (education/certs) survives.
+    base_row = {
+        "user_id": user_id,
+        "name": profile.get("name"),
+        "email": profile.get("email"),
+        "phone": profile.get("phone"),
+        "linkedin": profile.get("linkedin"),
+        "title": profile.get("title"),
+        "location": profile.get("location"),
+        "years_exp": profile.get("years_exp"),
+        "seniority": profile.get("seniority"),
+        "domain": profile.get("domain"),
+        "skills": profile.get("skills", []),
+        "raw_text": cv_text[:20000]
+    }
     try:
         supabase = get_supabase()
-        supabase.table("cv_profiles").insert({
-            "user_id": user_id,
-            "name": profile.get("name"),
-            "email": profile.get("email"),
-            "phone": profile.get("phone"),
-            "linkedin": profile.get("linkedin"),
-            "title": profile.get("title"),
-            "location": profile.get("location"),
-            "years_exp": profile.get("years_exp"),
-            "seniority": profile.get("seniority"),
-            "domain": profile.get("domain"),
-            "skills": profile.get("skills", []),
-            "raw_text": cv_text[:12000]
-        }).execute()
+        # Insert with the new columns; if the migration hasn't run yet the
+        # columns won't exist, so fall back to the base row. This keeps profile
+        # persistence working regardless of deploy/migration ordering.
+        try:
+            supabase.table("cv_profiles").insert({
+                **base_row,
+                "education": profile.get("education", []),
+                "certifications": profile.get("certifications", []),
+            }).execute()
+        except Exception:
+            supabase.table("cv_profiles").insert(base_row).execute()
     except Exception as e:
         print(f"CV profile save FAILED: {type(e).__name__}: {e}")
 
-    # Return profile + raw_text so frontend can store in sessionStorage
-    # raw_text is used for CV tailoring without requiring re-upload
-    return {**profile, "raw_text": cv_text[:12000]}
+    # Return profile + raw_text so frontend can store in sessionStorage.
+    # education/certifications travel in `profile` and are threaded into
+    # Tailor/Interview so the degree is never lost to raw-text truncation.
+    return {**profile, "raw_text": cv_text[:20000]}
 
 
 @router.get("/profile")
