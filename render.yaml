@@ -5,6 +5,16 @@ services:
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    # Only redeploy the backend when backend files change — frontend-only pushes
+    # (e.g. landing/SEO changes) no longer trigger a rebuild, avoiding deploy-window
+    # 520s on the /health cron. If the Render service is NOT blueprint-managed, set
+    # the same filter in the dashboard: Settings → Build & Deploy → Build Filters.
+    buildFilter:
+      paths:
+        - backend/**
+        - render.yaml
+      ignoredPaths:
+        - frontend/**
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
