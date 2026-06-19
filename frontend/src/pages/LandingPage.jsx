@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { FileText, ClipboardCheck, Wand2, BriefcaseBusiness, Search, Kanban } from 'lucide-react'
+import DemoExplainer from '../components/DemoExplainer'
 
 /* ──────────────────────────────────────────────────────────────
    "The Verdict" — editorial / quiet-luxury landing.
@@ -256,6 +257,10 @@ export default function LandingPage({ onGetStarted }) {
               </div>
             </div>
           ))}
+
+          <div style={{ marginTop: 64 }}>
+            <DemoExplainer />
+          </div>
         </div>
       </section>
 
