@@ -85,6 +85,11 @@ export default function App() {
     const API_URL = import.meta.env.VITE_API_URL
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) return
+      // Fire-and-forget welcome email — idempotent server-side (sends once per user)
+      fetch(`${API_URL}/api/user/welcome`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` }
+      }).catch(() => {})
       try {
         const res = await fetch(`${API_URL}/api/evaluate/balance`, {
           headers: { Authorization: `Bearer ${session.access_token}` }
