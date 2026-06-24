@@ -119,8 +119,8 @@ Status: ☐ todo · ◐ submitted (in queue) · ☑ live (backlink verified) · 
 ### Batch 1 — AI directories (Variant C) · submit now · homepage OK
 | Directory | DR | Variant | Status | Listing URL | Notes |
 |---|---|---|---|---|---|
-| There's An AI For That (TAAFT) | 76 | C | ☐ | | task-based; list carefully |
-| Futurepedia | 70 | C | ☐ | | |
+| There's An AI For That (TAAFT) | 76 | C | ✗ | | **PAID-ONLY as of 2026-06 — min $49, no free tier. SKIPPED.** Possible considered paid bet later (their audience = AI-tool seekers), but not pre-revenue |
+| Futurepedia | 70 | C | ✗ | | **PAID-ONLY as of 2026-06 — $247 (sold out) / $497. SKIPPED.** |
 | Toolify.ai | 71 | C | ☐ | | |
 | Future Tools (futuretools.io) | 69 | C | ☐ | | curated, may not approve |
 | Good AI Tools | 66 | C | ☐ | | |
@@ -134,12 +134,12 @@ Status: ☐ todo · ◐ submitted (in queue) · ☑ live (backlink verified) · 
 ### Batch 2 — Startup / SaaS directories (Variant A/B) · submit now · homepage OK
 | Directory | DR | Variant | Status | Listing URL | Notes |
 |---|---|---|---|---|---|
-| SaaSHub | 77 | B | ☐ | | ranks for "[tool] alternatives" |
-| AlternativeTo | 79 | B | ☐ | | list as Jobscan/Teal alternative |
+| SaaSHub | 77 | B | ◐ | https://www.saashub.com/jobtrack-ai | submitted 2026-06-24, pending approval (free tier, up to 32d). Full listing: logo, tagline, description, pricing, competitors (Jobscan/Teal/Rezi), features, Q&A. Verify later via @jobtrackai.co.in email |
+| AlternativeTo | 79 | B | ⏳ | | account created 2026-06-24; **7-day age gate — resubmit after 2026-07-01**. Use Variant B, list as Jobscan/Teal/Rezi alternative |
 | Peerlist Launchpad | ~60 | A | ☐ | | **India-founded — priority for ICP** |
 | Inc42 | 75 | A | ☐ | | **Indian startup media/directory** |
 | Startup Stash | ~50 | A | ☐ | | |
-| Indie Hackers (product) | 76 | A | ☐ | | also build-in-public home |
+| Indie Hackers (product) | 76 | A | ☑ | indiehackers.com/product/jobtrack-ai (confirm exact slug) | **DONE 2026-06-24.** Product page live: logo, tagline, About/motivation, founder handle "JobTrack_AI". Optional later: build-in-public posts. |
 | SaaSWorthy | 65 | B | ☐ | | |
 | ToolsFine | 65 | B | ☐ | | |
 | 10words | 40 | B | ☐ | | 10-word desc |
