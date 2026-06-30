@@ -45,9 +45,13 @@ export const parseCV = (file) => {
 export const getProfile = () =>
   api.get('/api/cv/profile')
 
-// Jobs
+// Jobs — career pages (fast) and aggregator (slower) are separate so the UI can
+// render career-page results instantly and stream the aggregator in after.
 export const searchJobs = (query, location, seniority = 'senior', recency = 'week') =>
   api.get('/api/jobs/search', { params: { query, location, seniority, recency } })
+
+export const searchAggregator = (query, location, seniority = 'senior', recency = 'week') =>
+  api.get('/api/jobs/aggregator', { params: { query, location, seniority, recency } })
 
 // Applications — no session_id, user_id comes from JWT on backend
 export const getApplications = () =>

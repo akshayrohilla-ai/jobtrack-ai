@@ -12,6 +12,7 @@ A search loads that blob once and filters in memory (India-first ordering). No n
 table, no per-search fan-out. On a cold cache it refreshes inline as a fallback.
 """
 import re
+import time
 import asyncio
 import difflib
 import datetime
@@ -107,10 +108,20 @@ def _tokens(s):
     return [t for t in re.split(r"[^a-z0-9]+", (s or "").lower()) if t]
 
 
-def _india_relevant(jl):
-    # India-first product: a location counts only if it names India or an Indian
-    # city. Bare "Remote" (often US/EU-only) is intentionally excluded.
-    return ("india" in jl) or any(c in jl for c in INDIAN_CITIES)
+_FOREIGN = (" us", "u.s", "usa", "united states", "uk", "united kingdom", "canada",
+            "france", "germany", "europe", "emea", "latam", "brazil", "australia",
+            "singapore", "japan", "china", "mexico", "ireland", "poland", "spain",
+            "netherlands", "philippines", "indonesia")
+
+
+def _location_ok(jl):
+    """India-eligible? India / an Indian city, OR a remote role not tied to a foreign
+    region ('Remote' and 'Remote - India' count; 'Remote - US' / 'Remote EMEA' don't)."""
+    if ("india" in jl) or any(c in jl for c in INDIAN_CITIES):
+        return True
+    if "remote" in jl:
+        return not any(f in jl for f in _FOREIGN)
+    return False
 
 
 def _correct_tokens(tokens, vocab):
@@ -151,13 +162,16 @@ def _filter(jobs, query, location, recency="any"):
             continue
         jl = j["location"].lower()
         if anywhere:
-            if not _india_relevant(jl):       # "Any location" = anywhere in India
+            if not _location_ok(jl):          # "Any location" = anywhere in India (+ remote-eligible)
                 continue
             city_match = False
         else:
-            if loc not in jl and "india" not in jl:   # the chosen city, or India-wide
+            if loc in jl:
+                city_match = True
+            elif _location_ok(jl):            # India-wide or India-eligible remote
+                city_match = False
+            else:
                 continue
-            city_match = loc in jl
         out.append((j, city_match))
     # Exact-city matches first, then most-recently-posted.
     out.sort(key=lambda x: (x[1], x[0]["posted_date"]), reverse=True)
@@ -180,8 +194,14 @@ def _store(jobs):
         print(f"[ats] cache store failed: {e}", flush=True)
 
 
-async def _load_all():
-    """Load the cached blob; refresh inline if missing/stale (cold-cache fallback)."""
+# In-process cache so we don't re-read/parse the multi-MB blob from Supabase on
+# every search (Render runs WEB_CONCURRENCY=1). Refreshed at most hourly per process.
+_MEM = {"jobs": None, "ts": 0.0}
+MEM_TTL_SECONDS = 3600
+
+
+def _load_blob():
+    """Read the cached job blob from Supabase. Returns the list or None if missing/stale."""
     try:
         sb = get_supabase()
         now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -193,15 +213,28 @@ async def _load_all():
             return res.data[0]["payload"]
     except Exception as e:
         print(f"[ats] cache load failed: {e}", flush=True)
-    jobs = await fetch_all()
-    _store(jobs)
+    return None
+
+
+async def _load_all():
+    """Return the full job list — from memory if warm, else the Supabase blob, else
+    a live fetch (cold start). Keeps per-search latency near-zero once warm."""
+    now = time.time()
+    if _MEM["jobs"] is not None and (now - _MEM["ts"]) < MEM_TTL_SECONDS:
+        return _MEM["jobs"]
+    jobs = _load_blob()
+    if jobs is None:
+        jobs = await fetch_all()   # cold: nothing cached yet
+        _store(jobs)
+    _MEM["jobs"], _MEM["ts"] = jobs, now
     return jobs
 
 
 async def refresh_cache():
-    """Fetch all boards and overwrite the cache blob. Returns the job count."""
+    """Fetch all boards, overwrite the Supabase blob, and warm the in-process cache."""
     jobs = await fetch_all()
     _store(jobs)
+    _MEM["jobs"], _MEM["ts"] = jobs, time.time()
     return len(jobs)
 
 

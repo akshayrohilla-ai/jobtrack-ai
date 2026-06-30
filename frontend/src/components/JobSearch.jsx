@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Search, ExternalLink, CheckCircle, BookmarkPlus, Clock, MapPin, Calendar, Briefcase } from 'lucide-react'
-import { searchJobs, createApplication } from '../lib/api'
+import { searchJobs, searchAggregator, createApplication } from '../lib/api'
 
 const LOCATIONS = ['Any location', 'Pune', 'Bangalore', 'Hyderabad', 'Mumbai', 'Gurgaon', 'Chennai', 'UAE']
 const RECENCY_OPTIONS = [
@@ -20,8 +20,10 @@ export default function JobSearch({ profile, applications, onApply }) {
   const [location, setLocation]   = useState('Any location')
   const [recency, setRecency]     = useState('week')
   const [seniority, setSeniority] = useState('senior')
-  const [results, setResults]     = useState(null)
+  const [results, setResults]     = useState(null)   // career-page layer (fast)
   const [loading, setLoading]     = useState(false)
+  const [aggJobs, setAggJobs]     = useState(null)   // null = not searched, [] = done/empty
+  const [aggLoading, setAggLoading] = useState(false)
   const [showManual, setShowManual]     = useState(false)
   const [manualTitle, setManualTitle]   = useState('')
   const [manualCompany, setManualCompany] = useState('')
@@ -32,19 +34,26 @@ export default function JobSearch({ profile, applications, onApply }) {
 
   async function handleSearch() {
     if (!query.trim()) return
-    setLoading(true)
-    try {
-      const { data } = await searchJobs(query, location, seniority, recency)
-      setResults(data)
-    } catch {
-      const encoded = encodeURIComponent(query)
-      const loc = encodeURIComponent(location)
-      setResults({
-        query, location, recency_label: RECENCY_OPTIONS.find(r => r.value === recency)?.label,
-        primary_url: `https://www.linkedin.com/jobs/search/?keywords=${encoded}&location=${loc}`,
-        search_urls: [{ label: query, url: `https://www.linkedin.com/jobs/search/?keywords=${encoded}&location=${loc}&f_E=4`, description: `Exact match · ${location}` }]
+    setLoading(true); setAggLoading(true); setAggJobs(null)
+    // Career pages — fast, render the moment it resolves.
+    searchJobs(query, location, seniority, recency)
+      .then(({ data }) => setResults(data))
+      .catch(() => {
+        const encoded = encodeURIComponent(query)
+        const loc = encodeURIComponent(location)
+        setResults({
+          query, location, recency_label: RECENCY_OPTIONS.find(r => r.value === recency)?.label,
+          ats_jobs: [], portal_searches: [],
+          primary_url: `https://www.linkedin.com/jobs/search/?keywords=${encoded}&location=${loc}`,
+          search_urls: [{ label: query, url: `https://www.linkedin.com/jobs/search/?keywords=${encoded}&location=${loc}&f_E=4`, description: `Exact match · ${location}` }]
+        })
       })
-    } finally { setLoading(false) }
+      .finally(() => setLoading(false))
+    // Aggregator — slower, streams in after.
+    searchAggregator(query, location, seniority, recency)
+      .then(({ data }) => setAggJobs(data.jobs || []))
+      .catch(() => setAggJobs([]))
+      .finally(() => setAggLoading(false))
   }
 
   async function handleTrackJob(job) {
@@ -161,7 +170,7 @@ export default function JobSearch({ profile, applications, onApply }) {
       </div>
 
       {/* Quick portal links — always visible after a search */}
-      {results && !results.fallback && results.portal_searches?.length > 0 && (
+      {results && results.portal_searches?.length > 0 && (
         <div className="card flex items-center gap-2 flex-wrap" style={{ padding: '12px 16px' }}>
           <span className="text-xs" style={{ color: 'var(--text-ghost)' }}>Prefer a job site? Search on</span>
           {results.portal_searches.map(p => (
@@ -188,21 +197,27 @@ export default function JobSearch({ profile, applications, onApply }) {
         </div>
       )}
 
-      {/* ② Aggregator breadth — more live jobs */}
-      {results && results.jobs?.length > 0 && (
+      {/* ② Aggregator breadth — streams in after the career-page results */}
+      {results && (aggLoading || aggJobs?.length > 0) && (
         <div className="card">
           <div className="flex items-center justify-between mb-3">
-            <span className="section-label mb-0">More live jobs · {results.jobs.length}</span>
+            <span className="section-label mb-0">More live jobs{aggJobs?.length ? ` · ${aggJobs.length}` : ''}</span>
             <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-ghost)' }}>
               <Clock size={11} />{results.recency_label}
             </span>
           </div>
-          <div className="space-y-2">{results.jobs.map(renderJobCard)}</div>
+          {aggLoading && !aggJobs?.length ? (
+            <div className="space-y-2">
+              {[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 76, borderRadius: 8 }} />)}
+            </div>
+          ) : (
+            <div className="space-y-2">{aggJobs.map(renderJobCard)}</div>
+          )}
         </div>
       )}
 
-      {/* Fallback — no live jobs at all: LinkedIn variants + portal links */}
-      {results && results.fallback && (
+      {/* Fallback — no live jobs from any source: LinkedIn search variants */}
+      {results && (results.ats_jobs?.length || 0) === 0 && !aggLoading && (aggJobs?.length || 0) === 0 && results.search_urls?.length > 0 && (
         <div className="card">
           <div className="flex items-center justify-between mb-3">
             <span className="section-label mb-0">{results.search_urls?.length} LinkedIn searches</span>

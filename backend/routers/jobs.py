@@ -140,7 +140,7 @@ def _linkedin_fallback(query: str, location: str, seniority: str, recency: str) 
 
 
 @router.get("/search")
-@limiter.limit("30/minute")
+@limiter.limit("60/minute")
 async def search_jobs(
     request: Request,
     query: str = Query(...),
@@ -164,26 +164,37 @@ async def search_jobs(
         {"name": "Indeed", "url": _indeed_url(query, location, seniority, recency)},
     ]
 
-    # ① Direct from company career pages (the differentiator) — curated ATS boards.
+    # Direct from company career pages (the differentiator) — fast, served from an
+    # in-memory cache. JSearch breadth is fetched separately via /aggregator so the
+    # slower network call doesn't block these instant results.
     try:
         ats_jobs = await ats_source.search(query, location, recency)
     except Exception as e:
         print(f"[jobs] ats error: {e}", flush=True)
         ats_jobs = []
 
-    # ② Aggregator breadth — JSearch (None => not configured / error).
+    payload["ats_jobs"] = ats_jobs or []
+    return payload
+
+
+@router.get("/aggregator")
+@limiter.limit("30/minute")
+async def search_aggregator(
+    request: Request,
+    query: str = Query(...),
+    location: str = Query("anywhere"),
+    seniority: str = Query("senior"),
+    recency: str = Query("week")
+):
+    """Aggregator (JSearch) layer, fetched in parallel with /search by the frontend so
+    the slower call streams in after the instant career-page results."""
+    await get_current_user(request)
     try:
-        agg_jobs = await job_search.search(query, location, seniority, recency)
+        jobs = await job_search.search(query, location, seniority, recency)
     except Exception as e:
         print(f"[jobs] aggregator error: {e}", flush=True)
-        agg_jobs = None
-
-    payload["ats_jobs"] = ats_jobs or []
-    payload["jobs"] = agg_jobs or []
-    # Fallback (③ portal deep-links only) when neither live source returned anything.
-    payload["fallback"] = not (payload["ats_jobs"] or payload["jobs"])
-
-    return payload
+        jobs = None
+    return {"jobs": jobs or []}
 
 
 @router.post("/refresh-ats")
