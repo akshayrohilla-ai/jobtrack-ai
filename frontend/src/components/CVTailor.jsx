@@ -376,7 +376,7 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
           <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--navy-900)' }}>
             <Lock size={22} style={{ color: 'rgba(255,255,255,0.6)' }} />
           </div>
-          <h3 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.25rem', color: 'var(--navy-900)' }}>No credits remaining</h3>
+          <h3 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.25rem', color: 'var(--text-primary)' }}>No credits remaining</h3>
           <p className="text-sm mt-2 mb-6 max-w-xs mx-auto" style={{ color: 'var(--text-muted)' }}>
             Top up to continue tailoring CVs and evaluating jobs.
           </p>
@@ -390,7 +390,7 @@ export default function CVTailor({ profile, rawCvText, evalJdText, evalRole, eva
       {/* Setup prompt — show what's missing */}
       {!outOfCredits && !result && (
         <div className="card">
-          <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.4rem', color: 'var(--navy-900)', marginBottom: '4px' }}>
+          <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.4rem', color: 'var(--text-primary)', marginBottom: '4px' }}>
             Tailor CV for this role
           </h2>
           <p className="text-sm mb-5" style={{ color: 'var(--text-muted)' }}>

@@ -105,7 +105,7 @@ export default function CVProfile({ profile, onProfileParsed, onSwap, onFindJobs
                   <Search size={14} style={{ color: 'white' }} />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold" style={{ color: 'var(--navy-900)' }}>Find jobs</div>
+                  <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Find jobs</div>
                   <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>Search matching roles</div>
                 </div>
               </button>
@@ -146,7 +146,7 @@ export default function CVProfile({ profile, onProfileParsed, onSwap, onFindJobs
           style={{ background: 'var(--blue-pale)', border: '1px solid #BFDBFE' }}>
           <Briefcase size={22} style={{ color: 'var(--blue-accent)' }} />
         </div>
-        <h1 style={{ fontFamily: 'Fraunces, Georgia, serif', fontSize: '1.75rem', color: 'var(--navy-900)', lineHeight: 1.2 }}>
+        <h1 style={{ fontFamily: 'Fraunces, Georgia, serif', fontSize: '1.75rem', color: 'var(--text-primary)', lineHeight: 1.2 }}>
           Upload your CV
         </h1>
         <p className="mt-2 text-sm" style={{ color: 'var(--text-muted)' }}>

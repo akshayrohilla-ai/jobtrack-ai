@@ -353,7 +353,7 @@ export default function JDEvaluator({ profile, savedResult, savedJdText, savedRo
             style={{ background: 'var(--navy-900)' }}>
             <Lock size={22} style={{ color: 'rgba(255,255,255,0.6)' }} />
           </div>
-          <h3 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.25rem', color: 'var(--navy-900)' }}>
+          <h3 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.25rem', color: 'var(--text-primary)' }}>
             You've used all your credits
           </h3>
           <p className="text-sm mt-2 mb-6 max-w-xs mx-auto" style={{ color: 'var(--text-muted)' }}>

@@ -313,7 +313,7 @@ export default function InterviewPrep({ profile, rawCvText, evalJdText, evalRole
       {/* Setup / action card */}
       {!result && (
         <div className="card">
-          <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.4rem', color: 'var(--navy-900)', marginBottom: '4px' }}>
+          <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.4rem', color: 'var(--text-primary)', marginBottom: '4px' }}>
             Interview prep pack
           </h2>
           <p className="text-sm mb-5" style={{ color: 'var(--text-muted)' }}>

@@ -21,7 +21,7 @@ export default function Shortlist({ shortlist }) {
         style={{ background: 'var(--blue-pale)', border: '1px solid #BFDBFE' }}>
         <Star size={24} style={{ color: 'var(--blue-accent)' }} />
       </div>
-      <h3 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.25rem', color: 'var(--navy-900)' }}>No candidates shortlisted</h3>
+      <h3 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.25rem', color: 'var(--text-primary)' }}>No candidates shortlisted</h3>
       <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>Score candidates in the Candidates tab, then add strong matches here.</p>
     </div>
   )
@@ -32,7 +32,7 @@ export default function Shortlist({ shortlist }) {
     <div className="animate-slide-up">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.5rem', color: 'var(--navy-900)' }}>Shortlisted candidates</h2>
+          <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.5rem', color: 'var(--text-primary)' }}>Shortlisted candidates</h2>
           <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>{shortlist.length} candidate{shortlist.length !== 1 ? 's' : ''} shortlisted</p>
         </div>
         <button onClick={() => exportShortlistCSV(shortlist)} className="btn-secondary text-xs py-1.5">
