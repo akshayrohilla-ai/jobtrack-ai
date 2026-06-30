@@ -23,6 +23,8 @@ from services.supabase_client import get_supabase
 CACHE_TABLE = "job_search_cache"
 CACHE_KEY = "ats:all"
 REFRESH_TTL_SECONDS = 24 * 3600
+RECENCY_DAYS = {"24h": 1, "week": 7, "month": 30, "any": None}
+RESULT_LIMIT = 30
 
 INDIAN_CITIES = {
     "bengaluru", "bangalore", "mumbai", "pune", "hyderabad", "chennai",
@@ -109,14 +111,22 @@ def _india_relevant(jl):
     return ("india" in jl) or any(c in jl for c in INDIAN_CITIES)
 
 
-def _filter(jobs, query, location):
+def _filter(jobs, query, location, recency="any"):
     q_tokens = _tokens(query)
     loc = (location or "").lower().strip()
     anywhere = loc in ("any location", "anywhere", "any", "all", "all locations", "")
+    days = RECENCY_DAYS.get(recency)
+    cutoff = None
+    if days:
+        cutoff = (datetime.datetime.now(datetime.timezone.utc).date()
+                  - datetime.timedelta(days=days)).isoformat()
     out = []
     for j in jobs:
         title = j["title"].lower()
         if q_tokens and not all(t in title for t in q_tokens):
+            continue
+        # Recency: drop anything older than the cutoff (and undated jobs when filtering).
+        if cutoff and (not j["posted_date"] or j["posted_date"] < cutoff):
             continue
         jl = j["location"].lower()
         if anywhere:
@@ -174,7 +184,7 @@ async def refresh_cache():
     return len(jobs)
 
 
-async def search(query, location):
-    """Search the curated career-page jobs. Returns normalized cards (may be empty)."""
+async def search(query, location, recency="any"):
+    """Search the curated career-page jobs. Returns up to RESULT_LIMIT normalized cards."""
     jobs = await _load_all()
-    return _filter(jobs, query, location)
+    return _filter(jobs, query, location, recency)[:RESULT_LIMIT]

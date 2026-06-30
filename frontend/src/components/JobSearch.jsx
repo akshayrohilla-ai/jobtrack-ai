@@ -160,6 +160,18 @@ export default function JobSearch({ profile, applications, onApply }) {
         )}
       </div>
 
+      {/* Quick portal links — always visible after a search */}
+      {results && !results.fallback && results.portal_searches?.length > 0 && (
+        <div className="card flex items-center gap-2 flex-wrap" style={{ padding: '12px 16px' }}>
+          <span className="text-xs" style={{ color: 'var(--text-ghost)' }}>Prefer a job site? Search on</span>
+          {results.portal_searches.map(p => (
+            <a key={p.name} href={p.url} target="_blank" rel="noreferrer" className="btn-secondary text-xs py-1.5">
+              {p.name}<ExternalLink size={12} />
+            </a>
+          ))}
+        </div>
+      )}
+
       {/* ① Direct from company career pages — the differentiator */}
       {results && results.ats_jobs?.length > 0 && (
         <div className="card">
@@ -186,20 +198,6 @@ export default function JobSearch({ profile, applications, onApply }) {
             </span>
           </div>
           <div className="space-y-2">{results.jobs.map(renderJobCard)}</div>
-        </div>
-      )}
-
-      {/* ③ Also search on — portal deep-links (shown when we have live results above) */}
-      {results && !results.fallback && results.portal_searches?.length > 0 && (results.ats_jobs?.length > 0 || results.jobs?.length > 0) && (
-        <div className="card">
-          <p className="text-xs mb-2" style={{ color: 'var(--text-ghost)' }}>Also search on</p>
-          <div className="flex gap-2 flex-wrap">
-            {results.portal_searches.map(p => (
-              <a key={p.name} href={p.url} target="_blank" rel="noreferrer" className="btn-secondary text-xs py-1.5">
-                {p.name}<ExternalLink size={12} />
-              </a>
-            ))}
-          </div>
         </div>
       )}
 

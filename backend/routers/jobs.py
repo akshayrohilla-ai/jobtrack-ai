@@ -166,7 +166,7 @@ async def search_jobs(
 
     # ① Direct from company career pages (the differentiator) — curated ATS boards.
     try:
-        ats_jobs = await ats_source.search(query, location)
+        ats_jobs = await ats_source.search(query, location, recency)
     except Exception as e:
         print(f"[jobs] ats error: {e}", flush=True)
         ats_jobs = []
