@@ -18,7 +18,7 @@ import httpx
 from services.supabase_client import get_supabase
 
 JSEARCH_HOST = "jsearch.p.rapidapi.com"
-JSEARCH_URL = f"https://{JSEARCH_HOST}/search"
+JSEARCH_URL = f"https://{JSEARCH_HOST}/search-v2"  # v5 retired the old /search path
 CACHE_TABLE = "job_search_cache"
 CACHE_TTL_SECONDS = 12 * 3600
 
@@ -127,7 +127,6 @@ async def _fetch_jsearch(query: str, location: str, seniority: str, recency: str
 
     params = {
         "query": f"{role} in {where}",
-        "page": "1",
         "num_pages": "1",
         "country": country,
         "date_posted": DATE_POSTED.get(recency, "all"),
