@@ -39,6 +39,7 @@ export default function JobSearch({ profile, applications, onApply }) {
   const [manualCompany, setManualCompany] = useState('')
   const [manualUrl, setManualUrl]       = useState('')
   const [addingManual, setAddingManual] = useState(false)
+  const [manualMsg, setManualMsg]       = useState('')   // '' | 'added' | 'already'
 
   useEffect(() => { if (profile?.title && !query && !results) setQuery(profile.title) }, [profile?.title])
 
@@ -106,6 +107,8 @@ export default function JobSearch({ profile, applications, onApply }) {
 
   async function handleManualTrack() {
     if (!manualTitle.trim() || !manualCompany.trim()) return
+    const key = jobKey({ title: manualTitle, company: manualCompany })
+    if (trackedSet.has(key)) { setManualMsg('already'); return }   // dedupe
     setAddingManual(true)
     try {
       const { data } = await createApplication({
@@ -116,7 +119,6 @@ export default function JobSearch({ profile, applications, onApply }) {
         linkedin_url: manualUrl || null
       })
       onApply({ ...data, jobId: data.id })
-      setManualTitle(''); setManualCompany(''); setManualUrl(''); setShowManual(false)
     } catch {
       // Optimistic fallback — show in UI even if backend failed
       onApply({
@@ -125,8 +127,12 @@ export default function JobSearch({ profile, applications, onApply }) {
         location, match_score: null, status: 'applied',
         applied_date: new Date().toISOString().split('T')[0]
       })
-      setManualTitle(''); setManualCompany(''); setManualUrl(''); setShowManual(false)
-    } finally { setAddingManual(false) }
+    } finally {
+      setTrackedKeys(prev => new Set(prev).add(key))
+      setManualTitle(''); setManualCompany(''); setManualUrl('')
+      setManualMsg('added')
+      setAddingManual(false)
+    }
   }
 
   const renderJobCard = (job, i) => (
@@ -325,12 +331,12 @@ export default function JobSearch({ profile, applications, onApply }) {
               <div>
                 <label className="section-label">Job title *</label>
                 <input className="input-field" placeholder="e.g. Senior Business Analyst"
-                  value={manualTitle} onChange={e => setManualTitle(e.target.value)} />
+                  value={manualTitle} onChange={e => { setManualTitle(e.target.value); if (manualMsg) setManualMsg('') }} />
               </div>
               <div>
                 <label className="section-label">Company *</label>
                 <input className="input-field" placeholder="e.g. Accenture"
-                  value={manualCompany} onChange={e => setManualCompany(e.target.value)} />
+                  value={manualCompany} onChange={e => { setManualCompany(e.target.value); if (manualMsg) setManualMsg('') }} />
               </div>
             </div>
             <div>
@@ -343,6 +349,14 @@ export default function JobSearch({ profile, applications, onApply }) {
               {addingManual ? <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : <CheckCircle size={14} />}
               Add to tracker
             </button>
+            {manualMsg === 'added' && (
+              <div className="text-xs flex items-center gap-1.5" style={{ color: 'var(--success)' }}>
+                <CheckCircle size={13} />Added to your tracker.
+              </div>
+            )}
+            {manualMsg === 'already' && (
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>This role is already in your tracker.</div>
+            )}
           </div>
         )}
         {applications?.length > 0 && (
