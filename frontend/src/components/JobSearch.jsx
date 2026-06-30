@@ -1,6 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Search, ExternalLink, CheckCircle, BookmarkPlus, Clock, MapPin, Calendar, Briefcase } from 'lucide-react'
 import { searchJobs, searchAggregator, createApplication } from '../lib/api'
+
+const LS_JOBS_KEY = 'jobtrack_jobsearch'
+function loadSavedSearch() {
+  try { return JSON.parse(localStorage.getItem(LS_JOBS_KEY) || 'null') } catch { return null }
+}
+const jobKey = (j) => `${(j.title || j.job_title || '').toLowerCase().trim()}|${(j.company || '').toLowerCase().trim()}`
 
 const LOCATIONS = ['Any location', 'Pune', 'Bangalore', 'Hyderabad', 'Mumbai', 'Gurgaon', 'Chennai', 'UAE']
 const RECENCY_OPTIONS = [
@@ -16,14 +22,15 @@ const SENIORITY_OPTIONS = [
 ]
 
 export default function JobSearch({ profile, applications, onApply }) {
-  const [query, setQuery]         = useState('')
-  const [location, setLocation]   = useState('Any location')
-  const [recency, setRecency]     = useState('week')
-  const [seniority, setSeniority] = useState('senior')
-  const [results, setResults]     = useState(null)   // career-page layer (fast)
+  const [query, setQuery]         = useState(() => loadSavedSearch()?.query || '')
+  const [location, setLocation]   = useState(() => loadSavedSearch()?.location || 'Any location')
+  const [recency, setRecency]     = useState(() => loadSavedSearch()?.recency || 'week')
+  const [seniority, setSeniority] = useState(() => loadSavedSearch()?.seniority || 'senior')
+  const [results, setResults]     = useState(() => loadSavedSearch()?.results || null)   // career-page layer (fast)
   const [loading, setLoading]     = useState(false)
-  const [aggJobs, setAggJobs]     = useState(null)   // null = not searched, [] = done/empty
+  const [aggJobs, setAggJobs]     = useState(() => loadSavedSearch()?.aggJobs ?? null)   // null = not searched, [] = done/empty
   const [aggLoading, setAggLoading] = useState(false)
+  const [trackedKeys, setTrackedKeys] = useState(() => new Set())
   const [atsPage, setAtsPage]     = useState(1)
   const [aggPage, setAggPage]     = useState(1)
   const PAGE_SIZE = 10
@@ -33,7 +40,22 @@ export default function JobSearch({ profile, applications, onApply }) {
   const [manualUrl, setManualUrl]       = useState('')
   const [addingManual, setAddingManual] = useState(false)
 
-  useEffect(() => { if (profile?.title) setQuery(profile.title) }, [profile?.title])
+  useEffect(() => { if (profile?.title && !query && !results) setQuery(profile.title) }, [profile?.title])
+
+  // Persist the search so it survives tab switches / refresh — no needless re-fetch (saves API calls).
+  useEffect(() => {
+    if (results || aggJobs) {
+      try { localStorage.setItem(LS_JOBS_KEY, JSON.stringify({ query, location, recency, seniority, results, aggJobs })) } catch {}
+    }
+  }, [results, aggJobs, query, location, recency, seniority])
+
+  // Jobs already tracked (by title+company) — derived from saved applications + this session's clicks.
+  const trackedSet = useMemo(() => {
+    const s = new Set((applications || []).map(a => `${(a.job_title || '').toLowerCase().trim()}|${(a.company || '').toLowerCase().trim()}`))
+    trackedKeys.forEach(k => s.add(k))
+    return s
+  }, [applications, trackedKeys])
+  const isTracked = (job) => trackedSet.has(jobKey(job))
 
   async function handleSearch() {
     if (!query.trim()) return
@@ -60,6 +82,9 @@ export default function JobSearch({ profile, applications, onApply }) {
   }
 
   async function handleTrackJob(job) {
+    const key = jobKey(job)
+    if (trackedSet.has(key)) return                  // already tracked — prevent duplicates
+    setTrackedKeys(prev => new Set(prev).add(key))   // instant acknowledgement
     try {
       const { data } = await createApplication({
         job_title: job.title,
@@ -127,9 +152,15 @@ export default function JobSearch({ profile, applications, onApply }) {
             <ExternalLink size={13} />{job.direct ? 'Apply on company site' : 'Apply'}
           </a>
         )}
-        <button className="btn-secondary text-xs py-1.5" onClick={() => handleTrackJob(job)}>
-          <BookmarkPlus size={13} />Track this job
-        </button>
+        {isTracked(job) ? (
+          <button className="btn-secondary text-xs py-1.5" disabled style={{ opacity: 0.75, cursor: 'default' }}>
+            <CheckCircle size={13} style={{ color: 'var(--success)' }} />Tracked
+          </button>
+        ) : (
+          <button className="btn-secondary text-xs py-1.5" onClick={() => handleTrackJob(job)}>
+            <BookmarkPlus size={13} />Track this job
+          </button>
+        )}
       </div>
     </div>
   )
