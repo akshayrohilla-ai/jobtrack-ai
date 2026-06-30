@@ -24,6 +24,9 @@ export default function JobSearch({ profile, applications, onApply }) {
   const [loading, setLoading]     = useState(false)
   const [aggJobs, setAggJobs]     = useState(null)   // null = not searched, [] = done/empty
   const [aggLoading, setAggLoading] = useState(false)
+  const [atsPage, setAtsPage]     = useState(1)
+  const [aggPage, setAggPage]     = useState(1)
+  const PAGE_SIZE = 10
   const [showManual, setShowManual]     = useState(false)
   const [manualTitle, setManualTitle]   = useState('')
   const [manualCompany, setManualCompany] = useState('')
@@ -34,7 +37,7 @@ export default function JobSearch({ profile, applications, onApply }) {
 
   async function handleSearch() {
     if (!query.trim()) return
-    setLoading(true); setAggLoading(true); setAggJobs(null)
+    setLoading(true); setAggLoading(true); setAggJobs(null); setAtsPage(1); setAggPage(1)
     // Career pages — fast, render the moment it resolves.
     searchJobs(query, location, seniority, recency)
       .then(({ data }) => setResults(data))
@@ -131,10 +134,22 @@ export default function JobSearch({ profile, applications, onApply }) {
     </div>
   )
 
+  const Pager = ({ page, setPage, total }) => {
+    const pages = Math.ceil(total / PAGE_SIZE)
+    if (pages <= 1) return null
+    return (
+      <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: '1px solid var(--border-light)' }}>
+        <button className="btn-secondary text-xs py-1.5" disabled={page <= 1} onClick={() => setPage(page - 1)}>Prev</button>
+        <span className="text-xs" style={{ color: 'var(--text-muted)' }}>Page {page} of {pages} · {total} jobs</span>
+        <button className="btn-secondary text-xs py-1.5" disabled={page >= pages} onClick={() => setPage(page + 1)}>Next</button>
+      </div>
+    )
+  }
+
   return (
     <div className="animate-slide-up space-y-4">
       <div>
-        <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.5rem', color: 'var(--navy-900)' }}>Find jobs</h2>
+        <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.5rem', color: 'var(--text-primary)' }}>Find jobs</h2>
         <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Live job postings matched to your role — apply directly, or refine with LinkedIn searches</p>
       </div>
 
@@ -193,7 +208,8 @@ export default function JobSearch({ profile, applications, onApply }) {
           <p className="text-xs mb-3" style={{ color: 'var(--text-muted)' }}>
             Fresh roles pulled straight from companies’ own careers pages — apply at the source.
           </p>
-          <div className="space-y-2">{results.ats_jobs.map(renderJobCard)}</div>
+          <div className="space-y-2">{results.ats_jobs.slice((atsPage - 1) * PAGE_SIZE, atsPage * PAGE_SIZE).map(renderJobCard)}</div>
+          <Pager page={atsPage} setPage={setAtsPage} total={results.ats_jobs.length} />
         </div>
       )}
 
@@ -211,7 +227,10 @@ export default function JobSearch({ profile, applications, onApply }) {
               {[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 76, borderRadius: 8 }} />)}
             </div>
           ) : (
-            <div className="space-y-2">{aggJobs.map(renderJobCard)}</div>
+            <>
+              <div className="space-y-2">{aggJobs.slice((aggPage - 1) * PAGE_SIZE, aggPage * PAGE_SIZE).map(renderJobCard)}</div>
+              <Pager page={aggPage} setPage={setAggPage} total={aggJobs.length} />
+            </>
           )}
         </div>
       )}

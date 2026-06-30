@@ -27,7 +27,7 @@ CACHE_TABLE = "job_search_cache"
 CACHE_KEY = "ats:all"
 REFRESH_TTL_SECONDS = 24 * 3600
 RECENCY_DAYS = {"24h": 1, "week": 7, "month": 30, "any": None}
-RESULT_LIMIT = 30
+RESULT_LIMIT = 40
 
 INDIAN_CITIES = {
     "bengaluru", "bangalore", "mumbai", "pune", "hyderabad", "chennai",

@@ -127,7 +127,7 @@ async def _fetch_jsearch(query: str, location: str, seniority: str, recency: str
 
     params = {
         "query": f"{role} in {where}",
-        "num_pages": "1",
+        "num_pages": "2",  # ~20 results in one call -> 2 client-side pages, cached 12h
         "country": country,
         "date_posted": DATE_POSTED.get(recency, "all"),
     }
