@@ -1,17 +1,12 @@
 """
-Job search service — fetches real job postings from Adzuna (free aggregator,
-India), normalizes them to a common card shape, and caches results in Supabase
-with a TTL so the free-tier API budget stretches across users.
+Aggregator job source — JSearch (RapidAPI / Google for Jobs).
 
-Design notes:
-- Adzuna covers ONE country per request; we use India ("in"). Locations Adzuna
-  can't serve (UAE/Dubai) return None so the router falls back to LinkedIn links.
-- "anywhere" omits the location filter => nationwide search (the new default).
-- The cache is keyed by the NORMALIZED search (query+location+seniority+recency),
-  so identical searches within the TTL window cost zero API calls. Each miss also
-  opportunistically purges expired rows, keeping the table permanently bounded.
-- Returns None to signal "use the LinkedIn deep-link fallback" (provider not
-  configured, unsupported location, or an upstream error). [[project-job-search]]
+Fetches broad job listings, normalizes them to the shared card shape, and caches
+results in Supabase (12h TTL) so the free-tier budget (200/mo) stretches across
+users. JSearch aggregates Google for Jobs, so results often carry a DIRECT company
+apply link (via `apply_options[].is_direct`) rather than a board redirect — we
+prefer that link. Returns None to signal the caller should use the LinkedIn
+deep-link fallback (not configured, or upstream error). [[project-job-search]]
 """
 import os
 import re
@@ -22,28 +17,13 @@ import httpx
 
 from services.supabase_client import get_supabase
 
-ADZUNA_BASE = "https://api.adzuna.com/v1/api/jobs"
-ADZUNA_COUNTRY = "in"          # India — Adzuna is per-country
+JSEARCH_HOST = "jsearch.p.rapidapi.com"
+JSEARCH_URL = f"https://{JSEARCH_HOST}/search"
 CACHE_TABLE = "job_search_cache"
-CACHE_TTL_SECONDS = 12 * 3600  # 12h — fresh enough for postings, gentle on the API budget
+CACHE_TTL_SECONDS = 12 * 3600
 
-# City label (lowercased) -> Adzuna `where` value. "anywhere" => no filter (nationwide).
-ADZUNA_LOCATIONS = {
-    "anywhere":  None,
-    "pune":      "Pune",
-    "bangalore": "Bengaluru",
-    "hyderabad": "Hyderabad",
-    "mumbai":    "Mumbai",
-    "gurgaon":   "Gurugram",
-    "chennai":   "Chennai",
-    "delhi":     "Delhi",
-}
-
-# Locations outside Adzuna's India coverage -> caller uses the LinkedIn fallback.
-NON_ADZUNA_LOCATIONS = {"uae", "dubai"}
-
-RECENCY_DAYS = {"24h": 1, "week": 7, "month": 30, "any": None}
-SENIORITY_KEYWORDS = {"senior": "senior", "mid": "", "any": ""}
+DATE_POSTED = {"24h": "today", "week": "week", "month": "month", "any": "all"}
+GULF = {"uae", "dubai"}
 
 _TAG_RE = re.compile(r"<[^>]+>")
 
@@ -57,24 +37,18 @@ def normalize_location(label: str) -> str:
 
 
 def _cache_key(query: str, location: str, seniority: str, recency: str) -> str:
-    raw = f"adzuna|{query.strip().lower()}|{location}|{seniority}|{recency}"
+    raw = f"jsearch|{query.strip().lower()}|{location}|{seniority}|{recency}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
 def _get_cached(key: str):
-    """Return cached payload (a list of normalized jobs) or None. Purges expired rows."""
     try:
         sb = get_supabase()
         now_iso = datetime.now(timezone.utc).isoformat()
-        # Opportunistic cleanup so the cache table never grows unbounded.
-        sb.table(CACHE_TABLE).delete().lt("expires_at", now_iso).execute()
+        sb.table(CACHE_TABLE).delete().lt("expires_at", now_iso).execute()  # purge expired
         res = (
-            sb.table(CACHE_TABLE)
-            .select("payload")
-            .eq("cache_key", key)
-            .gt("expires_at", now_iso)
-            .limit(1)
-            .execute()
+            sb.table(CACHE_TABLE).select("payload")
+            .eq("cache_key", key).gt("expires_at", now_iso).limit(1).execute()
         )
         if res.data:
             return res.data[0]["payload"]
@@ -98,87 +72,88 @@ def _set_cache(key: str, payload) -> None:
 
 
 def _salary(j: dict):
-    lo, hi = j.get("salary_min"), j.get("salary_max")
+    lo, hi = j.get("job_min_salary"), j.get("job_max_salary")
     if not lo and not hi:
         return None
-    fmt = lambda v: f"₹{int(v):,}"  # ₹ with thousands separators
+    cur = j.get("job_salary_currency") or "INR"
+    sym = {"INR": "₹", "USD": "$", "AED": "AED ", "GBP": "£", "EUR": "€"}.get(cur, cur + " ")
+    fmt = lambda v: f"{sym}{int(v):,}"
     if lo and hi and int(lo) != int(hi):
-        return f"{fmt(lo)}–{fmt(hi)}"  # en-dash range
+        return f"{fmt(lo)}–{fmt(hi)}"
     return fmt(lo or hi)
 
 
 def _normalize(j: dict) -> dict:
-    desc = _TAG_RE.sub("", j.get("description", "") or "").strip()
+    # Prefer the direct company apply link when JSearch exposes one.
+    apply_url = j.get("job_apply_link", "")
+    source = j.get("job_publisher") or "JSearch"
+    for opt in (j.get("apply_options") or []):
+        if opt.get("is_direct"):
+            apply_url = opt.get("apply_link") or apply_url
+            source = opt.get("publisher") or source
+            break
+    loc = ", ".join(p for p in [j.get("job_city"), j.get("job_state"), j.get("job_country")] if p)
+    desc = _TAG_RE.sub("", j.get("job_description", "") or "").strip()
     return {
-        "id": str(j.get("id") or ""),
-        "title": (j.get("title") or "").strip(),
-        "company": ((j.get("company") or {}).get("display_name") or "").strip(),
-        "location": ((j.get("location") or {}).get("display_name") or "").strip(),
-        "posted_date": (j.get("created") or "")[:10],
+        "id": str(j.get("job_id") or ""),
+        "title": (j.get("job_title") or "").strip(),
+        "company": (j.get("employer_name") or "").strip(),
+        "location": loc,
+        "posted_date": (j.get("job_posted_at_datetime_utc") or "")[:10],
         "salary": _salary(j),
-        "source": "Adzuna",
-        "apply_url": j.get("redirect_url", ""),
+        "source": source,
+        "direct": False,
+        "apply_url": apply_url,
         "snippet": desc[:240],
     }
 
 
-async def _fetch_adzuna(query: str, location_key: str, seniority: str, recency: str):
-    """Call Adzuna. Returns a list of normalized jobs, or None if not configured."""
-    app_id = os.getenv("ADZUNA_APP_ID")
-    app_key = os.getenv("ADZUNA_APP_KEY")
-    if not app_id or not app_key:
+async def _fetch_jsearch(query: str, location: str, seniority: str, recency: str):
+    key = os.getenv("JSEARCH_API_KEY")
+    if not key:
         return None  # not configured -> signal fallback
 
-    what = query.strip()
-    kw = SENIORITY_KEYWORDS.get(seniority, "")
-    if kw and not what.lower().startswith(kw):  # Adzuna has no seniority field; fold into keywords
-        what = f"{kw} {what}"
+    loc_key = normalize_location(location)
+    role = query.strip()
+    if seniority == "senior" and not role.lower().startswith("senior"):
+        role = f"senior {role}"
+
+    if loc_key == "anywhere":
+        where, country = "India", "in"
+    elif loc_key in GULF:
+        where, country = ("Dubai, UAE" if loc_key == "dubai" else "UAE"), "ae"
+    else:
+        where, country = f"{location}, India", "in"
 
     params = {
-        "app_id": app_id,
-        "app_key": app_key,
-        "what": what,
-        "results_per_page": 20,
-        "sort_by": "date",
+        "query": f"{role} in {where}",
+        "page": "1",
+        "num_pages": "1",
+        "country": country,
+        "date_posted": DATE_POSTED.get(recency, "all"),
     }
-    where = ADZUNA_LOCATIONS.get(location_key)
-    if where:
-        params["where"] = where
-    days = RECENCY_DAYS.get(recency)
-    if days:
-        params["max_days_old"] = days
-
-    url = f"{ADZUNA_BASE}/{ADZUNA_COUNTRY}/search/1"
-    async with httpx.AsyncClient(timeout=12) as client:
-        resp = await client.get(url, params=params)
+    headers = {"X-RapidAPI-Key": key, "X-RapidAPI-Host": JSEARCH_HOST}
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(JSEARCH_URL, params=params, headers=headers)
         resp.raise_for_status()
         data = resp.json()
 
-    return [_normalize(j) for j in data.get("results", []) if j.get("title")]
+    return [_normalize(j) for j in (data.get("data") or []) if j.get("job_title")]
 
 
 async def search(query: str, location: str, seniority: str, recency: str):
-    """
-    Returns a list of normalized job cards, or None to signal the caller should
-    use the LinkedIn deep-link fallback (unsupported location, not configured,
-    or upstream error).
-    """
-    location_key = normalize_location(location)
-    if location_key in NON_ADZUNA_LOCATIONS:
-        return None  # outside Adzuna India coverage
-
-    key = _cache_key(query, location_key, seniority, recency)
+    """Returns a list of normalized aggregator cards, or None to use the fallback."""
+    loc_key = normalize_location(location)
+    key = _cache_key(query, loc_key, seniority, recency)
     cached = _get_cached(key)
     if cached is not None:
         return cached
-
     try:
-        jobs = await _fetch_adzuna(query, location_key, seniority, recency)
+        jobs = await _fetch_jsearch(query, location, seniority, recency)
     except Exception as e:
-        print(f"[job_search] adzuna fetch failed: {e}", flush=True)
+        print(f"[job_search] jsearch fetch failed: {e}", flush=True)
         return None
-
     if jobs is None:
-        return None  # not configured
+        return None
     _set_cache(key, jobs)
     return jobs

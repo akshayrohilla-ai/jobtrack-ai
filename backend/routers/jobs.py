@@ -1,8 +1,12 @@
-from fastapi import APIRouter, Query, Request
+import os
+import re
+from urllib.parse import quote, quote_plus
+
+from fastapi import APIRouter, Query, Request, HTTPException
 from slowapi import Limiter
 from middleware.ratelimit import user_or_ip
 from middleware.auth import get_current_user
-from services import job_search
+from services import job_search, ats_source
 
 router = APIRouter()
 limiter = Limiter(key_func=user_or_ip)
@@ -32,6 +36,41 @@ SENIORITY_MAP = {
     "mid":    "f_E=3",
     "any":    "",
 }
+
+# Recency in days, for portals that filter by "posted within N days".
+PORTAL_RECENCY_DAYS = {"24h": 1, "week": 7, "month": 30, "any": None}
+# Naukri filters by a single minimum-years-of-experience number.
+NAUKRI_EXP = {"senior": 7, "mid": 3, "any": None}
+
+
+def _indeed_url(query: str, location: str, seniority: str, recency: str) -> str:
+    """Indeed India search deep-link (relevance-sorted by default)."""
+    parts = [f"q={quote_plus(query.strip())}"]
+    if job_search.normalize_location(location) != "anywhere":
+        parts.append(f"l={quote_plus(location)}")
+    days = PORTAL_RECENCY_DAYS.get(recency)
+    if days:
+        parts.append(f"fromage={days}")
+    return "https://in.indeed.com/jobs?" + "&".join(parts)
+
+
+def _naukri_url(query: str, location: str, seniority: str, recency: str) -> str:
+    """Naukri search deep-link — {keyword}-jobs[-in-{city}] with k/experience/jobAge params."""
+    kw = query.strip()
+    kw_slug = re.sub(r"[^a-z0-9]+", "-", kw.lower()).strip("-") or "jobs"
+    path = f"{kw_slug}-jobs"
+    if job_search.normalize_location(location) != "anywhere":
+        city_slug = re.sub(r"[^a-z0-9]+", "-", location.lower()).strip("-")
+        if city_slug:
+            path += f"-in-{city_slug}"
+    params = [f"k={quote(kw)}"]
+    exp = NAUKRI_EXP.get(seniority)
+    if exp is not None:
+        params.append(f"experience={exp}")
+    age = PORTAL_RECENCY_DAYS.get(recency)
+    if age:
+        params.append(f"jobAge={age}")
+    return f"https://www.naukri.com/{path}?" + "&".join(params)
 
 
 def _linkedin_fallback(query: str, location: str, seniority: str, recency: str) -> dict:
@@ -117,17 +156,42 @@ async def search_jobs(
     # fallback if the live provider returns nothing.
     payload = _linkedin_fallback(query, location, seniority, recency)
 
-    try:
-        jobs = await job_search.search(query, location, seniority, recency)
-    except Exception as e:
-        print(f"[jobs] provider error: {e}", flush=True)
-        jobs = None
+    # "Search on" deep-links — same lightweight pattern as LinkedIn, for the portals
+    # that have no usable listings API (so they open a filtered search in a new tab).
+    payload["portal_searches"] = [
+        {"name": "LinkedIn", "url": payload["primary_url"]},
+        {"name": "Naukri", "url": _naukri_url(query, location, seniority, recency)},
+        {"name": "Indeed", "url": _indeed_url(query, location, seniority, recency)},
+    ]
 
-    if jobs:
-        payload["jobs"] = jobs
-        payload["fallback"] = False
-    else:
-        payload["jobs"] = []
-        payload["fallback"] = True
+    # ① Direct from company career pages (the differentiator) — curated ATS boards.
+    try:
+        ats_jobs = await ats_source.search(query, location)
+    except Exception as e:
+        print(f"[jobs] ats error: {e}", flush=True)
+        ats_jobs = []
+
+    # ② Aggregator breadth — JSearch (None => not configured / error).
+    try:
+        agg_jobs = await job_search.search(query, location, seniority, recency)
+    except Exception as e:
+        print(f"[jobs] aggregator error: {e}", flush=True)
+        agg_jobs = None
+
+    payload["ats_jobs"] = ats_jobs or []
+    payload["jobs"] = agg_jobs or []
+    # Fallback (③ portal deep-links only) when neither live source returned anything.
+    payload["fallback"] = not (payload["ats_jobs"] or payload["jobs"])
 
     return payload
+
+
+@router.post("/refresh-ats")
+async def refresh_ats(request: Request, token: str = Query(...)):
+    """Refresh the curated career-page job cache. Protected by ATS_REFRESH_TOKEN so
+    only the owner / a scheduled job (e.g. cron-job.org) can trigger it."""
+    expected = os.getenv("ATS_REFRESH_TOKEN")
+    if not expected or token != expected:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    count = await ats_source.refresh_cache()
+    return {"refreshed": count}
