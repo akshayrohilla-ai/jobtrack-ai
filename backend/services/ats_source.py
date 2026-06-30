@@ -13,7 +13,9 @@ table, no per-search fan-out. On a cold cache it refreshes inline as a fallback.
 """
 import re
 import asyncio
+import difflib
 import datetime
+from collections import Counter
 
 import httpx
 
@@ -111,8 +113,27 @@ def _india_relevant(jl):
     return ("india" in jl) or any(c in jl for c in INDIAN_CITIES)
 
 
+def _correct_tokens(tokens, vocab):
+    """Typo tolerance: map each query token to the nearest title word in the corpus
+    (so 'projet'/'enginer' still match). Short tokens and exact hits pass through."""
+    out = []
+    for t in tokens:
+        if len(t) <= 2 or t in vocab:
+            out.append(t)
+        else:
+            m = difflib.get_close_matches(t, vocab, n=1, cutoff=0.8)
+            out.append(m[0] if m else t)
+    return out
+
+
 def _filter(jobs, query, location, recency="any"):
     q_tokens = _tokens(query)
+    if q_tokens:
+        # Correct against COMMON title words only (>=3 occurrences) so typos/foreign
+        # noise tokens ("enginer", "produit") don't pollute the spell dictionary.
+        counts = Counter(t for j in jobs for t in _tokens(j["title"]))
+        vocab = {w for w, c in counts.items() if c >= 3}
+        q_tokens = _correct_tokens(q_tokens, vocab)
     loc = (location or "").lower().strip()
     anywhere = loc in ("any location", "anywhere", "any", "all", "all locations", "")
     days = RECENCY_DAYS.get(recency)

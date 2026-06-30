@@ -135,9 +135,26 @@ async def _fetch_jsearch(query: str, location: str, seniority: str, recency: str
     async with httpx.AsyncClient(timeout=15) as client:
         resp = await client.get(JSEARCH_URL, params=params, headers=headers)
         resp.raise_for_status()
-        data = resp.json()
+        payload = resp.json()
 
-    return [_normalize(j) for j in (data.get("data") or []) if j.get("job_title")]
+    return [_normalize(j) for j in _extract_jobs(payload) if j.get("job_title")]
+
+
+def _extract_jobs(payload):
+    """Find the list of job dicts in a JSearch response, tolerant of v1/v2 shapes
+    (data may be a top-level list, or nested under data/jobs/results)."""
+    if isinstance(payload, list):
+        return [j for j in payload if isinstance(j, dict)]
+    if isinstance(payload, dict):
+        for key in ("data", "jobs", "results"):
+            v = payload.get(key)
+            if isinstance(v, list):
+                return [j for j in v if isinstance(j, dict)]
+            if isinstance(v, dict):
+                inner = _extract_jobs(v)
+                if inner:
+                    return inner
+    return []
 
 
 async def search(query: str, location: str, seniority: str, recency: str):
