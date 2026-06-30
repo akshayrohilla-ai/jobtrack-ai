@@ -1,11 +1,14 @@
 from fastapi import APIRouter, Query, Request
 from slowapi import Limiter
 from middleware.ratelimit import user_or_ip
+from middleware.auth import get_current_user
+from services import job_search
 
 router = APIRouter()
 limiter = Limiter(key_func=user_or_ip)
 
 LOCATION_MAP = {
+    "anywhere": "India",
     "pune": "Pune%2C+Maharashtra%2C+India",
     "bangalore": "Bengaluru%2C+Karnataka%2C+India",
     "hyderabad": "Hyderabad%2C+Telangana%2C+India",
@@ -31,19 +34,13 @@ SENIORITY_MAP = {
 }
 
 
-@router.get("/search")
-@limiter.limit("30/minute")
-async def search_jobs(
-    request: Request,
-    query: str = Query(...),
-    location: str = Query("pune"),
-    seniority: str = Query("senior"),
-    recency: str = Query("week")
-):
-    loc_key = location.lower().strip()
+def _linkedin_fallback(query: str, location: str, seniority: str, recency: str) -> dict:
+    """Build the LinkedIn deep-link payload. Used as the always-free fallback when
+    the live provider is unavailable, out of budget, or doesn't cover the location."""
+    loc_key = job_search.normalize_location(location)
     li_location = LOCATION_MAP.get(loc_key, location.replace(" ", "+"))
 
-    # Strip leading "Senior " or "Lead " from query to avoid doubling
+    # Strip leading seniority words from the query to avoid doubling.
     clean_query = query.strip()
     for prefix in ["Senior ", "Lead ", "Staff ", "Principal "]:
         if clean_query.lower().startswith(prefix.lower()):
@@ -63,61 +60,33 @@ async def search_jobs(
         filters.append(recency_filter)
 
     filter_str = "&" + "&".join(filters) if filters else ""
+    loc_label = "Anywhere in India" if loc_key == "anywhere" else location
 
     def url(kw: str) -> str:
         return f"https://www.linkedin.com/jobs/search/?keywords={kw}&location={li_location}&count=25{filter_str}"
 
     search_urls = [
-        {
-            "label": query,
-            "url": url(encoded_query),
-            "description": f"Exact: '{query}' in {location} · {recency_label}"
-        },
-        {
-            "label": f"Senior {clean_query}",
-            "url": url("Senior+" + encoded_clean),
-            "description": f"Senior-level · {location} · {recency_label}"
-        },
-        {
-            "label": f"{clean_query} – Enterprise",
-            "url": url(encoded_clean + "+Enterprise"),
-            "description": f"Enterprise context · {location} · {recency_label}"
-        },
-        {
-            "label": f"{clean_query} – Remote",
-            "url": f"https://www.linkedin.com/jobs/search/?keywords={encoded_clean}&location=India&f_WT=2{filter_str}",
-            "description": f"Remote roles across India · {recency_label}"
-        },
-        {
-            "label": f"Lead {clean_query}",
-            "url": url("Lead+" + encoded_clean),
-            "description": f"Lead/Principal level · {location} · {recency_label}"
-        },
-        {
-            "label": f"{clean_query} – AI",
-            "url": url(encoded_clean + "+AI"),
-            "description": f"AI-augmented roles · {location} · {recency_label}"
-        },
-        {
-            "label": f"{clean_query} – Consulting",
-            "url": url(encoded_clean + "+Consulting"),
-            "description": f"Consulting firms · {location} · {recency_label}"
-        },
-        {
-            "label": f"{clean_query} – MNC",
-            "url": url(encoded_clean + "+MNC"),
-            "description": f"Multinational companies · {location} · {recency_label}"
-        },
-        {
-            "label": f"Staff {clean_query}",
-            "url": url("Staff+" + encoded_clean),
-            "description": f"Staff-level · {location} · {recency_label}"
-        },
-        {
-            "label": f"{clean_query} – Fintech",
-            "url": url(encoded_clean + "+Fintech"),
-            "description": f"Fintech sector · {location} · {recency_label}"
-        },
+        {"label": query, "url": url(encoded_query),
+         "description": f"Exact: '{query}' in {loc_label} · {recency_label}"},
+        {"label": f"Senior {clean_query}", "url": url("Senior+" + encoded_clean),
+         "description": f"Senior-level · {loc_label} · {recency_label}"},
+        {"label": f"{clean_query} – Enterprise", "url": url(encoded_clean + "+Enterprise"),
+         "description": f"Enterprise context · {loc_label} · {recency_label}"},
+        {"label": f"{clean_query} – Remote",
+         "url": f"https://www.linkedin.com/jobs/search/?keywords={encoded_clean}&location=India&f_WT=2{filter_str}",
+         "description": f"Remote roles across India · {recency_label}"},
+        {"label": f"Lead {clean_query}", "url": url("Lead+" + encoded_clean),
+         "description": f"Lead/Principal level · {loc_label} · {recency_label}"},
+        {"label": f"{clean_query} – AI", "url": url(encoded_clean + "+AI"),
+         "description": f"AI-augmented roles · {loc_label} · {recency_label}"},
+        {"label": f"{clean_query} – Consulting", "url": url(encoded_clean + "+Consulting"),
+         "description": f"Consulting firms · {loc_label} · {recency_label}"},
+        {"label": f"{clean_query} – MNC", "url": url(encoded_clean + "+MNC"),
+         "description": f"Multinational companies · {loc_label} · {recency_label}"},
+        {"label": f"Staff {clean_query}", "url": url("Staff+" + encoded_clean),
+         "description": f"Staff-level · {loc_label} · {recency_label}"},
+        {"label": f"{clean_query} – Fintech", "url": url(encoded_clean + "+Fintech"),
+         "description": f"Fintech sector · {loc_label} · {recency_label}"},
     ]
 
     return {
@@ -127,5 +96,38 @@ async def search_jobs(
         "recency_label": recency_label,
         "linkedin_location": li_location,
         "search_urls": search_urls,
-        "primary_url": search_urls[0]["url"]
+        "primary_url": search_urls[0]["url"],
     }
+
+
+@router.get("/search")
+@limiter.limit("30/minute")
+async def search_jobs(
+    request: Request,
+    query: str = Query(...),
+    location: str = Query("anywhere"),
+    seniority: str = Query("senior"),
+    recency: str = Query("week")
+):
+    # Require a logged-in user: job search is FREE (no credit), but auth protects
+    # the shared Adzuna free-tier budget from anonymous abuse.
+    await get_current_user(request)
+
+    # Always build the LinkedIn payload — it carries the metadata AND doubles as the
+    # fallback if the live provider returns nothing.
+    payload = _linkedin_fallback(query, location, seniority, recency)
+
+    try:
+        jobs = await job_search.search(query, location, seniority, recency)
+    except Exception as e:
+        print(f"[jobs] provider error: {e}", flush=True)
+        jobs = None
+
+    if jobs:
+        payload["jobs"] = jobs
+        payload["fallback"] = False
+    else:
+        payload["jobs"] = []
+        payload["fallback"] = True
+
+    return payload

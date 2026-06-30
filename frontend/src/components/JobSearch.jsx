@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Search, ExternalLink, CheckCircle, BookmarkPlus, Clock, Users, Globe } from 'lucide-react'
+import { Search, ExternalLink, CheckCircle, BookmarkPlus, Clock, Users, Globe, MapPin, Calendar, Briefcase } from 'lucide-react'
 import { searchJobs, createApplication } from '../lib/api'
 
-const LOCATIONS = ['Pune', 'Bangalore', 'Hyderabad', 'Mumbai', 'Gurgaon', 'Chennai', 'UAE']
+const LOCATIONS = ['Any location', 'Pune', 'Bangalore', 'Hyderabad', 'Mumbai', 'Gurgaon', 'Chennai', 'UAE']
 const RECENCY_OPTIONS = [
   { value: '24h',   label: 'Last 24 hours' },
   { value: 'week',  label: 'Last 7 days' },
@@ -17,7 +17,7 @@ const SENIORITY_OPTIONS = [
 
 export default function JobSearch({ profile, applications, onApply }) {
   const [query, setQuery]         = useState('')
-  const [location, setLocation]   = useState('Pune')
+  const [location, setLocation]   = useState('Any location')
   const [recency, setRecency]     = useState('week')
   const [seniority, setSeniority] = useState('senior')
   const [results, setResults]     = useState(null)
@@ -45,6 +45,26 @@ export default function JobSearch({ profile, applications, onApply }) {
         search_urls: [{ label: query, url: `https://www.linkedin.com/jobs/search/?keywords=${encoded}&location=${loc}&f_E=4`, description: `Exact match · ${location}` }]
       })
     } finally { setLoading(false) }
+  }
+
+  async function handleTrackJob(job) {
+    try {
+      const { data } = await createApplication({
+        job_title: job.title,
+        company: job.company || '—',
+        location: job.location || location,
+        match_score: null,
+        linkedin_url: job.apply_url || null
+      })
+      onApply({ ...data, jobId: data.id })
+    } catch {
+      onApply({
+        id: Date.now().toString(), jobId: Date.now().toString(),
+        job_title: job.title, company: job.company || '—',
+        location: job.location || location, match_score: null, status: 'applied',
+        applied_date: new Date().toISOString().split('T')[0]
+      })
+    }
   }
 
   async function handleManualTrack() {
@@ -76,7 +96,7 @@ export default function JobSearch({ profile, applications, onApply }) {
     <div className="animate-slide-up space-y-4">
       <div>
         <h2 style={{ fontFamily: 'Fraunces, serif', fontSize: '1.5rem', color: 'var(--navy-900)' }}>Find jobs</h2>
-        <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Generate targeted LinkedIn searches filtered to your role and preferences</p>
+        <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Live job postings matched to your role — apply directly, or refine with LinkedIn searches</p>
       </div>
 
       {/* Search form */}
@@ -110,17 +130,63 @@ export default function JobSearch({ profile, applications, onApply }) {
         )}
       </div>
 
-      {/* Results */}
-      {results && (
+      {/* Results — live job cards when the provider returned postings */}
+      {results && !results.fallback && results.jobs?.length > 0 && (
         <div className="card">
           <div className="flex items-center justify-between mb-3">
-            <span className="section-label mb-0">{results.search_urls?.length} LinkedIn search variants</span>
+            <span className="section-label mb-0">{results.jobs.length} live job{results.jobs.length !== 1 ? 's' : ''}</span>
+            <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-ghost)' }}>
+              <Clock size={11} />{results.recency_label}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {results.jobs.map((job, i) => (
+              <div key={job.id || i} className="p-3 rounded-lg"
+                style={{ border: '1px solid var(--border)', background: 'var(--surface-raised)' }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{job.title}</div>
+                    <div className="flex items-center flex-wrap gap-x-3 gap-y-1 mt-1 text-xs" style={{ color: 'var(--text-muted)' }}>
+                      {job.company && <span className="flex items-center gap-1"><Briefcase size={11} />{job.company}</span>}
+                      {job.location && <span className="flex items-center gap-1"><MapPin size={11} />{job.location}</span>}
+                      {job.posted_date && <span className="flex items-center gap-1"><Calendar size={11} />{job.posted_date}</span>}
+                    </div>
+                    {job.salary && <div className="text-xs mt-1 font-medium" style={{ color: 'var(--blue-accent)' }}>{job.salary}</div>}
+                  </div>
+                  <span className="text-xs whitespace-nowrap" style={{ color: 'var(--text-ghost)' }}>via {job.source}</span>
+                </div>
+                <div className="flex gap-2 mt-3">
+                  {job.apply_url && (
+                    <a href={job.apply_url} target="_blank" rel="noreferrer" className="btn-primary text-xs py-1.5">
+                      <ExternalLink size={13} />Apply
+                    </a>
+                  )}
+                  <button className="btn-secondary text-xs py-1.5" onClick={() => handleTrackJob(job)}>
+                    <BookmarkPlus size={13} />Track this job
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          <a href={results.primary_url} target="_blank" rel="noreferrer"
+            className="flex items-center justify-center gap-1.5 text-xs mt-4 pt-3"
+            style={{ color: 'var(--text-muted)', borderTop: '1px solid var(--border-light)' }}>
+            <Globe size={13} />Refine this search on LinkedIn
+          </a>
+        </div>
+      )}
+
+      {/* Fallback — LinkedIn deep-link variants (provider unavailable or location not covered) */}
+      {results && (results.fallback || !results.jobs?.length) && (
+        <div className="card">
+          <div className="flex items-center justify-between mb-3">
+            <span className="section-label mb-0">{results.search_urls?.length} LinkedIn searches</span>
             <span className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-ghost)' }}>
               <Clock size={11} />{results.recency_label}
             </span>
           </div>
           <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
-            Each link opens live LinkedIn with your filters applied. Find a role → use <strong>Track a job</strong> below to add it to your tracker.
+            No live postings to show here — each link opens LinkedIn with your filters applied. Find a role → use <strong>Track a job</strong> below to add it to your tracker.
           </p>
           <div className="space-y-2">
             {results.search_urls?.map((s, i) => (
