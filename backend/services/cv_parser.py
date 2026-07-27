@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 try:
-    import PyPDF2
+    import pypdf  # successor to the deprecated PyPDF2 (same PdfReader API)
     PDF_AVAILABLE = True
 except ImportError:
     PDF_AVAILABLE = False
@@ -28,7 +28,7 @@ def extract_text_from_file(file_bytes: bytes, filename: str) -> str:
 
     if fname.endswith(".pdf") and PDF_AVAILABLE:
         try:
-            reader = PyPDF2.PdfReader(io.BytesIO(file_bytes))
+            reader = pypdf.PdfReader(io.BytesIO(file_bytes))
             text = ""
             for page in reader.pages:
                 text += page.extract_text() or ""
