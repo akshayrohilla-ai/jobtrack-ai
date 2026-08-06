@@ -1,34 +1,24 @@
 name: Keep backend warm
 
-# Pings the Render backend so the free tier doesn't spin down. Uses a long curl
-# timeout that SURVIVES a cold start, so a wake-up ping succeeds instead of failing
-# (unlike the cron-job.org keep-alive, which timed out mid-cold-start and disabled
-# itself). GitHub may delay scheduled runs a few minutes under load — that's fine:
-# a delayed ping still wakes the service without erroring. Replaces the fragile
-# external cron. The real fix for cold starts is a paid Render plan (no spin-down).
+# Best-effort ping so Render's free tier doesn't spin down. Intentionally NEVER
+# fails or cancels: it's a keep-alive, not a monitor. A single 90s curl outlasts a
+# cold start (~40s); if the backend is momentarily unreachable (e.g. mid-redeploy),
+# `|| true` swallows it and the run stays green — the next run pokes it again.
+# GitHub may delay scheduled runs a few minutes under load; that's fine.
+# The real fix for cold starts is a paid Render plan (no spin-down, no keep-alive).
 
 on:
   schedule:
     - cron: '*/10 * * * *'   # roughly every 10 minutes (Render idles at ~15 min)
-  workflow_dispatch:          # allow manual runs from the Actions tab
-
-concurrency:
-  group: keep-alive
-  cancel-in-progress: false
+  workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 3
     steps:
-      - name: Ping /health (retries survive a cold start)
+      - name: Ping /health (never fails the run)
         run: |
-          URL="https://jobtrack-ai-backend.onrender.com/health"
-          for i in 1 2 3; do
-            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 120 "$URL" || echo "000")
-            echo "attempt $i -> HTTP $code"
-            [ "$code" = "200" ] && exit 0
-            sleep 15
-          done
-          echo "backend did not return 200 after 3 attempts — likely a real outage"
-          exit 1
+          code=$(curl -s -m 90 -o /dev/null -w "%{http_code}" \
+            https://jobtrack-ai-backend.onrender.com/health || echo "000")
+          echo "health -> HTTP $code"
